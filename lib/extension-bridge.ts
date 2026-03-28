@@ -8,17 +8,27 @@
 
 import {
   COOKIE_MONSTER_EXTENSION_ID,
+  type CleanupInsights,
+  type CleanupPresetId,
   generateMockReport as createMockReport,
   parseReportFile as parseCookieReportFile,
+  type PendingFeedRequestSummary,
   type CookieSummaryReport,
 } from "@/lib/cookie-report";
 
-export type { CookieSummaryReport } from "@/lib/cookie-report";
+export type {
+  CleanupInsights,
+  CleanupPresetId,
+  CookieSummaryReport,
+  PendingFeedRequestSummary,
+} from "@/lib/cookie-report";
 
 // Message types for extension communication
 export type MessageType = 
   | "PING"
   | "GET_SUMMARY_REPORT"
+  | "GET_FEED_PREVIEW"
+  | "REQUEST_COOKIE_FEED"
   | "OPEN_EXTENSION_DASHBOARD"
   | "EXPORT_REPORT"
   | "GET_EXTENSION_VERSION";
@@ -31,8 +41,18 @@ export interface ExtensionMessage {
 export interface ExtensionResponse {
   success: boolean;
   type: string;
-  data?: CookieSummaryReport | { version: string } | null;
+  data?:
+    | CookieSummaryReport
+    | CleanupInsights
+    | PendingFeedRequestSummary
+    | { version: string }
+    | { extensionId: string }
+    | null;
   error?: string;
+}
+
+export interface CookieFeedRequest {
+  presetId: CleanupPresetId;
 }
 
 /**
@@ -110,6 +130,30 @@ export async function getSummaryReport(): Promise<CookieSummaryReport | null> {
   if (response.success && response.data && "totals" in response.data) {
     return response.data as CookieSummaryReport;
   }
+  return null;
+}
+
+export async function getCleanupPreview(): Promise<CleanupInsights | null> {
+  const response = await sendMessageToExtension({ type: "GET_FEED_PREVIEW" });
+  if (response.success && response.data && "presets" in response.data) {
+    return response.data as CleanupInsights;
+  }
+
+  return null;
+}
+
+export async function requestCookieFeed(
+  request: CookieFeedRequest
+): Promise<PendingFeedRequestSummary | null> {
+  const response = await sendMessageToExtension({
+    type: "REQUEST_COOKIE_FEED",
+    payload: request as unknown as Record<string, unknown>,
+  });
+
+  if (response.success && response.data && "requestId" in response.data) {
+    return response.data as PendingFeedRequestSummary;
+  }
+
   return null;
 }
 

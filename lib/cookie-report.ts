@@ -1,6 +1,66 @@
 export const COOKIE_MONSTER_EXTENSION_ID =
   process.env.NEXT_PUBLIC_EXTENSION_ID || "fkgahfgnfpnmnkbamedpjkeciljakheb";
 
+export type CookieRiskLevel = "high" | "medium" | "low";
+export type CookieCategory =
+  | "essential"
+  | "functional"
+  | "analytics"
+  | "advertising"
+  | "unknown";
+export type CleanupPresetId =
+  | "balanced"
+  | "expired"
+  | "highRisk"
+  | "trackers"
+  | "longLived";
+
+export interface CleanupPresetSummary {
+  id: CleanupPresetId;
+  label: string;
+  description: string;
+  cookieCount: number;
+  domainCount: number;
+  sampleDomains: string[];
+}
+
+export interface CleanupRecommendation {
+  id: string;
+  title: string;
+  description: string;
+  presetId: CleanupPresetId;
+  cookieCount: number;
+  tone: CookieRiskLevel;
+}
+
+export interface CleanupDomainSummary {
+  domain: string;
+  cookieCount: number;
+  highRiskCount: number;
+  analyticsCount: number;
+  advertisingCount: number;
+  samplePresetIds: CleanupPresetId[];
+}
+
+export interface CleanupInsights {
+  totalCandidates: number;
+  presets: CleanupPresetSummary[];
+  recommendations: CleanupRecommendation[];
+  topFeedDomains: CleanupDomainSummary[];
+}
+
+export interface PendingFeedRequestSummary {
+  requestId: string;
+  createdAt: string;
+  presetId: CleanupPresetId;
+  label: string;
+  description: string;
+  cookieCount: number;
+  domainCount: number;
+  sampleDomains: string[];
+  source: "website";
+}
+
 export interface CookieSummaryReport {
   generatedAt: string;
   totals: {
@@ -41,6 +101,7 @@ export interface CookieSummaryReport {
     advertising: number;
     unknown: number;
   };
+  cleanup?: CleanupInsights;
 }
 
 function isNumberRecord(value: unknown, keys: string[]): boolean {
@@ -49,6 +110,87 @@ function isNumberRecord(value: unknown, keys: string[]): boolean {
   }
 
   return keys.every((key) => typeof (value as Record<string, unknown>)[key] === "number");
+}
+
+function isCleanupPresetId(value: unknown): value is CleanupPresetId {
+  return (
+    value === "balanced" ||
+    value === "expired" ||
+    value === "highRisk" ||
+    value === "trackers" ||
+    value === "longLived"
+  );
+}
+
+function isRiskLevel(value: unknown): value is CookieRiskLevel {
+  return value === "high" || value === "medium" || value === "low";
+}
+
+function isCleanupInsights(value: unknown): value is CleanupInsights {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const cleanup = value as Record<string, unknown>;
+
+  if (
+    typeof cleanup.totalCandidates !== "number" ||
+    !Array.isArray(cleanup.presets) ||
+    !Array.isArray(cleanup.recommendations) ||
+    !Array.isArray(cleanup.topFeedDomains)
+  ) {
+    return false;
+  }
+
+  return (
+    cleanup.presets.every((preset) => {
+      if (!preset || typeof preset !== "object") {
+        return false;
+      }
+
+      const candidate = preset as Record<string, unknown>;
+      return (
+        isCleanupPresetId(candidate.id) &&
+        typeof candidate.label === "string" &&
+        typeof candidate.description === "string" &&
+        typeof candidate.cookieCount === "number" &&
+        typeof candidate.domainCount === "number" &&
+        Array.isArray(candidate.sampleDomains) &&
+        candidate.sampleDomains.every((domain) => typeof domain === "string")
+      );
+    }) &&
+    cleanup.recommendations.every((recommendation) => {
+      if (!recommendation || typeof recommendation !== "object") {
+        return false;
+      }
+
+      const candidate = recommendation as Record<string, unknown>;
+      return (
+        typeof candidate.id === "string" &&
+        typeof candidate.title === "string" &&
+        typeof candidate.description === "string" &&
+        isCleanupPresetId(candidate.presetId) &&
+        typeof candidate.cookieCount === "number" &&
+        isRiskLevel(candidate.tone)
+      );
+    }) &&
+    cleanup.topFeedDomains.every((domainSummary) => {
+      if (!domainSummary || typeof domainSummary !== "object") {
+        return false;
+      }
+
+      const candidate = domainSummary as Record<string, unknown>;
+      return (
+        typeof candidate.domain === "string" &&
+        typeof candidate.cookieCount === "number" &&
+        typeof candidate.highRiskCount === "number" &&
+        typeof candidate.analyticsCount === "number" &&
+        typeof candidate.advertisingCount === "number" &&
+        Array.isArray(candidate.samplePresetIds) &&
+        candidate.samplePresetIds.every((id) => isCleanupPresetId(id))
+      );
+    })
+  );
 }
 
 export function parseReportFile(jsonString: string): CookieSummaryReport | null {
@@ -107,7 +249,15 @@ export function parseReportFile(jsonString: string): CookieSummaryReport | null 
       );
     });
 
-    return topDomainsValid ? (data as unknown as CookieSummaryReport) : null;
+    if (!topDomainsValid) {
+      return null;
+    }
+
+    if (typeof data.cleanup !== "undefined" && !isCleanupInsights(data.cleanup)) {
+      return null;
+    }
+
+    return data as unknown as CookieSummaryReport;
   } catch {
     return null;
   }
@@ -180,6 +330,71 @@ export function generateMockReport(): CookieSummaryReport {
       analytics: 892,
       advertising: 743,
       unknown: 222,
+    },
+    cleanup: {
+      totalCandidates: 1310,
+      presets: [
+        {
+          id: "balanced",
+          label: "Balanced Feed",
+          description: "A safe starter bundle of expired, tracker, and long-lived non-essential cookies.",
+          cookieCount: 742,
+          domainCount: 61,
+          sampleDomains: ["facebook.com", "doubleclick.net", "reddit.com"],
+        },
+        {
+          id: "trackers",
+          label: "Tracker Feast",
+          description: "Advertising and analytics cookies that are the easiest monster snacks.",
+          cookieCount: 534,
+          domainCount: 44,
+          sampleDomains: ["facebook.com", "google.com", "tiktok.com"],
+        },
+        {
+          id: "expired",
+          label: "Expired Crumbs",
+          description: "Already-expired cookies that can be swept out immediately.",
+          cookieCount: 23,
+          domainCount: 9,
+          sampleDomains: ["oldsite.com", "legacy.app"],
+        },
+      ],
+      recommendations: [
+        {
+          id: "mock-balanced",
+          title: "Start with a balanced cleanup",
+          description: "This removes the largest low-regret batch while keeping likely essential cookies alone.",
+          presetId: "balanced",
+          cookieCount: 742,
+          tone: "medium",
+        },
+        {
+          id: "mock-trackers",
+          title: "Feed the obvious trackers next",
+          description: "Advertising and analytics cookies make up the biggest monster meal in this snapshot.",
+          presetId: "trackers",
+          cookieCount: 534,
+          tone: "high",
+        },
+      ],
+      topFeedDomains: [
+        {
+          domain: "facebook.com",
+          cookieCount: 65,
+          highRiskCount: 41,
+          analyticsCount: 6,
+          advertisingCount: 33,
+          samplePresetIds: ["trackers", "balanced", "highRisk"],
+        },
+        {
+          domain: "google.com",
+          cookieCount: 78,
+          highRiskCount: 19,
+          analyticsCount: 24,
+          advertisingCount: 4,
+          samplePresetIds: ["trackers", "balanced"],
+        },
+      ],
     },
   };
 }

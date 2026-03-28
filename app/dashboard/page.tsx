@@ -10,7 +10,9 @@ import { EmptyDashboardState } from "@/components/dashboard/empty-dashboard-stat
 import { ImportModal } from "@/components/dashboard/import-modal";
 import {
   openExtensionDashboard,
+  requestCookieFeed,
   requestExportReport,
+  type CleanupPresetId,
 } from "@/lib/extension-bridge";
 import { downloadReportJson } from "@/lib/cookie-report";
 
@@ -70,6 +72,22 @@ export default function DashboardPage() {
     }
 
     setActionError("Export failed. Open the extension and try again from the side panel.");
+  };
+
+  const handleRequestFeed = async (presetId: CleanupPresetId) => {
+    setActionMessage(null);
+    setActionError(null);
+
+    const pendingRequest = await requestCookieFeed({ presetId });
+
+    if (pendingRequest) {
+      setActionMessage(
+        `${pendingRequest.label} was sent to the extension. Confirm the request locally before any cookies are deleted.`
+      );
+      return;
+    }
+
+    setActionError("The extension could not create a feed request for that preset.");
   };
 
   return (
@@ -149,6 +167,7 @@ export default function DashboardPage() {
             isDevMode={extensionStatus.isDevMode && !reportImport.report}
             onExport={handleExport}
             onOpenExtension={!isImportedReport ? handleOpenExtension : undefined}
+            onRequestFeed={!isImportedReport ? handleRequestFeed : undefined}
             source={isImportedReport ? "imported" : "extension"}
           />
         ) : (

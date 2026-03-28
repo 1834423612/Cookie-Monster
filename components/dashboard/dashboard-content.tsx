@@ -6,7 +6,11 @@ import { RiskChart } from "./risk-chart";
 import { CategoryChart } from "./category-chart";
 import { TopDomains } from "./top-domains";
 import { FlagsSummary } from "./flags-summary";
-import type { CookieSummaryReport } from "@/lib/extension-bridge";
+import { FeedPresets } from "./feed-presets";
+import type {
+  CleanupPresetId,
+  CookieSummaryReport,
+} from "@/lib/extension-bridge";
 
 interface DashboardContentProps {
   report: CookieSummaryReport;
@@ -14,6 +18,7 @@ interface DashboardContentProps {
   isDevMode?: boolean;
   onExport: () => void;
   onOpenExtension?: () => void;
+  onRequestFeed?: (presetId: CleanupPresetId) => Promise<void> | void;
   source: "extension" | "imported";
 }
 
@@ -23,6 +28,7 @@ export function DashboardContent({
   isDevMode,
   onExport,
   onOpenExtension,
+  onRequestFeed,
   source,
 }: DashboardContentProps) {
   const generatedDate = new Date(report.generatedAt);
@@ -123,6 +129,14 @@ export function DashboardContent({
         <TopDomains domains={report.topDomains} />
         <FlagsSummary flags={report.flags} total={report.totals.cookies} />
       </div>
+
+      {report.cleanup && (
+        <FeedPresets
+          cleanup={report.cleanup}
+          onRequestFeed={source === "extension" ? onRequestFeed : undefined}
+          disabled={source !== "extension"}
+        />
+      )}
 
       {/* Expiry overview */}
       <div className="bg-card rounded-2xl border border-border p-5">

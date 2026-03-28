@@ -9,14 +9,60 @@ This folder contains the unpacked Chrome extension for Cookie Monster.
 3. Click `Load unpacked`
 4. Select this `extension/` directory
 
-## What it does
+## Current workflow
 
-- scans browser cookies locally with `chrome.cookies`
-- computes a sanitized `report.json` summary for charts
-- deletes high-risk or expired cookies after backing them up locally
-- restores the latest cleanup batch
-- exports `report.json` and `backup.json`
-- exposes a strict summary-only bridge to the companion website
+### 1. Scan
+
+- The extension reads cookies locally through `chrome.cookies.getAll`
+- Every cookie is classified into a category:
+  - `essential`
+  - `functional`
+  - `analytics`
+  - `advertising`
+  - `unknown`
+- Every cookie also gets:
+  - risk level
+  - reasoning hints
+  - cleanup preset membership
+
+### 2. Build feed presets
+
+The scan turns into monster-ready cleanup batches:
+
+- `balanced`: low-regret starter cleanup
+- `expired`: already expired cookies
+- `highRisk`: strongest risk signals
+- `trackers`: analytics + advertising cookies
+- `longLived`: persistent non-essential cookies
+
+These presets are safe for the website to preview because they contain only sanitized summary data.
+
+### 3. Website bridge
+
+The website can:
+
+- ping the extension
+- fetch the latest sanitized summary report
+- fetch feed/cleanup preview data
+- request a cookie feed preset
+
+The website cannot directly delete cookies. A website request creates a pending feed request that must be confirmed locally inside the extension dashboard.
+
+### 4. Execute cleanup
+
+When a preset is confirmed:
+
+- matching cookies are re-evaluated from the live browser state
+- matching cookies are removed
+- successfully removed cookies are backed up locally first
+- a new summary report is generated immediately
+
+### 5. Restore / export
+
+- Every cleanup creates a recycle-bin batch
+- The latest batch can be restored
+- `report.json` exports the sanitized summary
+- `backup.json` exports raw restore data and should stay on a trusted device
 
 ## Companion website bridge
 

@@ -11,7 +11,7 @@
       <section class="hero">
         <div class="hero-copy">
           <h1>Cookie Monster Dashboard</h1>
-          <p>Source of truth for scans, cleanup, restore, and local exports. The companion website is summary-only by design.</p>
+          <p>Scan, preview, feed, back up, and restore cookies locally. The website only gets the summary layer.</p>
         </div>
         <div class="meta-pill">Extension v<span id="version">0.1.0</span></div>
       </section>
@@ -22,10 +22,34 @@
 
       <section class="button-grid">
         <button id="scan-button" class="primary">Run Full Scan</button>
-        <button id="cleanup-button" class="secondary">Clean High-Risk Cookies</button>
+        <button id="cleanup-button" class="secondary">Feed High-Risk Batch</button>
         <button id="restore-button" class="secondary">Restore Last Cleanup</button>
         <button id="export-report-button" class="secondary">Export report.json</button>
         <button id="export-backup-button" class="secondary">Export backup.json</button>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h3>Website Feed Requests</h3>
+            <p>Website interactions can ask for a monster feed, but deletion only happens after you confirm here.</p>
+          </div>
+        </div>
+        <div id="pending-request-empty" class="empty-state">
+          No pending website feed request yet.
+        </div>
+        <div id="pending-request-panel" class="request-card" hidden>
+          <strong id="pending-request-title">Pending request</strong>
+          <p id="pending-request-description"></p>
+          <div class="request-meta">
+            <span id="pending-request-meta"></span>
+            <span id="pending-request-domains"></span>
+          </div>
+          <div class="request-actions">
+            <button id="confirm-request-button" class="primary">Confirm Feed</button>
+            <button id="dismiss-request-button" class="secondary">Dismiss</button>
+          </div>
+        </div>
       </section>
 
       <section id="empty-state" class="empty-state">
@@ -64,6 +88,16 @@
           </div>
         </section>
 
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h3>Monster Feed Queue</h3>
+              <p id="feed-summary">No cleanup insights available yet.</p>
+            </div>
+          </div>
+          <div id="preset-grid" class="preset-grid"></div>
+        </section>
+
         <section class="two-column">
           <section class="panel">
             <div class="panel-header">
@@ -78,10 +112,11 @@
           <section class="panel">
             <div class="panel-header">
               <div>
-                <h3>Risk Notes</h3>
-                <p>High-risk cookies include expired entries and likely tracking cookies.</p>
+                <h3>Recommendations</h3>
+                <p>Use these presets to shape the monster-feeding flow on the website later.</p>
               </div>
             </div>
+            <ul id="recommendations" class="list"></ul>
             <p class="muted" id="flag-summary"></p>
             <p class="muted" id="category-summary"></p>
           </section>
@@ -111,7 +146,7 @@
           </div>
           <div class="footer-meta">
             <div>Extension ID: <code id="extension-id">loading...</code></div>
-            <div>Use this stable ID with the bundled website or override it when self-hosting.</div>
+            <div>Website requests can create pending cleanup intents, but local confirmation stays inside the extension.</div>
           </div>
         </section>
       </section>

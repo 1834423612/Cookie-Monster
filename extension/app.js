@@ -1,12 +1,3 @@
-const ACTION_LABELS = {
-  RUN_SCAN: "Scanning cookies locally...",
-  CLEAN_HIGH_RISK: "Removing high-risk and expired cookies...",
-  RESTORE_LAST_CLEANUP: "Restoring the latest cleanup batch...",
-  EXPORT_REPORT: "Preparing summary report export...",
-  EXPORT_BACKUP: "Preparing cleanup backup export...",
-  OPEN_DASHBOARD: "Opening the full extension dashboard...",
-};
-
 function byId(id) {
   return document.getElementById(id);
 }
@@ -82,6 +73,84 @@ function renderTopDomains(domains = []) {
   }
 }
 
+function renderRecommendations(recommendations = []) {
+  const list = byId("recommendations");
+  if (!list) {
+    return;
+  }
+
+  list.innerHTML = "";
+
+  if (!recommendations.length) {
+    const item = document.createElement("li");
+    item.className = "list-empty";
+    item.textContent = "No cleanup recommendations yet. Run a scan first.";
+    list.appendChild(item);
+    return;
+  }
+
+  for (const recommendation of recommendations) {
+    const item = document.createElement("li");
+    item.className = "recommendation-row";
+    item.innerHTML = `
+      <div>
+        <strong>${recommendation.title}</strong>
+        <p>${recommendation.description}</p>
+      </div>
+      <span class="recommendation-pill risk-${recommendation.tone}">${formatNumber(
+        recommendation.cookieCount
+      )}</span>
+    `;
+    list.appendChild(item);
+  }
+}
+
+function renderPresetCards(presets = []) {
+  const grid = byId("preset-grid");
+  if (!grid) {
+    return;
+  }
+
+  grid.innerHTML = "";
+
+  if (!presets.length) {
+    const empty = document.createElement("div");
+    empty.className = "list-empty";
+    empty.textContent = "No monster-ready cookie presets yet. Scan the browser to generate them.";
+    grid.appendChild(empty);
+    return;
+  }
+
+  for (const preset of presets) {
+    const card = document.createElement("article");
+    card.className = "preset-card";
+    card.innerHTML = `
+      <div>
+        <div class="preset-head">
+          <h4>${preset.label}</h4>
+          <span>${formatNumber(preset.cookieCount)} cookies</span>
+        </div>
+        <p>${preset.description}</p>
+        <div class="preset-meta">
+          <span>${formatNumber(preset.domainCount)} domains</span>
+          <span>${preset.sampleDomains.join(", ") || "No sample domains yet"}</span>
+        </div>
+      </div>
+      <button class="secondary preset-action" data-preset-id="${preset.id}">Feed This Batch</button>
+    `;
+    grid.appendChild(card);
+  }
+
+  for (const button of grid.querySelectorAll(".preset-action")) {
+    button.addEventListener("click", () => {
+      const presetId = button.getAttribute("data-preset-id");
+      runAction("APPLY_CLEANUP_PRESET", { presetId }).catch((error) => {
+        setStatus(error instanceof Error ? error.message : "Unknown error", "error");
+      });
+    });
+  }
+}
+
 function renderCleanup(state) {
   const lastCleanup = state.lastCleanup;
   setText("cleanup-count", formatNumber(state.cleanupCount));
@@ -93,7 +162,37 @@ function renderCleanup(state) {
 
   setText(
     "cleanup-meta",
-    `${formatNumber(lastCleanup.cookieCount)} cookies backed up on ${formatDate(lastCleanup.createdAt)}`
+    `${lastCleanup.label} backed up ${formatNumber(lastCleanup.cookieCount)} cookies on ${formatDate(
+      lastCleanup.createdAt
+    )}`
+  );
+}
+
+function renderPendingFeedRequest(pendingFeedRequest) {
+  const panel = byId("pending-request-panel");
+  const empty = byId("pending-request-empty");
+
+  if (!panel || !empty) {
+    return;
+  }
+
+  if (!pendingFeedRequest) {
+    panel.hidden = true;
+    empty.hidden = false;
+    return;
+  }
+
+  empty.hidden = true;
+  panel.hidden = false;
+
+  setText("pending-request-title", pendingFeedRequest.label);
+  setText("pending-request-meta", `${formatNumber(pendingFeedRequest.cookieCount)} cookies across ${formatNumber(pendingFeedRequest.domainCount)} domains`);
+  setText("pending-request-description", pendingFeedRequest.description);
+  setText(
+    "pending-request-domains",
+    pendingFeedRequest.sampleDomains.length
+      ? pendingFeedRequest.sampleDomains.join(", ")
+      : "No sample domains available"
   );
 }
 
@@ -101,6 +200,8 @@ function renderReport(report) {
   toggleEmptyState(Boolean(report));
 
   if (!report) {
+    renderPresetCards([]);
+    renderRecommendations([]);
     return;
   }
 
@@ -110,21 +211,34 @@ function renderReport(report) {
   setText("high-risk", formatNumber(report.risk.high));
   setText("medium-risk", formatNumber(report.risk.medium));
   setText("low-risk", formatNumber(report.risk.low));
-  setText("flag-summary", `${formatNumber(report.flags.secure)} secure / ${formatNumber(report.flags.httpOnly)} HttpOnly`);
+  setText(
+    "flag-summary",
+    `${formatNumber(report.flags.secure)} secure / ${formatNumber(report.flags.httpOnly)} HttpOnly`
+  );
   setText(
     "category-summary",
-    `${formatNumber(report.categories.analytics)} analytics / ${formatNumber(report.categories.advertising)} advertising`
+    `${formatNumber(report.categories.analytics)} analytics / ${formatNumber(
+      report.categories.advertising
+    )} advertising`
+  );
+  setText(
+    "feed-summary",
+    report.cleanup
+      ? `${formatNumber(report.cleanup.totalCandidates)} cookies currently look feedable to the monster.`
+      : "No cleanup insights available yet."
   );
 
   renderTopDomains(report.topDomains);
+  renderPresetCards(report.cleanup?.presets || []);
+  renderRecommendations(report.cleanup?.recommendations || []);
 }
 
-async function sendInternalMessage(type) {
-  return chrome.runtime.sendMessage({ type });
+async function sendInternalMessage(message) {
+  return chrome.runtime.sendMessage(message);
 }
 
 async function refreshState(message) {
-  const response = await sendInternalMessage("GET_STATE");
+  const response = await sendInternalMessage({ type: "GET_STATE" });
 
   if (!response.success) {
     setStatus(response.error || "Could not load extension state.", "error");
@@ -135,10 +249,13 @@ async function refreshState(message) {
   setText("version", state.version);
   setText("extension-id", state.extensionId);
   renderCleanup(state);
+  renderPendingFeedRequest(state.pendingFeedRequest);
   renderReport(state.report);
 
   if (message) {
     setStatus(message, "success");
+  } else if (state.pendingFeedRequest) {
+    setStatus("A website feed request is waiting for your local confirmation.", "info");
   } else if (state.report) {
     setStatus("Summary report is ready. Website sync uses sanitized data only.", "info");
   } else {
@@ -146,10 +263,21 @@ async function refreshState(message) {
   }
 }
 
-async function runAction(type) {
-  setStatus(ACTION_LABELS[type] || "Working...", "info");
+async function runAction(type, payload) {
+  const statusLabelMap = {
+    APPLY_CLEANUP_PRESET: "Feeding the selected cookie batch to the monster...",
+    CONFIRM_PENDING_FEED_REQUEST: "Confirming website feed request...",
+    DISMISS_PENDING_FEED_REQUEST: "Dismissing pending website request...",
+    EXPORT_BACKUP: "Preparing cleanup backup export...",
+    EXPORT_REPORT: "Preparing summary report export...",
+    OPEN_DASHBOARD: "Opening the full extension dashboard...",
+    RESTORE_LAST_CLEANUP: "Restoring the latest cleanup batch...",
+    RUN_SCAN: "Scanning cookies locally...",
+  };
 
-  const response = await sendInternalMessage(type);
+  setStatus(statusLabelMap[type] || "Working...", "info");
+
+  const response = await sendInternalMessage({ type, payload });
   if (!response.success) {
     setStatus(response.error || "The action failed.", "error");
     return;
@@ -157,18 +285,29 @@ async function runAction(type) {
 
   switch (type) {
     case "RUN_SCAN":
-      await refreshState("Scan complete. The website can now fetch the latest summary report.");
+      await refreshState("Scan complete. Cleanup presets and website sync data were refreshed.");
       break;
-    case "CLEAN_HIGH_RISK": {
+    case "APPLY_CLEANUP_PRESET": {
       const deleted = response.data.deletedCount || 0;
-      const failed = response.data.failedCount || 0;
       await refreshState(
-        failed
-          ? `Deleted ${deleted} cookies. ${failed} cookies could not be removed.`
-          : `Deleted ${deleted} high-risk or expired cookies and stored a restore batch.`
+        deleted
+          ? `Fed ${deleted} cookies to the monster and stored a recycle-bin backup.`
+          : "No cookies matched that preset right now."
       );
       break;
     }
+    case "CONFIRM_PENDING_FEED_REQUEST": {
+      const deleted = response.data.deletedCount || 0;
+      await refreshState(
+        deleted
+          ? `Website request confirmed. Fed ${deleted} cookies to the monster.`
+          : "The pending request did not match any removable cookies."
+      );
+      break;
+    }
+    case "DISMISS_PENDING_FEED_REQUEST":
+      await refreshState("The pending website feed request was dismissed.");
+      break;
     case "RESTORE_LAST_CLEANUP": {
       const restored = response.data.restoredCount || 0;
       await refreshState(
@@ -196,11 +335,12 @@ async function runAction(type) {
 function bindActions() {
   const bindings = [
     ["scan-button", "RUN_SCAN"],
-    ["cleanup-button", "CLEAN_HIGH_RISK"],
     ["restore-button", "RESTORE_LAST_CLEANUP"],
     ["export-report-button", "EXPORT_REPORT"],
     ["export-backup-button", "EXPORT_BACKUP"],
     ["open-dashboard-button", "OPEN_DASHBOARD"],
+    ["confirm-request-button", "CONFIRM_PENDING_FEED_REQUEST"],
+    ["dismiss-request-button", "DISMISS_PENDING_FEED_REQUEST"],
   ];
 
   for (const [id, type] of bindings) {
@@ -211,6 +351,15 @@ function bindActions() {
 
     button.addEventListener("click", () => {
       runAction(type).catch((error) => {
+        setStatus(error instanceof Error ? error.message : "Unknown error", "error");
+      });
+    });
+  }
+
+  const cleanupButton = byId("cleanup-button");
+  if (cleanupButton) {
+    cleanupButton.addEventListener("click", () => {
+      runAction("APPLY_CLEANUP_PRESET", { presetId: "highRisk" }).catch((error) => {
         setStatus(error instanceof Error ? error.message : "Unknown error", "error");
       });
     });
