@@ -4,8 +4,16 @@
   "version": "0.1.0",
   "description": "Analyze, export, clean, and restore browser cookies with privacy-first local tooling.",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2UWbJm7wwtT5UgsInHjmy0w8uAUUjjlJS6vhXPSCMu9Q7kiW8Uzf6dfxqJvlmN5jpo4ToKMHmZPZWIUtRWVb1zmQvAnNRHk1kJeo2JvnOhPtQeEJ5tC9w/HfaT5JEViuBbZteMJtqQlL92MRJ9PKXUubEMFOBe3Hf89T1Q/J3G16Rs9IXhHT6ncynzt7ggL3BgxSSMpFy6ejHkrS/6MZDPnwPfLQ5dwxdltXSYj0FAGTS9A9aHnSij4Af1OOyhTQKc51gW+BKxyarqd4S9mWNpbziCggmnXZgYe0Bq72Ae9r0fqPY41P914fos7XwsmfmXF/jc3x7V4l7vwTZ9x7nwIDAQAB",
-  "permissions": ["cookies", "storage", "downloads", "tabs", "sidePanel"],
-  "host_permissions": ["<all_urls>"],
+  "permissions": [
+    "cookies",
+    "storage",
+    "downloads",
+    "tabs",
+    "sidePanel"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
   "background": {
     "service_worker": "background.js",
     "type": "module"
@@ -21,6 +29,8 @@
     "matches": [
       "http://localhost/*",
       "http://127.0.0.1/*",
+      "https://127.0.0.1/*",
+      "https://localhost/*",
       "https://cookie-monster.app/*",
       "https://www.cookie-monster.app/*",
       "https://cookie-monster.vercel.app/*"

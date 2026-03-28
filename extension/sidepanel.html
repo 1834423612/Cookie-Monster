@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Cookie Monster Side Panel</title>
+    <title>Cookie Monster Sidepanel</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -11,143 +11,57 @@
       <section class="hero">
         <div class="hero-copy">
           <h1>Cookie Monster</h1>
-          <p>Scan cookies, generate monster-ready cleanup presets, and keep every destructive action inside the extension.</p>
+          <p>Jar first, list second. All processing remains local.</p>
         </div>
         <div class="meta-pill">v<span id="version">0.1.0</span></div>
       </section>
 
-      <section id="status" class="status" data-tone="info">
-        Loading local extension state...
-      </section>
+      <section id="status" class="status" data-tone="info">Loading local extension state...</section>
 
       <section class="button-grid">
         <button id="scan-button" class="primary">Run Scan</button>
-        <button id="cleanup-button" class="secondary">Feed High-Risk Batch</button>
-        <button id="restore-button" class="secondary">Restore Last Batch</button>
-        <button id="export-report-button" class="secondary">Export report.json</button>
-        <button id="export-backup-button" class="secondary">Export backup.json</button>
-        <button id="open-dashboard-button" class="secondary">Open Full Dashboard</button>
+        <button id="cleanup-button" class="secondary">Feed High-Risk</button>
+        <button id="restore-button" class="secondary">Restore Last</button>
+        <button id="export-report-button" class="secondary">Export report</button>
+        <button id="export-backup-button" class="secondary">Export backup</button>
+        <button id="open-dashboard-button" class="secondary">Open Dashboard</button>
       </section>
 
-      <section class="panel">
-        <div class="panel-header">
-          <div>
-            <h3>Website Feed Requests</h3>
-            <p>If the website asks to feed cookies to the monster, confirm it here before anything is deleted.</p>
-          </div>
-        </div>
-        <div id="pending-request-empty" class="empty-state">
-          No pending website feed request yet.
-        </div>
-        <div id="pending-request-panel" class="request-card" hidden>
-          <strong id="pending-request-title">Pending request</strong>
-          <p id="pending-request-description"></p>
-          <div class="request-meta">
-            <span id="pending-request-meta"></span>
-            <span id="pending-request-domains"></span>
-          </div>
-          <div class="request-actions">
-            <button id="confirm-request-button" class="primary">Confirm Feed</button>
-            <button id="dismiss-request-button" class="secondary">Dismiss</button>
-          </div>
-        </div>
-      </section>
+      <section id="workspace" class="workspace sidepanel-workspace">
+        <section id="jar-scene" class="panel jar-scene">
+          <button id="jar-toggle-button" class="jar-button" type="button" aria-expanded="false">
+            <span class="jar-emoji">🫙</span>
+            <strong>Open List</strong>
+          </button>
+        </section>
 
-      <section id="empty-state" class="empty-state">
-        No summary report yet. Run a scan to analyze current browser cookies and generate feed presets for the website.
-      </section>
-
-      <section id="report-shell" hidden>
-        <section class="panel">
+        <section class="panel inventory-panel" id="inventory-shell" hidden>
           <div class="panel-header">
             <div>
-              <h2>Latest Summary Report</h2>
-              <p>Generated <span id="generated-at">Not available yet</span></p>
+              <h3>Cookie Inventory</h3>
             </div>
+            <button id="inventory-back-button" class="secondary" type="button">Back</button>
           </div>
-          <div class="stats">
-            <article class="stat">
-              <span>Total Cookies</span>
-              <strong id="total-cookies">0</strong>
-            </article>
-            <article class="stat">
-              <span>Domains</span>
-              <strong id="total-domains">0</strong>
-            </article>
-            <article class="stat">
-              <span>High Risk</span>
-              <strong id="high-risk">0</strong>
-            </article>
-            <article class="stat">
-              <span>Medium Risk</span>
-              <strong id="medium-risk">0</strong>
-            </article>
-            <article class="stat">
-              <span>Low Risk</span>
-              <strong id="low-risk">0</strong>
-            </article>
+          <div class="inventory-controls">
+            <input id="inventory-search" type="search" placeholder="Filter" />
+            <select id="inventory-filter">
+              <option value="all">All</option>
+              <option value="balanced">Recommended</option>
+              <option value="trackers">Trackers</option>
+              <option value="highRisk">High risk</option>
+              <option value="expired">Expired</option>
+              <option value="longLived">Long lived</option>
+            </select>
+            <button id="inventory-refresh-button" class="secondary" type="button">Refresh</button>
           </div>
+          <div id="inventory-summary" class="muted">No inventory loaded yet.</div>
+          <div id="inventory-list" class="inventory-list"></div>
         </section>
 
-        <section class="panel">
-          <div class="panel-header">
-            <div>
-              <h3>Monster Feed Queue</h3>
-              <p id="feed-summary">No cleanup insights available yet.</p>
-            </div>
-          </div>
-          <div id="preset-grid" class="preset-grid"></div>
-        </section>
-
-        <section class="two-column">
-          <section class="panel">
-            <div class="panel-header">
-              <div>
-                <h3>Top Domains</h3>
-                <p>Heaviest cookie clusters across your browser.</p>
-              </div>
-            </div>
-            <ul id="top-domains" class="list"></ul>
-          </section>
-
-          <section class="panel">
-            <div class="panel-header">
-              <div>
-                <h3>Recommendations</h3>
-                <p>Monster-safe cleanup ideas based on the latest scan.</p>
-              </div>
-            </div>
-            <ul id="recommendations" class="list"></ul>
-            <p class="muted" id="flag-summary"></p>
-            <p class="muted" id="category-summary"></p>
-          </section>
-        </section>
-      </section>
-
-      <section class="panel">
-        <div class="panel-header">
-          <div>
-            <h3>Recycle Bin</h3>
-            <p>Delete actions store a reversible local backup before removal.</p>
-          </div>
-        </div>
-        <div class="footer-meta">
-          <div><strong id="cleanup-count">0</strong> cleanup batches stored locally</div>
-          <div id="cleanup-meta">No cleanup batch stored yet.</div>
-        </div>
-      </section>
-
-      <section class="panel">
-        <div class="panel-header">
-          <div>
-            <h3>Bridge Info</h3>
-            <p>The website only receives sanitized summary data through external messaging.</p>
-          </div>
-        </div>
-        <div class="footer-meta">
-          <div>Extension ID: <code id="extension-id">loading...</code></div>
-          <div>Website-initiated cleanup requests still require local confirmation inside the extension.</div>
-        </div>
+        <aside id="monster-panel" class="panel monster-panel compact">
+          <div class="monster-emoji">👾</div>
+          <p>Monster</p>
+        </aside>
       </section>
     </main>
 
