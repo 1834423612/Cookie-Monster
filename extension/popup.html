@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cookie Monster</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="view-popup">
+    <main class="shell compact-shell">
+      <section class="popup-topbar">
+        <div class="brand-lockup">
+          <div class="brand-mark">CM</div>
+          <div class="hero-copy compact-copy">
+            <h1>Cookie Monster</h1>
+            <p>Fast local controls for scan, confirm, restore, and export.</p>
+          </div>
+        </div>
+        <div class="meta-pill">v<span id="version">0.1.0</span></div>
+      </section>
+
+      <section id="status" class="status compact-status" data-tone="info">
+        Loading local extension state...
+      </section>
+
+      <section class="cta-surface">
+        <div class="cta-copy">
+          <span class="eyebrow">Local Control</span>
+          <h2>Run a fresh scan before approving or cleaning anything.</h2>
+          <p>Keep the cache current, then handle cleanup from the buttons below.</p>
+        </div>
+        <div class="cta-actions">
+          <button id="scan-button" class="primary primary-button">Run Scan</button>
+          <div class="mini-actions">
+            <button id="cleanup-button" class="secondary">Feed High-Risk</button>
+            <button id="restore-button" class="secondary">Restore Last</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel request-panel request-spotlight">
+        <div class="panel-header compact-header spotlight-header">
+          <div>
+            <h2>Website Request</h2>
+            <p>Requests from the website still need local approval here.</p>
+          </div>
+          <span class="inline-pill"><span id="pending-count">0</span> waiting</span>
+        </div>
+        <div id="pending-request-empty" class="empty-state compact-empty">
+          No pending website request right now.
+        </div>
+        <div id="pending-request-panel" class="request-card compact-request" hidden>
+          <div class="request-title-row">
+            <strong id="pending-request-title">Pending request</strong>
+          </div>
+          <p id="pending-request-description"></p>
+          <div class="request-meta compact-meta">
+            <span id="pending-request-meta"></span>
+            <span id="pending-request-domains"></span>
+          </div>
+          <div class="request-actions compact-actions">
+            <button id="confirm-request-button" class="primary">Confirm</button>
+            <button id="dismiss-request-button" class="secondary">Dismiss</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="metrics-row">
+        <article class="metric-tile">
+          <span>Last Scan</span>
+          <strong id="last-scan">Not yet</strong>
+          <small id="cookie-count">0 cookies cached</small>
+        </article>
+        <article class="metric-tile">
+          <span>Recycle Bin</span>
+          <strong id="cleanup-count">0</strong>
+          <small id="cleanup-meta">No cleanup backup yet</small>
+        </article>
+      </section>
+
+      <section class="panel utility-panel">
+        <div class="panel-header compact-header">
+          <div>
+            <h2>More Tools</h2>
+            <p>Exports and alternate views stay available, but lower in priority.</p>
+          </div>
+        </div>
+        <div class="utility-grid">
+          <button id="export-report-button" class="secondary">Export Report</button>
+          <button id="export-backup-button" class="secondary">Export Backup</button>
+          <button id="open-sidepanel-button" class="secondary">Open Side Panel</button>
+          <button id="open-dashboard-button" class="secondary">Open Full Dashboard</button>
+        </div>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>

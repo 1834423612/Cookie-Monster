@@ -3,65 +3,76 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Cookie Monster Sidepanel</title>
+    <title>Cookie Monster Side Panel</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
-  <body>
-    <main class="shell sidepanel">
+  <body class="view-sidepanel">
+    <main class="shell sidepanel-shell">
       <section class="hero">
         <div class="hero-copy">
-          <h1>Cookie Monster</h1>
-          <p>Jar first, list second. All processing remains local.</p>
+          <h1>Cookie Monster Side Panel</h1>
+          <p>Manual side view for quick local actions without leaving the current tab.</p>
         </div>
         <div class="meta-pill">v<span id="version">0.1.0</span></div>
       </section>
 
       <section id="status" class="status" data-tone="info">Loading local extension state...</section>
 
-      <section class="button-grid">
-        <button id="scan-button" class="primary">Run Scan</button>
-        <button id="cleanup-button" class="secondary">Feed High-Risk</button>
-        <button id="restore-button" class="secondary">Restore Last</button>
-        <button id="export-report-button" class="secondary">Export report</button>
-        <button id="export-backup-button" class="secondary">Export backup</button>
-        <button id="open-dashboard-button" class="secondary">Open Dashboard</button>
+      <section class="stats-grid">
+        <article class="stat-card">
+          <span>Last Scan</span>
+          <strong id="last-scan">Not yet</strong>
+          <small id="cookie-count">0 cookies cached</small>
+        </article>
+        <article class="stat-card">
+          <span>Pending Website Request</span>
+          <strong id="pending-count">0</strong>
+          <small id="pending-label">No request waiting</small>
+        </article>
+        <article class="stat-card">
+          <span>Recycle Bin</span>
+          <strong id="cleanup-count">0</strong>
+          <small id="cleanup-meta">No cleanup backup yet</small>
+        </article>
       </section>
 
-      <section id="workspace" class="workspace sidepanel-workspace">
-        <section id="jar-scene" class="panel jar-scene">
-          <button id="jar-toggle-button" class="jar-button" type="button" aria-expanded="false">
-            <span class="jar-emoji">🫙</span>
-            <strong>Open List</strong>
-          </button>
-        </section>
-
-        <section class="panel inventory-panel" id="inventory-shell" hidden>
-          <div class="panel-header">
-            <div>
-              <h3>Cookie Inventory</h3>
-            </div>
-            <button id="inventory-back-button" class="secondary" type="button">Back</button>
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>Local Actions</h2>
+            <p>The website handles rich browsing; the extension keeps the sensitive actions.</p>
           </div>
-          <div class="inventory-controls">
-            <input id="inventory-search" type="search" placeholder="Filter" />
-            <select id="inventory-filter">
-              <option value="all">All</option>
-              <option value="balanced">Recommended</option>
-              <option value="trackers">Trackers</option>
-              <option value="highRisk">High risk</option>
-              <option value="expired">Expired</option>
-              <option value="longLived">Long lived</option>
-            </select>
-            <button id="inventory-refresh-button" class="secondary" type="button">Refresh</button>
-          </div>
-          <div id="inventory-summary" class="muted">No inventory loaded yet.</div>
-          <div id="inventory-list" class="inventory-list"></div>
-        </section>
+        </div>
+        <div class="action-grid">
+          <button id="scan-button" class="primary">Run Scan</button>
+          <button id="cleanup-button" class="secondary">Feed High-Risk</button>
+          <button id="restore-button" class="secondary">Restore Last</button>
+          <button id="export-report-button" class="secondary">Export Report</button>
+          <button id="export-backup-button" class="secondary">Export Backup</button>
+          <button id="open-dashboard-button" class="secondary">Open Full Dashboard</button>
+        </div>
+      </section>
 
-        <aside id="monster-panel" class="panel monster-panel compact">
-          <div class="monster-emoji">👾</div>
-          <p>Monster</p>
-        </aside>
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>Website Request Queue</h2>
+            <p>Review and confirm the next local cleanup request.</p>
+          </div>
+        </div>
+        <div id="pending-request-empty" class="empty-state">No pending website request right now.</div>
+        <div id="pending-request-panel" class="request-card" hidden>
+          <strong id="pending-request-title">Pending request</strong>
+          <p id="pending-request-description"></p>
+          <div class="request-meta">
+            <span id="pending-request-meta"></span>
+            <span id="pending-request-domains"></span>
+          </div>
+          <div class="request-actions">
+            <button id="confirm-request-button" class="primary">Confirm</button>
+            <button id="dismiss-request-button" class="secondary">Dismiss</button>
+          </div>
+        </div>
       </section>
     </main>
 

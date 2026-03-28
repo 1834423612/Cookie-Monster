@@ -976,6 +976,33 @@ async function openDashboardPage() {
   await chrome.tabs.create({ url: chrome.runtime.getURL("dashboard.html") });
 }
 
+async function syncActionClickBehavior() {
+  if (!chrome.sidePanel?.setPanelBehavior) {
+    return;
+  }
+
+  await chrome.sidePanel.setPanelBehavior({
+    openPanelOnActionClick: false,
+  });
+}
+
+async function openSidePanelForCurrentWindow() {
+  if (!chrome.sidePanel?.open) {
+    throw new Error("Side panel is not supported in this browser.");
+  }
+
+  const [activeTab] = await chrome.tabs.query({
+    active: true,
+    currentWindow: true,
+  });
+
+  if (!activeTab || typeof activeTab.windowId !== "number") {
+    throw new Error("Could not determine the current browser window.");
+  }
+
+  await chrome.sidePanel.open({ windowId: activeTab.windowId });
+}
+
 async function clearPendingFeedRequest() {
   await writeLocal({ [STORAGE_KEYS.pendingFeedRequest]: null });
 }
@@ -1231,6 +1258,9 @@ async function handleInternalMessage(message) {
     case "OPEN_DASHBOARD":
       await openDashboardPage();
       return success(message.type, null);
+    case "OPEN_SIDE_PANEL":
+      await openSidePanelForCurrentWindow();
+      return success(message.type, null);
     default:
       return failure(message?.type || "UNKNOWN", "Unsupported message type.");
   }
@@ -1337,17 +1367,15 @@ async function handleExternalMessage(message) {
   }
 }
 
-chrome.runtime.onInstalled.addListener(async () => {
-  if (chrome.sidePanel?.setPanelBehavior) {
-    await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
-  }
+chrome.runtime.onInstalled.addListener(() => {
+  syncActionClickBehavior().catch(() => undefined);
 });
 
-if (chrome.sidePanel?.setPanelBehavior) {
-  chrome.sidePanel
-    .setPanelBehavior({ openPanelOnActionClick: true })
-    .catch(() => undefined);
-}
+chrome.runtime.onStartup?.addListener(() => {
+  syncActionClickBehavior().catch(() => undefined);
+});
+
+syncActionClickBehavior().catch(() => undefined);
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   handleInternalMessage(message)
