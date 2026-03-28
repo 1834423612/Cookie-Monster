@@ -61,6 +61,61 @@ export interface PendingFeedRequestSummary {
   source: "website";
 }
 
+export interface CookieDomainCookie {
+  key: string;
+  name: string;
+  value: string;
+  domain: string;
+  path: string;
+  storeId: string;
+  size: number;
+  category: CookieCategory;
+  risk: CookieRiskLevel;
+  reasons: string[];
+  presetIds: CleanupPresetId[];
+  secure: boolean;
+  httpOnly: boolean;
+  sameSite: string;
+  session: boolean;
+  expirationDate: number | null;
+}
+
+export interface CookieDomainInventory {
+  domain: string;
+  cookieCount: number;
+  protected: boolean;
+  feedableCount: number;
+  highRiskCount: number;
+  categories: {
+    essential: number;
+    functional: number;
+    analytics: number;
+    advertising: number;
+    unknown: number;
+  };
+  sampleCookieNames: string[];
+  samplePresetIds: CleanupPresetId[];
+}
+
+export interface RecycleBinBatchSummary {
+  id: string;
+  label: string;
+  presetId?: CleanupPresetId;
+  createdAt: string;
+  cookieCount: number;
+  domainCount: number;
+  sampleDomains: string[];
+  source: "extension" | "website";
+}
+
+export interface CookieManagementState {
+  generatedAt: string;
+  protectedDomains: string[];
+  domains: CookieDomainInventory[];
+  recycleBin: RecycleBinBatchSummary[];
+  pendingFeedRequest: PendingFeedRequestSummary | null;
+}
+
 export interface CookieSummaryReport {
   generatedAt: string;
   totals: {
@@ -397,4 +452,197 @@ export function generateMockReport(): CookieSummaryReport {
       ],
     },
   };
+}
+
+const MOCK_DOMAIN_COOKIES: Record<string, CookieDomainCookie[]> = {
+  "google.com": [
+    {
+      key: "0::.google.com::/::SID",
+      name: "SID",
+      value: "google-session-token-demo",
+      domain: "google.com",
+      path: "/",
+      storeId: "0",
+      size: 26,
+      category: "essential",
+      risk: "low",
+      reasons: ["Looks like an essential secure session cookie"],
+      presetIds: [],
+      secure: true,
+      httpOnly: true,
+      sameSite: "lax",
+      session: false,
+      expirationDate: Date.now() / 1000 + 60 * 60 * 24 * 30,
+    },
+    {
+      key: "0::.google.com::/::NID",
+      name: "NID",
+      value: "ad-personalization-demo",
+      domain: "google.com",
+      path: "/",
+      storeId: "0",
+      size: 22,
+      category: "advertising",
+      risk: "high",
+      reasons: ["Matches advertising or tracker signature", "Persists for longer than 30 days"],
+      presetIds: ["trackers", "balanced", "highRisk", "longLived"],
+      secure: true,
+      httpOnly: false,
+      sameSite: "no_restriction",
+      session: false,
+      expirationDate: Date.now() / 1000 + 60 * 60 * 24 * 90,
+    },
+  ],
+  "facebook.com": [
+    {
+      key: "0::.facebook.com::/::fr",
+      name: "fr",
+      value: "facebook-ad-cookie-demo",
+      domain: "facebook.com",
+      path: "/",
+      storeId: "0",
+      size: 23,
+      category: "advertising",
+      risk: "high",
+      reasons: ["Matches advertising or tracker signature", "SameSite=None allows cross-site usage"],
+      presetIds: ["trackers", "balanced", "highRisk"],
+      secure: true,
+      httpOnly: false,
+      sameSite: "no_restriction",
+      session: false,
+      expirationDate: Date.now() / 1000 + 60 * 60 * 24 * 60,
+    },
+    {
+      key: "0::.facebook.com::/::presence",
+      name: "presence",
+      value: "chat-state-demo",
+      domain: "facebook.com",
+      path: "/",
+      storeId: "0",
+      size: 15,
+      category: "functional",
+      risk: "medium",
+      reasons: ["Readable by client-side scripts"],
+      presetIds: [],
+      secure: true,
+      httpOnly: false,
+      sameSite: "lax",
+      session: true,
+      expirationDate: null,
+    },
+  ],
+  "reddit.com": [
+    {
+      key: "0::.reddit.com::/::loid",
+      name: "loid",
+      value: "reddit-analytics-demo",
+      domain: "reddit.com",
+      path: "/",
+      storeId: "0",
+      size: 20,
+      category: "analytics",
+      risk: "medium",
+      reasons: ["Matches analytics signature", "Readable by client-side scripts"],
+      presetIds: ["trackers", "balanced"],
+      secure: true,
+      httpOnly: false,
+      sameSite: "lax",
+      session: false,
+      expirationDate: Date.now() / 1000 + 60 * 60 * 24 * 40,
+    },
+  ],
+};
+
+export function generateMockManagementState(): CookieManagementState {
+  return {
+    generatedAt: new Date().toISOString(),
+    protectedDomains: ["google.com"],
+    domains: [
+      {
+        domain: "google.com",
+        cookieCount: 78,
+        protected: true,
+        feedableCount: 14,
+        highRiskCount: 9,
+        categories: {
+          essential: 30,
+          functional: 12,
+          analytics: 20,
+          advertising: 10,
+          unknown: 6,
+        },
+        sampleCookieNames: ["SID", "NID", "_ga"],
+        samplePresetIds: ["trackers", "balanced"],
+      },
+      {
+        domain: "facebook.com",
+        cookieCount: 65,
+        protected: false,
+        feedableCount: 41,
+        highRiskCount: 33,
+        categories: {
+          essential: 8,
+          functional: 7,
+          analytics: 10,
+          advertising: 34,
+          unknown: 6,
+        },
+        sampleCookieNames: ["fr", "presence", "datr"],
+        samplePresetIds: ["trackers", "balanced", "highRisk"],
+      },
+      {
+        domain: "reddit.com",
+        cookieCount: 25,
+        protected: false,
+        feedableCount: 11,
+        highRiskCount: 4,
+        categories: {
+          essential: 4,
+          functional: 6,
+          analytics: 9,
+          advertising: 2,
+          unknown: 4,
+        },
+        sampleCookieNames: ["loid", "token_v2"],
+        samplePresetIds: ["trackers", "balanced"],
+      },
+    ],
+    recycleBin: [
+      {
+        id: "cleanup-demo-1",
+        label: "Tracker Feast",
+        presetId: "trackers",
+        createdAt: new Date(Date.now() - 1000 * 60 * 35).toISOString(),
+        cookieCount: 182,
+        domainCount: 17,
+        sampleDomains: ["facebook.com", "doubleclick.net", "reddit.com"],
+        source: "website",
+      },
+      {
+        id: "cleanup-demo-2",
+        label: "Expired Crumbs",
+        presetId: "expired",
+        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 8).toISOString(),
+        cookieCount: 19,
+        domainCount: 8,
+        sampleDomains: ["oldsite.com", "legacy.app"],
+        source: "extension",
+      },
+    ],
+    pendingFeedRequest: {
+      requestId: "feed-request-demo",
+      createdAt: new Date(Date.now() - 1000 * 60 * 3).toISOString(),
+      presetId: "balanced",
+      label: "Balanced Feed",
+      description: "A safe starter bundle of expired, tracker, and long-lived non-essential cookies.",
+      cookieCount: 742,
+      domainCount: 61,
+      sampleDomains: ["facebook.com", "google.com", "reddit.com"],
+      source: "website",
+    },
+  };
+}
+
+export function getMockDomainCookies(domain: string): CookieDomainCookie[] {
+  return MOCK_DOMAIN_COOKIES[domain] || [];
 }

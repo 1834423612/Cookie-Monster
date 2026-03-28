@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
 import { useExtensionStatus } from "@/hooks/use-extension-status";
+import { useCookieManagement } from "@/hooks/use-cookie-management";
 import { useReportImport } from "@/hooks/use-report-import";
 import { DashboardContent } from "@/components/dashboard/dashboard-content";
 import { EmptyDashboardState } from "@/components/dashboard/empty-dashboard-state";
@@ -23,6 +24,10 @@ export default function DashboardPage() {
   
   const extensionStatus = useExtensionStatus();
   const reportImport = useReportImport();
+  const cookieManagement = useCookieManagement({
+    enabled: extensionStatus.isInstalled && !reportImport.report,
+    isDevMode: extensionStatus.isDevMode,
+  });
 
   // Use imported report if available, otherwise use extension report
   const activeReport = reportImport.report || extensionStatus.report;
@@ -88,6 +93,67 @@ export default function DashboardPage() {
     }
 
     setActionError("The extension could not create a feed request for that preset.");
+  };
+
+  const handleToggleDomainProtection = async (
+    domain: string,
+    nextValue: boolean
+  ) => {
+    setActionMessage(null);
+    setActionError(null);
+
+    try {
+      await cookieManagement.toggleDomainProtection(domain, nextValue);
+      await extensionStatus.refresh();
+      setActionMessage(
+        nextValue
+          ? `${domain} was added to the protected list.`
+          : `${domain} was removed from the protected list.`
+      );
+    } catch (error) {
+      setActionError(
+        error instanceof Error ? error.message : "Could not update domain protection."
+      );
+    }
+  };
+
+  const handleDeleteDomain = async (domain: string) => {
+    setActionMessage(null);
+    setActionError(null);
+
+    try {
+      await cookieManagement.deleteDomain(domain);
+      await extensionStatus.refresh();
+      setActionMessage(`${domain} was fed to the monster and backed up in the recycle bin.`);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Could not delete domain cookies.");
+    }
+  };
+
+  const handleDeleteCookies = async (keys: string[]) => {
+    setActionMessage(null);
+    setActionError(null);
+
+    try {
+      await cookieManagement.deleteCookies(keys);
+      await extensionStatus.refresh();
+      setActionMessage(`${keys.length} selected cookies were fed to the monster.`);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Could not delete selected cookies.");
+    }
+  };
+
+  const handleRestoreBatch = async (batchId: string) => {
+    setActionMessage(null);
+    setActionError(null);
+
+    try {
+      await cookieManagement.restoreBatch(batchId);
+      await extensionStatus.refresh();
+      setActionMessage("The selected recycle-bin batch was restored.");
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Could not restore cleanup batch.");
+    }
   };
 
   return (
@@ -168,6 +234,17 @@ export default function DashboardPage() {
             onExport={handleExport}
             onOpenExtension={!isImportedReport ? handleOpenExtension : undefined}
             onRequestFeed={!isImportedReport ? handleRequestFeed : undefined}
+            management={!isImportedReport ? cookieManagement.management : null}
+            domainCookies={!isImportedReport ? cookieManagement.domainCookies : []}
+            selectedDomain={!isImportedReport ? cookieManagement.selectedDomain : null}
+            onSelectDomain={!isImportedReport ? cookieManagement.selectDomain : undefined}
+            onToggleDomainProtection={
+              !isImportedReport ? handleToggleDomainProtection : undefined
+            }
+            onDeleteDomain={!isImportedReport ? handleDeleteDomain : undefined}
+            onDeleteCookies={!isImportedReport ? handleDeleteCookies : undefined}
+            onRestoreBatch={!isImportedReport ? handleRestoreBatch : undefined}
+            isDomainLoading={!isImportedReport ? cookieManagement.isDomainLoading : false}
             source={isImportedReport ? "imported" : "extension"}
           />
         ) : (

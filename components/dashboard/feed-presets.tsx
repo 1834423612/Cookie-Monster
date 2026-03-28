@@ -28,7 +28,7 @@ export function FeedPresets({
           </p>
         </div>
         <div className="text-sm text-muted-foreground">
-          Website requests still require confirmation inside the extension.
+          Preset batches ask the extension for confirmation. Domain and cookie-level actions can run directly from the website console.
         </div>
       </div>
 

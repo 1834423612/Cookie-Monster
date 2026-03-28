@@ -7,8 +7,11 @@ import { CategoryChart } from "./category-chart";
 import { TopDomains } from "./top-domains";
 import { FlagsSummary } from "./flags-summary";
 import { FeedPresets } from "./feed-presets";
+import { MonsterConsole } from "./monster-console";
 import type {
   CleanupPresetId,
+  CookieDomainCookie,
+  CookieManagementState,
   CookieSummaryReport,
 } from "@/lib/extension-bridge";
 
@@ -19,6 +22,15 @@ interface DashboardContentProps {
   onExport: () => void;
   onOpenExtension?: () => void;
   onRequestFeed?: (presetId: CleanupPresetId) => Promise<void> | void;
+  management?: CookieManagementState | null;
+  domainCookies?: CookieDomainCookie[];
+  selectedDomain?: string | null;
+  onSelectDomain?: (domain: string) => Promise<void> | void;
+  onToggleDomainProtection?: (domain: string, nextValue: boolean) => Promise<void> | void;
+  onDeleteDomain?: (domain: string) => Promise<void> | void;
+  onDeleteCookies?: (keys: string[]) => Promise<void> | void;
+  onRestoreBatch?: (batchId: string) => Promise<void> | void;
+  isDomainLoading?: boolean;
   source: "extension" | "imported";
 }
 
@@ -29,6 +41,15 @@ export function DashboardContent({
   onExport,
   onOpenExtension,
   onRequestFeed,
+  management,
+  domainCookies,
+  selectedDomain,
+  onSelectDomain,
+  onToggleDomainProtection,
+  onDeleteDomain,
+  onDeleteCookies,
+  onRestoreBatch,
+  isDomainLoading,
   source,
 }: DashboardContentProps) {
   const generatedDate = new Date(report.generatedAt);
@@ -39,13 +60,13 @@ export function DashboardContent({
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-card rounded-2xl border border-border p-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-            <Icon icon="mdi:chart-box" className="w-5 h-5 text-primary" />
+            <Icon icon="mdi:cookie-open" className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h2 className="font-semibold text-foreground">Cookie Analysis Report</h2>
+            <h2 className="font-semibold text-foreground">Monster Feeding Report</h2>
             <p className="text-sm text-muted-foreground">
-              Generated {generatedDate.toLocaleDateString()} at{" "}
-              {generatedDate.toLocaleTimeString()}
+              Website-side control shell with extension-powered local cookie execution.
+              Updated {generatedDate.toLocaleDateString()} at {generatedDate.toLocaleTimeString()}
             </p>
           </div>
         </div>
@@ -138,6 +159,28 @@ export function DashboardContent({
         />
       )}
 
+      {source === "extension" &&
+        management &&
+        domainCookies &&
+        onSelectDomain &&
+        onToggleDomainProtection &&
+        onDeleteDomain &&
+        onDeleteCookies &&
+        onRestoreBatch && (
+          <MonsterConsole
+            management={management}
+            domainCookies={domainCookies}
+            selectedDomain={selectedDomain || null}
+            onSelectDomain={onSelectDomain}
+            onToggleDomainProtection={onToggleDomainProtection}
+            onDeleteDomain={onDeleteDomain}
+            onDeleteCookies={onDeleteCookies}
+            onRestoreBatch={onRestoreBatch}
+            onRequestFeed={onRequestFeed}
+            isDomainLoading={isDomainLoading}
+          />
+        )}
+
       {/* Expiry overview */}
       <div className="bg-card rounded-2xl border border-border p-5">
         <h3 className="text-lg font-semibold text-foreground mb-4">
@@ -165,7 +208,7 @@ export function DashboardContent({
       <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-4">
         <Icon icon="mdi:shield-check" className="w-5 h-5 text-chart-3" />
         <span>
-          All data shown above is processed locally. Sensitive cookie values stay inside the extension.
+          All data shown above stays local to the browser. Raw cookie details only move from the extension to this page through local extension messaging.
         </span>
       </div>
     </div>
