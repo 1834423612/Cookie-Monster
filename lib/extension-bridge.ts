@@ -61,6 +61,8 @@ export interface ExtensionResponse {
     | CleanupInsights
     | PendingFeedRequestSummary
     | CookieDomainGroup[]
+    | CookieDomainCookie[]
+    | CookieManagementState
     | { version: string }
     | { extensionId: string }
     | null;
@@ -115,6 +117,65 @@ export interface CleanupBatchRestoreRequest {
 }
 
 const EXTENSION_ID_STORAGE_KEY = "cm_extension_id";
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function isCookieSummaryReportData(value: unknown): value is CookieSummaryReport {
+  return isRecord(value) && isRecord(value.totals) && typeof value.generatedAt === "string";
+}
+
+function isCleanupInsightsData(value: unknown): value is CleanupInsights {
+  return isRecord(value) && Array.isArray(value.presets) && Array.isArray(value.recommendations);
+}
+
+function isPendingFeedRequestData(value: unknown): value is PendingFeedRequestSummary {
+  return (
+    isRecord(value) &&
+    typeof value.requestId === "string" &&
+    typeof value.label === "string" &&
+    typeof value.cookieCount === "number"
+  );
+}
+
+function isCookieDomainGroupData(value: unknown): value is CookieDomainGroup {
+  return (
+    isRecord(value) &&
+    typeof value.domain === "string" &&
+    typeof value.total === "number" &&
+    typeof value.highRiskCount === "number" &&
+    typeof value.recommendedKeepCount === "number" &&
+    Array.isArray(value.items)
+  );
+}
+
+function isCookieDomainCookieData(value: unknown): value is CookieDomainCookie {
+  return (
+    isRecord(value) &&
+    typeof value.key === "string" &&
+    typeof value.name === "string" &&
+    typeof value.domain === "string" &&
+    typeof value.path === "string" &&
+    Array.isArray(value.reasons) &&
+    Array.isArray(value.presetIds)
+  );
+}
+
+function isCookieManagementStateData(value: unknown): value is CookieManagementState {
+  return (
+    isRecord(value) &&
+    typeof value.generatedAt === "string" &&
+    Array.isArray(value.protectedDomains) &&
+    Array.isArray(value.domains) &&
+    Array.isArray(value.recycleBin) &&
+    (value.pendingFeedRequest === null || isPendingFeedRequestData(value.pendingFeedRequest))
+  );
+}
+
+function isVersionData(value: unknown): value is { version: string } {
+  return isRecord(value) && typeof value.version === "string";
+}
 
 function getCandidateExtensionIds(): string[] {
   const ids = new Set<string>();
@@ -182,9 +243,14 @@ export async function sendMessageToExtension(
   }
 
   const candidates = getCandidateExtensionIds();
+  let lastKnownError: string | null = null;
 
   for (const extensionId of candidates) {
     const response = await sendMessageToId(extensionId, message);
+    if (response.error) {
+      lastKnownError = response.error;
+    }
+
     if (response.success) {
       if (response.data && typeof response.data === "object" && "extensionId" in response.data) {
         const id = (response.data as { extensionId: string }).extensionId;
@@ -201,7 +267,9 @@ export async function sendMessageToExtension(
   return {
     success: false,
     type: message.type,
-    error: "Unable to connect to Cookie Monster extension. Verify extension ID and allowed origin.",
+    error:
+      lastKnownError ||
+      "Unable to connect to Cookie Monster extension. Verify the extension ID and allowed website origin.",
   };
 }
 
@@ -222,7 +290,7 @@ export async function isExtensionInstalled(): Promise<boolean> {
 
 export async function getSummaryReport(): Promise<CookieSummaryReport | null> {
   const response = await sendMessageToExtension({ type: "GET_SUMMARY_REPORT" });
-  if (response.success && response.data && "totals" in response.data) {
+  if (response.success && isCookieSummaryReportData(response.data)) {
     return response.data as CookieSummaryReport;
   }
   return null;
@@ -230,7 +298,7 @@ export async function getSummaryReport(): Promise<CookieSummaryReport | null> {
 
 export async function getCleanupPreview(): Promise<CleanupInsights | null> {
   const response = await sendMessageToExtension({ type: "GET_FEED_PREVIEW" });
-  if (response.success && response.data && "presets" in response.data) {
+  if (response.success && isCleanupInsightsData(response.data)) {
     return response.data as CleanupInsights;
   }
   return null;
@@ -238,7 +306,7 @@ export async function getCleanupPreview(): Promise<CleanupInsights | null> {
 
 export async function getCookieInventory(): Promise<CookieDomainGroup[] | null> {
   const response = await sendMessageToExtension({ type: "GET_COOKIE_INVENTORY" });
-  if (response.success && Array.isArray(response.data)) {
+  if (response.success && Array.isArray(response.data) && response.data.every(isCookieDomainGroupData)) {
     return response.data as CookieDomainGroup[];
   }
   return null;
@@ -252,7 +320,7 @@ export async function requestCookieFeed(
     payload: request as unknown as Record<string, unknown>,
   });
 
-  if (response.success && response.data && "requestId" in response.data) {
+  if (response.success && isPendingFeedRequestData(response.data)) {
     return response.data as PendingFeedRequestSummary;
   }
 
@@ -261,7 +329,7 @@ export async function requestCookieFeed(
 
 export async function getCookieManagementState(): Promise<CookieManagementState | null> {
   const response = await sendMessageToExtension({ type: "GET_COOKIE_MANAGEMENT_STATE" });
-  if (response.success && response.data && "domains" in response.data) {
+  if (response.success && isCookieManagementStateData(response.data)) {
     return response.data as CookieManagementState;
   }
 
@@ -274,7 +342,7 @@ export async function getDomainCookies(domain: string): Promise<CookieDomainCook
     payload: { domain },
   });
 
-  if (response.success && Array.isArray(response.data)) {
+  if (response.success && Array.isArray(response.data) && response.data.every(isCookieDomainCookieData)) {
     return response.data as CookieDomainCookie[];
   }
 
@@ -289,7 +357,7 @@ export async function setDomainProtection(
     payload: request as unknown as Record<string, unknown>,
   });
 
-  if (response.success && response.data && "domains" in response.data) {
+  if (response.success && isCookieManagementStateData(response.data)) {
     return response.data as CookieManagementState;
   }
 
@@ -304,7 +372,7 @@ export async function deleteDomainCookies(
     payload: request as unknown as Record<string, unknown>,
   });
 
-  if (response.success && response.data && "domains" in response.data) {
+  if (response.success && isCookieManagementStateData(response.data)) {
     return response.data as CookieManagementState;
   }
 
@@ -319,7 +387,7 @@ export async function deleteCookieKeys(
     payload: request as unknown as Record<string, unknown>,
   });
 
-  if (response.success && response.data && "domains" in response.data) {
+  if (response.success && isCookieManagementStateData(response.data)) {
     return response.data as CookieManagementState;
   }
 
@@ -334,7 +402,7 @@ export async function restoreCleanupBatch(
     payload: request as unknown as Record<string, unknown>,
   });
 
-  if (response.success && response.data && "domains" in response.data) {
+  if (response.success && isCookieManagementStateData(response.data)) {
     return response.data as CookieManagementState;
   }
 
@@ -353,7 +421,7 @@ export async function requestExportReport(): Promise<boolean> {
 
 export async function getExtensionVersion(): Promise<string | null> {
   const response = await sendMessageToExtension({ type: "GET_EXTENSION_VERSION" });
-  if (response.success && response.data && "version" in response.data) {
+  if (response.success && isVersionData(response.data)) {
     return response.data.version;
   }
   return null;

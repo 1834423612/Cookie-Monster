@@ -31,7 +31,7 @@ const riskConfig = {
 };
 
 export function TopDomains({ domains }: TopDomainsProps) {
-  const maxCount = Math.max(...domains.map((d) => d.count));
+  const maxCount = domains.length > 0 ? Math.max(...domains.map((d) => d.count)) : 0;
 
   return (
     <div className="bg-card rounded-2xl border border-border p-5">
@@ -42,9 +42,14 @@ export function TopDomains({ domains }: TopDomainsProps) {
         </span>
       </div>
       <div className="space-y-3">
+        {domains.length === 0 && (
+          <div className="rounded-2xl border border-dashed border-border bg-background/70 p-6 text-sm text-muted-foreground">
+            No domain activity is available yet.
+          </div>
+        )}
         {domains.map((domain) => {
           const risk = riskConfig[domain.riskLevel];
-          const percentage = (domain.count / maxCount) * 100;
+          const percentage = maxCount > 0 ? (domain.count / maxCount) * 100 : 0;
 
           return (
             <div key={domain.domain} className="group">

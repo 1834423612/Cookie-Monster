@@ -1,7 +1,7 @@
 "use client";
 
 import { Icon } from "@iconify/react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type {
   CleanupPresetId,
   CookieDomainCookie,
@@ -67,6 +67,11 @@ export function MonsterConsole({
         .filter((presetId, index, array) => array.indexOf(presetId) === index)
         .slice(0, 3)
     : [];
+
+  useEffect(() => {
+    const visibleKeys = new Set(domainCookies.map((cookie) => cookie.key));
+    setSelectedKeys((current) => current.filter((key) => visibleKeys.has(key)));
+  }, [domainCookies]);
 
   return (
     <div className="space-y-6">
@@ -358,7 +363,7 @@ export function MonsterConsole({
                     Sample Names
                   </p>
                   <p className="mt-2 text-sm font-medium text-foreground">
-                    {selectedDomainEntry.sampleCookieNames.join(", ")}
+                    {selectedDomainEntry.sampleCookieNames.join(", ") || "No sample names yet"}
                   </p>
                 </div>
               </div>
@@ -397,6 +402,10 @@ export function MonsterConsole({
               {isDomainLoading ? (
                 <div className="rounded-2xl border border-border bg-background/70 p-10 text-center text-muted-foreground">
                   Loading cookie details...
+                </div>
+              ) : domainCookies.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-border bg-background/70 p-10 text-center text-muted-foreground">
+                  No cookies are currently available for this domain.
                 </div>
               ) : (
                 <div className="overflow-hidden rounded-2xl border border-border">

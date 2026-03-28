@@ -5,14 +5,10 @@ const STORAGE_KEYS = {
   protectedDomains: "cm.protectedDomains",
 };
 
-const EXTERNAL_ORIGINS = new Set([
-  "http://localhost:3000",
-  "http://localhost:3001",
-  "http://127.0.0.1:3000",
-  "http://127.0.0.1:3001",
-  "https://cookie-monster.app",
-  "https://www.cookie-monster.app",
-  "https://cookie-monster.vercel.app",
+const EXTERNAL_ALLOWED_HOSTS = new Set([
+  "cookie-monster.app",
+  "www.cookie-monster.app",
+  "cookie-monster.vercel.app",
 ]);
 
 const KEYWORDS = {
@@ -92,7 +88,26 @@ function getOriginFromSender(sender) {
 
 function isAllowedExternalSender(sender) {
   const origin = getOriginFromSender(sender);
-  return origin ? EXTERNAL_ORIGINS.has(origin) : false;
+  if (!origin) {
+    return false;
+  }
+
+  try {
+    const parsed = new URL(origin);
+    const isLocalHost =
+      parsed.hostname === "localhost" ||
+      parsed.hostname === "127.0.0.1" ||
+      parsed.hostname === "[::1]" ||
+      parsed.hostname === "::1";
+
+    if (isLocalHost) {
+      return parsed.protocol === "http:" || parsed.protocol === "https:";
+    }
+
+    return parsed.protocol === "https:" && EXTERNAL_ALLOWED_HOSTS.has(parsed.hostname);
+  } catch {
+    return false;
+  }
 }
 
 function isCleanupPresetId(value) {
@@ -412,6 +427,71 @@ function buildCleanupInsights(analyzedCookies) {
       .sort((left, right) => right.cookieCount - left.cookieCount)
       .slice(0, 8),
   };
+}
+
+function buildCookieInventoryGroups(analyzedCookies) {
+  const groups = new Map();
+
+  for (const item of analyzedCookies) {
+    const current = groups.get(item.domain) || {
+      domain: item.domain,
+      total: 0,
+      highRiskCount: 0,
+      recommendedKeepCount: 0,
+      items: [],
+    };
+
+    const recommendedKeep =
+      item.category === "essential" && item.cookie.session && item.cookie.secure;
+
+    current.total += 1;
+    if (item.risk === "high") {
+      current.highRiskCount += 1;
+    }
+    if (recommendedKeep) {
+      current.recommendedKeepCount += 1;
+    }
+
+    current.items.push({
+      key: item.key,
+      name: item.cookie.name,
+      domain: item.domain,
+      path: item.cookie.path || "/",
+      storeId: item.cookie.storeId || "default",
+      session: Boolean(item.cookie.session),
+      secure: Boolean(item.cookie.secure),
+      httpOnly: Boolean(item.cookie.httpOnly),
+      sameSite: item.cookie.sameSite || "unspecified",
+      category: item.category,
+      risk: item.risk,
+      expirationDate:
+        typeof item.cookie.expirationDate === "number" ? item.cookie.expirationDate : null,
+      reasons: item.reasons,
+      recommendedKeep,
+      presetIds: item.presetIds,
+    });
+
+    groups.set(item.domain, current);
+  }
+
+  return [...groups.values()]
+    .map((group) => ({
+      ...group,
+      items: group.items.sort((left, right) => {
+        const riskScore = { high: 3, medium: 2, low: 1 };
+        const riskDelta = riskScore[right.risk] - riskScore[left.risk];
+        if (riskDelta !== 0) {
+          return riskDelta;
+        }
+
+        if (left.recommendedKeep !== right.recommendedKeep) {
+          return left.recommendedKeep ? 1 : -1;
+        }
+
+        return left.name.localeCompare(right.name);
+      }),
+    }))
+    .sort((left, right) => right.total - left.total);
 }
 
 function buildSummaryReportFromAnalyzed(analyzedCookies) {
@@ -1035,6 +1115,10 @@ async function handleInternalMessage(message) {
       return success(message.type, {
         report: await scanCookies(),
       });
+    case "GET_COOKIE_INVENTORY": {
+      const { analyzedCookies } = await getRawAndAnalyzedCookies();
+      return success(message.type, buildCookieInventoryGroups(analyzedCookies));
+    }
     case "GET_COOKIE_MANAGEMENT_STATE":
       return success(message.type, await getCookieManagementState());
     case "GET_DOMAIN_COOKIES": {
@@ -1163,6 +1247,10 @@ async function handleExternalMessage(message) {
     case "GET_FEED_PREVIEW": {
       const report = await getLatestReport({ refreshIfMissing: true });
       return success(message.type, report?.cleanup || null);
+    }
+    case "GET_COOKIE_INVENTORY": {
+      const { analyzedCookies } = await getRawAndAnalyzedCookies();
+      return success(message.type, buildCookieInventoryGroups(analyzedCookies));
     }
     case "GET_COOKIE_MANAGEMENT_STATE":
       return success(message.type, await getCookieManagementState());

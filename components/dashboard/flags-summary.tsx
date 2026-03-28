@@ -75,7 +75,7 @@ export function FlagsSummary({ flags, total }: FlagsSummaryProps) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {flagConfig.map((config) => {
           const value = flags[config.key as keyof typeof flags];
-          const percentage = ((value / total) * 100).toFixed(1);
+          const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : "0.0";
 
           return (
             <div

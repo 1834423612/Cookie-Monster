@@ -55,7 +55,7 @@ export function RiskChart({ data }: RiskChartProps) {
             </Pie>
             <Tooltip
               formatter={(value: number) => [
-                `${value.toLocaleString()} (${((value / total) * 100).toFixed(1)}%)`,
+                `${value.toLocaleString()} (${total > 0 ? ((value / total) * 100).toFixed(1) : "0.0"}%)`,
                 "Cookies",
               ]}
               contentStyle={{
