@@ -12,16 +12,16 @@ import { useExtensionStatus } from "@/hooks/use-extension-status";
 import { useCookieInventory } from "@/hooks/use-cookie-inventory";
 
 const presetFilters: Array<{ id: CleanupPresetId; label: string }> = [
-  { id: "balanced", label: "推荐可清理" },
-  { id: "trackers", label: "追踪类" },
-  { id: "highRisk", label: "高风险" },
-  { id: "expired", label: "已过期" },
-  { id: "longLived", label: "长期驻留" },
+  { id: "balanced", label: "Recommended" },
+  { id: "trackers", label: "Trackers" },
+  { id: "highRisk", label: "High risk" },
+  { id: "expired", label: "Expired" },
+  { id: "longLived", label: "Long-lived" },
 ];
 
 function formatExpiry(expirationDate: number | null) {
   if (!expirationDate) {
-    return "会话 Cookie";
+    return "Session cookie";
   }
 
   return new Date(expirationDate * 1000).toLocaleString();
@@ -52,7 +52,7 @@ function buildDemoGroups(report: CookieSummaryReport | null): CookieDomainGroup[
         category: cookieIndex === 0 ? "essential" : "analytics",
         risk: domain.riskLevel,
         expirationDate: cookieIndex % 2 === 0 ? null : Date.now() / 1000 + 86400 * 14,
-        reasons: ["Demo 数据：用于本地安全演示"],
+        reasons: ["Mock data for local-safe demos"],
         recommendedKeep: cookieIndex === 0,
         presetIds: cookieIndex === 0 ? [] : ["balanced", "trackers"],
       })),
@@ -133,7 +133,7 @@ export default function HomePage() {
 
   const requestFeed = async () => {
     if (!canRequestFeed) {
-      setMessage("当前是测试数据模式，已禁用真实删除请求。");
+      setMessage("Mock mode is active, so real cleanup requests are disabled.");
       return;
     }
 
@@ -141,24 +141,24 @@ export default function HomePage() {
     const pending = await requestCookieFeed({ presetId: targetPreset });
 
     if (pending) {
-      setMessage(`已创建本地待确认清理请求：${pending.label}（${pending.cookieCount} 个 Cookie）`);
+      setMessage(`Created local pending cleanup request: ${pending.label} (${pending.cookieCount} cookies).`);
       return;
     }
 
-    setMessage("暂未匹配到可删除 Cookie，建议先在插件中执行扫描。");
+    setMessage("No removable cookies matched. Run a fresh extension scan first.");
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f3ea] text-[#2d261a]">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(29,110,216,0.12),_transparent_30%),radial-gradient(circle_at_bottom_right,_rgba(183,121,31,0.14),_transparent_35%),#f8f3ea] text-[#2d261a]">
       <main className="mx-auto max-w-7xl p-4 md:p-8">
-        <div className="mb-4 rounded-3xl border border-[#d9ccb8] bg-white/80 p-4 md:p-6">
-          <h1 className="text-2xl md:text-3xl font-bold">Cookie Monster 单页操作台</h1>
+        <div className="mb-4 rounded-3xl border border-[#d9ccb8] bg-white/85 p-4 shadow-[0_20px_45px_rgba(34,24,10,0.08)] md:p-6">
+          <h1 className="text-2xl md:text-3xl font-bold">Cookie Monster Workspace</h1>
           <p className="mt-2 text-sm text-[#6f6453]">
-            默认：左侧罐子 + 右侧小怪物。点击罐子后切换为大列表视图，怪物自动缩小到右侧。
+            Default view: jar on the left and monster on the right. Click the jar to open the large list while the monster shrinks.
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
             <span className="rounded-full bg-slate-100 px-2 py-1">
-              数据源：{extensionStatus.isUsingMockData ? "测试数据" : "真实插件数据"}
+              Data source: {extensionStatus.isUsingMockData ? "Mock data" : "Extension data"}
             </span>
             {extensionStatus.isDevMode && (
               <>
@@ -168,7 +168,7 @@ export default function HomePage() {
                     extensionStatus.dataMode === "auto" ? "bg-emerald-100" : "bg-slate-100"
                   }`}
                 >
-                  自动切换真实数据
+                  Auto (prefer real data)
                 </button>
                 <button
                   onClick={() => extensionStatus.setDataMode("mock")}
@@ -176,7 +176,7 @@ export default function HomePage() {
                     extensionStatus.dataMode === "mock" ? "bg-amber-100" : "bg-slate-100"
                   }`}
                 >
-                  强制测试数据
+                  Force mock data
                 </button>
               </>
             )}
@@ -188,23 +188,23 @@ export default function HomePage() {
           {!isJarOpened ? (
             <button
               onClick={() => setIsJarOpened(true)}
-              className="rounded-3xl border border-[#d9ccb8] bg-[#fff7ea] p-8 text-center transition hover:shadow-lg"
+              className="rounded-3xl border border-[#d9ccb8] bg-[#fff7ea]/95 p-8 text-center transition hover:-translate-y-0.5 hover:shadow-[0_20px_40px_rgba(34,24,10,0.12)]"
             >
               <div className="mx-auto mb-3 h-40 w-40 rounded-3xl border border-[#dbc8ad] bg-white/80 text-8xl leading-[10rem]">
                 🫙
               </div>
-              <strong className="text-xl">点击罐子进入 Cookie 列表</strong>
-              <p className="mt-2 text-sm text-[#6f6453]">占位图：后续可替换为正式角色素材</p>
+              <strong className="text-xl">Click jar to open cookie list</strong>
+              <p className="mt-2 text-sm text-[#6f6453]">Placeholder art (replace with final assets later)</p>
             </button>
           ) : (
-            <section className="rounded-3xl border border-[#d9ccb8] bg-white/95 p-4 md:col-span-2">
+            <section className="rounded-3xl border border-[#d9ccb8] bg-white/95 p-4 shadow-[0_18px_36px_rgba(34,24,10,0.08)] md:col-span-2">
               <div className="mb-3 flex items-center justify-between gap-2">
-                <h2 className="text-lg font-semibold">Cookie 大列表（本地）</h2>
+                <h2 className="text-lg font-semibold">Large Local Cookie List</h2>
                 <button
                   onClick={() => setIsJarOpened(false)}
                   className="rounded-xl border border-[#ddcfba] bg-white px-3 py-1.5 text-sm"
                 >
-                  返回罐子视图
+                  Back to jar view
                 </button>
               </div>
 
@@ -212,7 +212,7 @@ export default function HomePage() {
                 <input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder="筛选：domain / cookie 名 / 类别"
+                  placeholder="Filter by domain / cookie / category"
                   className="h-10 flex-1 rounded-xl border border-[#ddcfba] bg-white px-3 text-sm"
                 />
                 <select
@@ -220,7 +220,7 @@ export default function HomePage() {
                   onChange={(event) => setPreset(event.target.value as CleanupPresetId | "all")}
                   className="h-10 rounded-xl border border-[#ddcfba] bg-white px-3 text-sm"
                 >
-                  <option value="all">全部分组</option>
+                  <option value="all">All groups</option>
                   {presetFilters.map((filter) => (
                     <option key={filter.id} value={filter.id}>
                       {filter.label}
@@ -234,13 +234,13 @@ export default function HomePage() {
                   }}
                   className="h-10 rounded-xl border border-[#ddcfba] bg-white px-3 text-sm"
                 >
-                  刷新
+                  Refresh
                 </button>
               </div>
 
               {inventory.isLoading && !extensionStatus.isUsingMockData && (
                 <div className="flex items-center gap-2 p-3 text-sm text-[#6f6453]">
-                  <Icon icon="mdi:loading" className="h-4 w-4 animate-spin" /> 正在读取本地 Cookie 清单...
+                  <Icon icon="mdi:loading" className="h-4 w-4 animate-spin" /> Loading local cookie inventory...
                 </div>
               )}
 
@@ -260,7 +260,7 @@ export default function HomePage() {
                       <div>
                         <p className="font-semibold">{group.domain}</p>
                         <p className="text-xs text-[#6f6453]">
-                          {group.total} 个 Cookie · 高风险 {group.highRiskCount} · 建议保留 {group.recommendedKeepCount}
+                          {group.total} cookies · High risk {group.highRiskCount} · Protected {group.recommendedKeepCount}
                         </p>
                       </div>
                       <Icon
@@ -299,13 +299,13 @@ export default function HomePage() {
                                 </span>
                                 {cookie.recommendedKeep && (
                                   <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">
-                                    保护标签（建议保留）
+                                    Protected (recommended keep)
                                   </span>
                                 )}
                               </div>
-                              <p className="mt-1 text-xs text-[#6f6453]">Path: {cookie.path} · 过期时间：{formatExpiry(cookie.expirationDate)}</p>
+                              <p className="mt-1 text-xs text-[#6f6453]">Path: {cookie.path} · Expires: {formatExpiry(cookie.expirationDate)}</p>
                               {cookie.reasons.length > 0 && (
-                                <p className="mt-1 text-xs text-[#8a7b66]">判定依据：{cookie.reasons.join("；")}</p>
+                                <p className="mt-1 text-xs text-[#8a7b66]">Signals: {cookie.reasons.join("; ")}</p>
                               )}
                             </div>
                           </label>
@@ -317,14 +317,14 @@ export default function HomePage() {
 
                 {filteredGroups.length === 0 && (
                   <div className="rounded-2xl border border-dashed border-[#ddcfba] p-6 text-center text-sm text-[#6f6453]">
-                    当前筛选条件下没有匹配项。
+                    No cookies match the active filters.
                   </div>
                 )}
               </div>
 
               <div className="mt-4 rounded-2xl border border-[#eadfce] bg-white p-4">
                 <div className="flex items-center justify-between text-sm">
-                  <span>已选中</span>
+                  <span>Selected</span>
                   <strong>{selectedCount}</strong>
                 </div>
                 <button
@@ -332,15 +332,15 @@ export default function HomePage() {
                   disabled={!canRequestFeed}
                   className="mt-3 w-full rounded-xl bg-[#1d6ed8] px-3 py-2 text-sm font-semibold text-white enabled:hover:bg-[#185db7] disabled:cursor-not-allowed disabled:bg-slate-300"
                 >
-                  生成本地清理建议（需插件确认）
+                  Create local cleanup request (extension confirmation required)
                 </button>
-                <p className="mt-2 text-xs text-[#6f6453]">删除动作不会由网站直接执行，必须在插件页进行二次确认。</p>
+                <p className="mt-2 text-xs text-[#6f6453]">Deletion is never executed directly by the website. Local extension confirmation is required.</p>
               </div>
             </section>
           )}
 
           <aside
-            className={`rounded-3xl border border-[#d9ccb8] bg-white/80 p-4 transition-all ${
+            className={`rounded-3xl border border-[#d9ccb8] bg-white/85 p-4 shadow-[0_18px_36px_rgba(34,24,10,0.08)] transition-all ${
               isJarOpened ? "md:col-span-1" : "md:col-span-1"
             }`}
           >
@@ -348,15 +348,15 @@ export default function HomePage() {
               <div className={`mx-auto rounded-3xl border border-[#dbc8ad] bg-white/80 ${isJarOpened ? "h-32 w-32 text-6xl leading-[8rem]" : "h-56 w-56 text-8xl leading-[14rem]"}`}>
                 👾
               </div>
-              <h3 className="mt-3 font-semibold">Cookie 小怪物（占位）</h3>
-              <p className="mt-1 text-xs text-[#6f6453]">罐子打开后怪物会缩小，给列表让位。</p>
+              <h3 className="mt-3 font-semibold">Cookie Monster (placeholder)</h3>
+              <p className="mt-1 text-xs text-[#6f6453]">After opening the jar, the monster shrinks to prioritize the list.</p>
             </div>
           </aside>
         </section>
 
         <section className="mt-6 rounded-3xl border border-[#cde4d2] bg-[#eefaf0] p-4 text-sm text-[#2e6240]">
-          <strong>隐私保证：</strong>
-          Cookie 值、用户态会话信息仅在你的本地浏览器插件中读取和处理；当前页面只消费插件桥接提供的脱敏元数据，并且删除必须由插件内确认。
+          <strong>Privacy guarantee:</strong>
+          Cookie values and sensitive session data are only processed inside your local extension; this page consumes sanitized metadata only, and deletion must be confirmed inside the extension.
         </section>
       </main>
     </div>

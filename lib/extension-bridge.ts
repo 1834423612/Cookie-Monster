@@ -1,6 +1,6 @@
 /**
  * Cookie Monster Extension Bridge
- * 
+ *
  * This module handles communication between the website and the browser extension.
  * All data transferred is sanitized and contains NO raw cookie values.
  * Only summary/report data is exchanged for visualization purposes.
@@ -23,8 +23,7 @@ export type {
   PendingFeedRequestSummary,
 } from "@/lib/cookie-report";
 
-// Message types for extension communication
-export type MessageType = 
+export type MessageType =
   | "PING"
   | "GET_SUMMARY_REPORT"
   | "GET_FEED_PREVIEW"
@@ -38,21 +37,6 @@ export interface ExtensionMessage {
   type: MessageType;
   payload?: Record<string, unknown>;
 }
-
-export interface ExtensionResponse {
-  success: boolean;
-  type: string;
-  data?:
-    | CookieSummaryReport
-    | CleanupInsights
-    | PendingFeedRequestSummary
-    | CookieDomainGroup[]
-    | { version: string }
-    | { extensionId: string }
-    | null;
-  error?: string;
-}
-
 
 export interface CookieInventoryItem {
   key: string;
@@ -80,80 +64,114 @@ export interface CookieDomainGroup {
   items: CookieInventoryItem[];
 }
 
+export interface ExtensionResponse {
+  success: boolean;
+  type: string;
+  data?:
+    | CookieSummaryReport
+    | CleanupInsights
+    | PendingFeedRequestSummary
+    | CookieDomainGroup[]
+    | { version: string }
+    | { extensionId: string }
+    | null;
+  error?: string;
+}
+
 export interface CookieFeedRequest {
   presetId: CleanupPresetId;
 }
 
-/**
- * Check if the Cookie Monster extension is installed
- */
-export async function isExtensionInstalled(): Promise<boolean> {
-  // In development mode, allow skipping extension check
-  if (process.env.NODE_ENV === "development") {
-    const skipCheck = typeof window !== "undefined" && 
-      window.localStorage.getItem("cm_dev_skip_extension") === "true";
-    if (skipCheck) return true;
+const EXTENSION_ID_STORAGE_KEY = "cm_extension_id_override";
+
+function getCandidateExtensionIds(): string[] {
+  const ids = new Set<string>([COOKIE_MONSTER_EXTENSION_ID]);
+
+  if (typeof window !== "undefined") {
+    const override = window.localStorage.getItem(EXTENSION_ID_STORAGE_KEY);
+    if (override && override.trim()) {
+      ids.add(override.trim());
+    }
   }
 
-  if (typeof chrome === "undefined" || !chrome.runtime) {
-    return false;
-  }
-
-  try {
-    const response = await sendMessageToExtension({ type: "PING" });
-    return response.success;
-  } catch {
-    return false;
-  }
+  return [...ids];
 }
 
-/**
- * Send a message to the extension
- */
-export async function sendMessageToExtension(
+async function sendMessageWithId(
+  extensionId: string,
   message: ExtensionMessage
 ): Promise<ExtensionResponse> {
   return new Promise((resolve) => {
     if (typeof chrome === "undefined" || !chrome.runtime) {
-      resolve({ success: false, type: message.type, error: "Extension not available" });
+      resolve({ success: false, type: message.type, error: "Extension runtime unavailable" });
       return;
     }
 
     const runtime = chrome.runtime;
 
     try {
-      runtime.sendMessage(
-        COOKIE_MONSTER_EXTENSION_ID,
-        message,
-        (response) => {
-          const extensionResponse = response as ExtensionResponse | undefined;
+      runtime.sendMessage(extensionId, message, (response) => {
+        const extensionResponse = response as ExtensionResponse | undefined;
 
-          if (runtime.lastError) {
-            resolve({ 
-              success: false, 
-              type: message.type, 
-              error: runtime.lastError.message 
-            });
-          } else if (extensionResponse) {
-            resolve(extensionResponse);
-          } else {
-            resolve({ success: false, type: message.type, error: "No response" });
-          }
+        if (runtime.lastError) {
+          resolve({
+            success: false,
+            type: message.type,
+            error: runtime.lastError.message,
+          });
+          return;
         }
-      );
+
+        if (!extensionResponse) {
+          resolve({ success: false, type: message.type, error: "No response" });
+          return;
+        }
+
+        resolve(extensionResponse);
+      });
     } catch (error) {
-      resolve({ 
-        success: false, 
-        type: message.type, 
-        error: error instanceof Error ? error.message : "Unknown error" 
+      resolve({
+        success: false,
+        type: message.type,
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   });
 }
 
-/**
- * Get the summary report from the extension (sanitized, no raw cookie values)
- */
+export async function isExtensionInstalled(): Promise<boolean> {
+  if (process.env.NODE_ENV === "development") {
+    const skipCheck = typeof window !== "undefined" && window.localStorage.getItem("cm_dev_skip_extension") === "true";
+    if (skipCheck) {
+      return true;
+    }
+  }
+
+  const response = await sendMessageToExtension({ type: "PING" });
+  return response.success;
+}
+
+export async function sendMessageToExtension(message: ExtensionMessage): Promise<ExtensionResponse> {
+  const candidates = getCandidateExtensionIds();
+  let lastError = "Could not reach extension.";
+
+  for (const extensionId of candidates) {
+    const response = await sendMessageWithId(extensionId, message);
+    if (response.success) {
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(EXTENSION_ID_STORAGE_KEY, extensionId);
+      }
+      return response;
+    }
+
+    if (response.error) {
+      lastError = response.error;
+    }
+  }
+
+  return { success: false, type: message.type, error: lastError };
+}
+
 export async function getSummaryReport(): Promise<CookieSummaryReport | null> {
   const response = await sendMessageToExtension({ type: "GET_SUMMARY_REPORT" });
   if (response.success && response.data && "totals" in response.data) {
@@ -170,7 +188,6 @@ export async function getCleanupPreview(): Promise<CleanupInsights | null> {
 
   return null;
 }
-
 
 export async function getCookieInventory(): Promise<CookieDomainGroup[] | null> {
   const response = await sendMessageToExtension({ type: "GET_COOKIE_INVENTORY" });
@@ -197,25 +214,16 @@ export async function requestCookieFeed(
   return null;
 }
 
-/**
- * Request the extension to open its dashboard
- */
 export async function openExtensionDashboard(): Promise<boolean> {
   const response = await sendMessageToExtension({ type: "OPEN_EXTENSION_DASHBOARD" });
   return response.success;
 }
 
-/**
- * Request the extension to export a report file
- */
 export async function requestExportReport(): Promise<boolean> {
   const response = await sendMessageToExtension({ type: "EXPORT_REPORT" });
   return response.success;
 }
 
-/**
- * Get extension version
- */
 export async function getExtensionVersion(): Promise<string | null> {
   const response = await sendMessageToExtension({ type: "GET_EXTENSION_VERSION" });
   if (response.success && response.data && "version" in response.data) {
@@ -224,17 +232,10 @@ export async function getExtensionVersion(): Promise<string | null> {
   return null;
 }
 
-/**
- * Parse a report JSON file (for manual import)
- * This validates the structure before accepting
- */
 export function parseReportFile(jsonString: string): CookieSummaryReport | null {
   return parseCookieReportFile(jsonString);
 }
 
-/**
- * Generate mock data for development/demo purposes
- */
 export function generateMockReport(): CookieSummaryReport {
   return createMockReport();
 }

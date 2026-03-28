@@ -72,7 +72,7 @@ export function useExtensionStatus(): ExtensionStatus {
         if (isDevEnv && devEnabled) {
           setReport(generateMockReport());
           setIsUsingMockData(true);
-          setError("未检测到插件，当前使用测试数据模式。");
+          setError("Extension not detected, running in mock mode.");
         }
         setIsLoading(false);
         return;
@@ -87,7 +87,7 @@ export function useExtensionStatus(): ExtensionStatus {
       if (isDevEnv && devEnabled) {
         setReport(generateMockReport());
         setIsUsingMockData(true);
-        setError("插件存在但尚无报告，临时回退到测试数据。");
+        setError("Extension detected but no report found yet. Falling back to mock data.");
         return;
       }
 

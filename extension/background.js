@@ -5,10 +5,6 @@ const STORAGE_KEYS = {
 };
 
 const EXTERNAL_ORIGINS = new Set([
-  "http://localhost:3000",
-  "http://localhost:3001",
-  "http://127.0.0.1:3000",
-  "http://127.0.0.1:3001",
   "https://cookie-monster.app",
   "https://www.cookie-monster.app",
   "https://cookie-monster.vercel.app",
@@ -95,7 +91,22 @@ function getOriginFromSender(sender) {
 
 function isAllowedExternalSender(sender) {
   const origin = getOriginFromSender(sender);
-  return origin ? EXTERNAL_ORIGINS.has(origin) : false;
+  if (!origin) {
+    return false;
+  }
+
+  try {
+    const parsed = new URL(origin);
+    const hostname = parsed.hostname;
+
+    if (hostname === "localhost" || hostname === "127.0.0.1") {
+      return true;
+    }
+  } catch {
+    return false;
+  }
+
+  return EXTERNAL_ORIGINS.has(origin);
 }
 
 function cookieHost(domain = "") {

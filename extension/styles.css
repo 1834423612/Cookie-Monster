@@ -501,3 +501,38 @@ button.secondary {
     font-size: 4rem;
   }
 }
+
+/* Visual polish pass */
+.workspace .panel {
+  backdrop-filter: blur(8px);
+}
+
+.jar-scene {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(30, 111, 217, 0.12), transparent 40%),
+    rgba(255, 255, 255, 0.78);
+}
+
+.monster-panel {
+  background:
+    radial-gradient(circle at 80% 0%, rgba(183, 121, 31, 0.16), transparent 45%),
+    rgba(255, 255, 255, 0.82);
+}
+
+.inventory-domain {
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.inventory-domain:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 26px rgba(34, 24, 10, 0.08);
+}
+
+.inventory-cookie {
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.inventory-cookie:hover {
+  border-color: rgba(30, 111, 217, 0.24);
+  box-shadow: 0 8px 20px rgba(30, 111, 217, 0.08);
+}

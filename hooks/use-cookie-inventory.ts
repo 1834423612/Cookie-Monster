@@ -29,12 +29,12 @@ export function useCookieInventory(enabled: boolean): CookieInventoryState {
       const inventory = await getCookieInventory();
       if (!inventory) {
         setGroups([]);
-        setError("无法读取本地 Cookie 清单，请先在插件里执行扫描。");
+        setError("Could not read local cookie inventory. Run an extension scan first.");
         return;
       }
       setGroups(inventory);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "未知错误");
+      setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setIsLoading(false);
     }
