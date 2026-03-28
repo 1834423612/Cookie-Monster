@@ -4,43 +4,43 @@
   --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
 
-  /* Fresh, Clean Theme - Light and modern */
-  --color-background: #FAFBFD;
-  --color-foreground: #1a1a2e;
+  /* Fresh, Clean Theme - Bright and airy */
+  --color-background: #FFFFFF;
+  --color-foreground: #1F2937;
   
-  /* Pure white cards */
+  /* Pure white cards with subtle depth */
   --color-card: #FFFFFF;
-  --color-card-foreground: #1a1a2e;
+  --color-card-foreground: #1F2937;
   
   --color-popover: #FFFFFF;
-  --color-popover-foreground: #1a1a2e;
+  --color-popover-foreground: #1F2937;
   
-  /* Primary - Fresh Cookie Blue */
-  --color-primary: #4F8EF7;
+  /* Primary - Vibrant Blue */
+  --color-primary: #3B82F6;
   --color-primary-foreground: #FFFFFF;
   
-  /* Secondary - Warm Golden */
-  --color-secondary: #FFB347;
-  --color-secondary-foreground: #1a1a2e;
+  /* Secondary - Warm Amber */
+  --color-secondary: #F59E0B;
+  --color-secondary-foreground: #1F2937;
   
-  /* Muted - Very light gray */
-  --color-muted: #F4F5F7;
-  --color-muted-foreground: #6B7280;
+  /* Muted - Clean light gray */
+  --color-muted: #F8FAFC;
+  --color-muted-foreground: #64748B;
   
-  /* Accent - Soft blue tint */
-  --color-accent: #EBF3FF;
-  --color-accent-foreground: #4F8EF7;
+  /* Accent - Fresh blue tint */
+  --color-accent: #EFF6FF;
+  --color-accent-foreground: #3B82F6;
   
   /* Cookie Monster Blue - for fun accents */
-  --color-monster: #4FACFE;
+  --color-monster: #60A5FA;
   --color-monster-foreground: #FFFFFF;
   
   --color-destructive: #EF4444;
   --color-destructive-foreground: #FFFFFF;
   
-  --color-border: #E8EAED;
-  --color-input: #E8EAED;
-  --color-ring: #4F8EF7;
+  --color-border: #E2E8F0;
+  --color-input: #E2E8F0;
+  --color-ring: #3B82F6;
   
   /* Risk level colors - vibrant and clear */
   --color-risk-high: #EF4444;
@@ -72,21 +72,21 @@
 
 /* Smooth scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: #F8FAFC;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #D1D5DB;
-  border-radius: 3px;
+  background: #CBD5E1;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #9CA3AF;
+  background: #94A3B8;
 }
 
 /* Cookie Monster mascot animations */

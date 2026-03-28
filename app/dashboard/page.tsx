@@ -142,14 +142,14 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-background/90 backdrop-blur-md border-b border-border">
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Link href="/" className="flex items-center gap-2.5 group">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center transition-transform group-hover:scale-105 shadow-md">
-                <Icon icon="mdi:cookie" className="w-5 h-5 text-primary-foreground" />
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center transition-transform group-hover:scale-105 shadow-lg shadow-blue-500/20">
+                <Icon icon="mdi:cookie" className="w-5 h-5 text-white" />
               </div>
-              <span className="font-bold text-lg text-foreground">
+              <span className="font-bold text-lg text-slate-800">
                 Cookie Monster
               </span>
             </Link>
@@ -157,7 +157,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setImportModalOpen(true)}
-                className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground px-3 py-2 rounded-xl hover:bg-muted transition-colors"
+                className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors"
               >
                 <Icon icon="mdi:file-upload" className="w-4 h-4" />
                 <span className="hidden sm:inline">Import</span>
@@ -165,7 +165,7 @@ export default function DashboardPage() {
               <button
                 onClick={() => extensionStatus.refresh()}
                 disabled={isLoading}
-                className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground px-3 py-2 rounded-xl hover:bg-muted transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors disabled:opacity-50"
               >
                 <Icon
                   icon="mdi:refresh"
@@ -176,7 +176,7 @@ export default function DashboardPage() {
               {activeReport && (
                 <button
                   onClick={handleExport}
-                  className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground px-3 py-2 rounded-xl hover:bg-muted transition-colors"
+                  className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors"
                 >
                   <Icon icon="mdi:download" className="w-4 h-4" />
                   <span className="hidden sm:inline">Export</span>
@@ -185,7 +185,7 @@ export default function DashboardPage() {
               {extensionStatus.isInstalled && (
                 <button
                   onClick={handleOpenExtension}
-                  className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm"
+                  className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:from-blue-600 hover:to-cyan-600 transition-all shadow-md shadow-blue-500/20"
                 >
                   <Icon icon="mdi:puzzle" className="w-4 h-4" />
                   <span className="hidden sm:inline">Extension</span>
@@ -201,10 +201,10 @@ export default function DashboardPage() {
         {/* Action messages */}
         {(actionMessage || actionError) && (
           <div
-            className={`mb-6 rounded-2xl border px-4 py-3 text-sm flex items-center gap-2 ${
+            className={`mb-6 rounded-xl border px-4 py-3 text-sm flex items-center gap-2 shadow-sm ${
               actionError
-                ? "border-risk-high/20 bg-risk-high/10 text-risk-high"
-                : "border-chart-3/20 bg-chart-3/10 text-foreground"
+                ? "border-red-200 bg-red-50 text-red-700"
+                : "border-emerald-200 bg-emerald-50 text-emerald-700"
             }`}
           >
             <Icon 
@@ -217,24 +217,24 @@ export default function DashboardPage() {
 
         {/* Report info bar */}
         {activeReport && (
-          <div className="mb-6 flex flex-wrap items-center justify-between gap-4 bg-card rounded-2xl border border-border p-4">
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-4 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-                <Icon icon="mdi:cookie-clock" className="w-5 h-5 text-primary" />
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center">
+                <Icon icon="mdi:cookie-clock" className="w-5 h-5 text-blue-600" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="font-semibold text-foreground">Cookie Report</h2>
-                  <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">
+                  <h2 className="font-semibold text-slate-800">Cookie Report</h2>
+                  <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-medium">
                     {isImportedReport ? "Imported" : "Live"}
                   </span>
                   {extensionStatus.isDevMode && !isImportedReport && (
-                    <span className="text-xs bg-risk-medium/10 text-risk-medium px-2 py-0.5 rounded-full">
+                    <span className="text-xs bg-amber-100 text-amber-600 px-2 py-0.5 rounded-full font-medium">
                       Demo
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-slate-500">
                   {activeReport.totals.cookies} cookies across {activeReport.totals.domains} domains
                 </p>
               </div>
@@ -242,23 +242,23 @@ export default function DashboardPage() {
             
             {/* Stats pills */}
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-risk-high/10 rounded-full">
-                <span className="w-2 h-2 rounded-full bg-risk-high" />
-                <span className="text-sm font-medium text-risk-high">{activeReport.risk.high} High</span>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 rounded-lg border border-red-100">
+                <span className="w-2 h-2 rounded-full bg-red-500" />
+                <span className="text-sm font-semibold text-red-600">{activeReport.risk.high} High</span>
               </div>
-              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-risk-medium/10 rounded-full">
-                <span className="w-2 h-2 rounded-full bg-risk-medium" />
-                <span className="text-sm font-medium text-risk-medium">{activeReport.risk.medium} Medium</span>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 rounded-lg border border-amber-100">
+                <span className="w-2 h-2 rounded-full bg-amber-500" />
+                <span className="text-sm font-semibold text-amber-600">{activeReport.risk.medium} Medium</span>
               </div>
-              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-risk-low/10 rounded-full">
-                <span className="w-2 h-2 rounded-full bg-risk-low" />
-                <span className="text-sm font-medium text-risk-low">{activeReport.risk.low} Low</span>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 rounded-lg border border-emerald-100">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                <span className="text-sm font-semibold text-emerald-600">{activeReport.risk.low} Low</span>
               </div>
               
               {reportImport.report && (
                 <button
                   onClick={handleClearReport}
-                  className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-full hover:bg-muted transition-colors"
+                  className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
                 >
                   <Icon icon="mdi:close" className="w-4 h-4" />
                   Clear
@@ -271,13 +271,13 @@ export default function DashboardPage() {
         {/* Main content area */}
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center mb-4">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center mb-4">
               <Icon
                 icon="mdi:loading"
-                className="w-8 h-8 text-primary animate-spin"
+                className="w-8 h-8 text-blue-500 animate-spin"
               />
             </div>
-            <p className="text-muted-foreground">Loading cookie data...</p>
+            <p className="text-slate-500">Loading cookie data...</p>
           </div>
         ) : activeReport ? (
           <CookieDomainList
@@ -299,8 +299,8 @@ export default function DashboardPage() {
 
         {/* Privacy footer */}
         {activeReport && (
-          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-8 mt-6 border-t border-border">
-            <Icon icon="mdi:shield-check" className="w-5 h-5 text-chart-3" />
+          <div className="flex items-center justify-center gap-2 text-sm text-slate-500 py-8 mt-6 border-t border-slate-200">
+            <Icon icon="mdi:shield-check" className="w-5 h-5 text-emerald-500" />
             <span>
               All data stays local. Cookie details only travel through extension messaging.
             </span>

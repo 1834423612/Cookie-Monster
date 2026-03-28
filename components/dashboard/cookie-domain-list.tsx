@@ -29,179 +29,233 @@ interface CookieDomainListProps {
   isLoading?: boolean;
 }
 
-// Cookie icon URLs based on severity (placeholder images for now)
+// Cookie icon URLs based on severity
 const cookieIcons = {
-  high: "https://placehold.co/40x40/EF4444/FFFFFF?text=H",
-  medium: "https://placehold.co/40x40/F59E0B/FFFFFF?text=M", 
-  low: "https://placehold.co/40x40/10B981/FFFFFF?text=L",
+  high: "https://placehold.co/48x48/EF4444/FFFFFF/png?text=C&font=montserrat",
+  medium: "https://placehold.co/48x48/F59E0B/FFFFFF/png?text=C&font=montserrat",
+  low: "https://placehold.co/48x48/22C55E/FFFFFF/png?text=C&font=montserrat",
 };
 
 const riskConfig = {
   high: {
-    label: "High Risk",
-    color: "text-[#EF4444]",
-    bg: "bg-[#FEF2F2]",
-    badge: "bg-[#EF4444] text-white",
+    label: "HIGH RISK",
+    dotColor: "bg-red-500",
+    textColor: "text-red-600",
+    bgColor: "bg-red-50",
+    borderColor: "border-red-200",
   },
   medium: {
-    label: "Medium",
-    color: "text-[#F59E0B]",
-    bg: "bg-[#FFFBEB]",
-    badge: "bg-[#F59E0B] text-white",
+    label: "MEDIUM",
+    dotColor: "bg-amber-500",
+    textColor: "text-amber-600",
+    bgColor: "bg-amber-50",
+    borderColor: "border-amber-200",
   },
   low: {
-    label: "Low",
-    color: "text-[#10B981]",
-    bg: "bg-[#ECFDF5]",
-    badge: "bg-[#10B981] text-white",
+    label: "LOW",
+    dotColor: "bg-emerald-500",
+    textColor: "text-emerald-600",
+    bgColor: "bg-emerald-50",
+    borderColor: "border-emerald-200",
+  },
+};
+
+const statusConfig = {
+  high: {
+    label: "ALERT",
+    bg: "bg-red-500",
+    text: "text-white",
+  },
+  medium: {
+    label: "REVIEW",
+    bg: "bg-amber-500",
+    text: "text-white",
+  },
+  low: {
+    label: "SAFE",
+    bg: "bg-emerald-500",
+    text: "text-white",
   },
 };
 
 // Domain row component - ClickUp style
-function DomainRow({ 
-  domain, 
+function DomainRow({
+  domain,
   onCookieDelete,
   expanded,
-  onToggle 
-}: { 
-  domain: DomainData; 
+  onToggle,
+}: {
+  domain: DomainData;
   onCookieDelete?: (cookieName: string) => void;
   expanded: boolean;
   onToggle: () => void;
 }) {
   const risk = riskConfig[domain.riskLevel];
-  
+  const status = statusConfig[domain.riskLevel];
+
   return (
-    <div className={cn(
-      "border-b border-[#E8EAED] last:border-b-0",
-      expanded && "bg-[#F8FAFC]"
-    )}>
+    <div className="border-b border-slate-100 last:border-b-0">
       {/* Domain row - clickable */}
       <button
         onClick={onToggle}
         className={cn(
-          "cookie-row w-full flex items-center gap-4 px-4 py-3 text-left transition-colors",
-          "hover:bg-[#F9FAFB]"
+          "w-full flex items-center gap-3 px-5 py-3.5 text-left transition-all duration-150",
+          "hover:bg-slate-50/80",
+          expanded && "bg-slate-50"
         )}
       >
         {/* Expand arrow */}
-        <Icon 
-          icon="mdi:chevron-right" 
-          className={cn(
-            "w-5 h-5 text-[#9CA3AF] transition-transform duration-200 shrink-0",
-            expanded && "rotate-90"
-          )} 
-        />
-        
-        {/* Cookie icon - placeholder image based on risk */}
-        <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 shadow-sm">
+        <div className="w-5 flex justify-center shrink-0">
+          <Icon
+            icon="mdi:chevron-right"
+            className={cn(
+              "w-5 h-5 text-slate-400 transition-transform duration-200",
+              expanded && "rotate-90 text-slate-600"
+            )}
+          />
+        </div>
+
+        {/* Cookie icon */}
+        <div className="w-9 h-9 rounded-lg overflow-hidden shrink-0 shadow-sm ring-1 ring-slate-200/50">
           <Image
             src={cookieIcons[domain.riskLevel]}
             alt={`${domain.riskLevel} risk cookie`}
-            width={40}
-            height={40}
+            width={36}
+            height={36}
             className="w-full h-full object-cover"
           />
         </div>
-        
+
         {/* Domain name */}
         <div className="flex-1 min-w-0">
-          <span className="font-medium text-[#1F2937] truncate block">
+          <span className="font-medium text-slate-800 truncate block text-[15px]">
             {domain.domain}
           </span>
         </div>
-        
-        {/* Cookie count */}
-        <div className="flex items-center gap-1.5 text-[#6B7280] shrink-0">
-          <Icon icon="mdi:cookie" className="w-4 h-4" />
-          <span className="text-sm font-medium">{domain.cookieCount}</span>
+
+        {/* Cookie count badge */}
+        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 rounded-md shrink-0">
+          <Icon icon="mdi:cookie-outline" className="w-3.5 h-3.5 text-slate-500" />
+          <span className="text-xs font-semibold text-slate-600">
+            {domain.cookieCount}
+          </span>
         </div>
-        
-        {/* Risk badge */}
-        <div className={cn(
-          "px-2.5 py-1 rounded-md text-xs font-semibold shrink-0",
-          risk.badge
-        )}>
-          {risk.label}
+
+        {/* Date column */}
+        <div className="w-24 text-center shrink-0">
+          <span className="text-sm text-slate-500">Today</span>
         </div>
-        
-        {/* Priority flag placeholder */}
-        <Icon icon="mdi:flag-outline" className="w-4 h-4 text-[#D1D5DB] shrink-0" />
+
+        {/* Priority flag */}
+        <div className="w-8 flex justify-center shrink-0">
+          <Icon
+            icon={domain.riskLevel === "high" ? "mdi:flag" : "mdi:flag-outline"}
+            className={cn(
+              "w-4 h-4",
+              domain.riskLevel === "high" && "text-red-500",
+              domain.riskLevel === "medium" && "text-amber-400",
+              domain.riskLevel === "low" && "text-slate-300"
+            )}
+          />
+        </div>
+
+        {/* Status badge - ClickUp style */}
+        <div className="w-28 shrink-0">
+          <div
+            className={cn(
+              "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold",
+              status.bg,
+              status.text
+            )}
+          >
+            <span
+              className={cn(
+                "w-1.5 h-1.5 rounded-full",
+                domain.riskLevel === "high" && "bg-white/80",
+                domain.riskLevel !== "high" && "bg-white/60"
+              )}
+            />
+            {status.label}
+          </div>
+        </div>
       </button>
-      
+
       {/* Expanded cookie list */}
       {expanded && domain.cookies && domain.cookies.length > 0 && (
-        <div className="animate-expand overflow-hidden">
-          <div className="pl-14 pr-4 pb-3 space-y-1">
+        <div className="animate-expand overflow-hidden bg-slate-50/50">
+          <div className="py-2">
             {domain.cookies.map((cookie, idx) => {
-              const cookieRisk = riskConfig[cookie.risk];
+              const cookieStatus = statusConfig[cookie.risk];
               return (
-                <div 
+                <div
                   key={idx}
                   className={cn(
-                    "cookie-row flex items-center gap-4 px-4 py-2.5 rounded-lg",
-                    "hover:bg-white transition-colors border border-transparent hover:border-[#E8EAED]"
+                    "flex items-center gap-3 px-5 py-2.5 ml-8 mr-4 rounded-lg transition-all duration-150",
+                    "hover:bg-white hover:shadow-sm"
                   )}
                 >
-                  {/* Nested indicator */}
+                  {/* Nested dot indicator */}
                   <div className="w-5 flex justify-center shrink-0">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#D1D5DB]" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
                   </div>
-                  
+
                   {/* Cookie mini icon */}
-                  <div className="w-8 h-8 rounded-full overflow-hidden shrink-0">
+                  <div className="w-7 h-7 rounded-md overflow-hidden shrink-0 ring-1 ring-slate-200/50">
                     <Image
                       src={cookieIcons[cookie.risk]}
                       alt={`${cookie.risk} risk`}
-                      width={32}
-                      height={32}
+                      width={28}
+                      height={28}
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  
-                  {/* Cookie name and value */}
+
+                  {/* Cookie name and flags */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-sm text-[#1F2937] truncate">
+                      <span className="font-medium text-sm text-slate-700 truncate">
                         {cookie.name}
                       </span>
-                      {/* Flags as small tags */}
                       <div className="flex items-center gap-1">
                         {cookie.httpOnly && (
-                          <span className="px-1.5 py-0.5 bg-[#EBF5FF] text-[#3B82F6] text-[10px] font-medium rounded">
+                          <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-semibold rounded">
                             HTTP
                           </span>
                         )}
                         {cookie.secure && (
-                          <span className="px-1.5 py-0.5 bg-[#ECFDF5] text-[#10B981] text-[10px] font-medium rounded">
+                          <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-semibold rounded">
                             SEC
                           </span>
                         )}
                       </div>
                     </div>
-                    <p className="text-xs text-[#9CA3AF] truncate mt-0.5">
-                      {cookie.value.length > 40 ? cookie.value.slice(0, 40) + "..." : cookie.value}
+                    <p className="text-xs text-slate-400 truncate mt-0.5">
+                      {cookie.value.length > 50
+                        ? cookie.value.slice(0, 50) + "..."
+                        : cookie.value}
                     </p>
                   </div>
-                  
+
                   {/* Expiry date */}
-                  <div className="text-xs text-[#6B7280] shrink-0 min-w-[80px]">
+                  <div className="text-xs text-slate-500 shrink-0 min-w-[80px] text-center">
                     {cookie.expires || "Session"}
                   </div>
-                  
+
                   {/* SameSite */}
-                  <div className="text-xs text-[#9CA3AF] shrink-0 min-w-[60px]">
+                  <div className="text-xs text-slate-400 shrink-0 min-w-[60px] text-center">
                     {cookie.sameSite}
                   </div>
-                  
-                  {/* Risk indicator */}
-                  <div className={cn(
-                    "w-2 h-2 rounded-full shrink-0",
-                    cookie.risk === "high" && "bg-[#EF4444]",
-                    cookie.risk === "medium" && "bg-[#F59E0B]",
-                    cookie.risk === "low" && "bg-[#10B981]"
-                  )} />
-                  
+
+                  {/* Risk indicator dot */}
+                  <div
+                    className={cn(
+                      "w-2.5 h-2.5 rounded-full shrink-0 ring-2 ring-white",
+                      cookie.risk === "high" && "bg-red-500",
+                      cookie.risk === "medium" && "bg-amber-500",
+                      cookie.risk === "low" && "bg-emerald-500"
+                    )}
+                  />
+
                   {/* Delete action */}
                   {onCookieDelete && (
                     <button
@@ -209,11 +263,11 @@ function DomainRow({
                         e.stopPropagation();
                         onCookieDelete(cookie.name);
                       }}
-                      className="p-1.5 rounded-md hover:bg-[#FEF2F2] transition-colors group shrink-0"
+                      className="p-1.5 rounded-md hover:bg-red-50 transition-colors group shrink-0"
                     >
-                      <Icon 
-                        icon="mdi:trash-can-outline" 
-                        className="w-4 h-4 text-[#9CA3AF] group-hover:text-[#EF4444]" 
+                      <Icon
+                        icon="mdi:trash-can-outline"
+                        className="w-4 h-4 text-slate-400 group-hover:text-red-500"
                       />
                     </button>
                   )}
@@ -223,12 +277,12 @@ function DomainRow({
           </div>
         </div>
       )}
-      
+
       {/* Loading state for expanded without cookies */}
       {expanded && (!domain.cookies || domain.cookies.length === 0) && (
-        <div className="animate-expand overflow-hidden">
-          <div className="pl-14 pr-4 pb-3">
-            <div className="flex items-center gap-2 px-4 py-3 text-[#9CA3AF]">
+        <div className="animate-expand overflow-hidden bg-slate-50/50">
+          <div className="py-4 px-5 ml-8">
+            <div className="flex items-center gap-2 text-slate-400">
               <Icon icon="mdi:loading" className="w-4 h-4 animate-spin" />
               <span className="text-sm">Loading cookies...</span>
             </div>
@@ -239,113 +293,97 @@ function DomainRow({
   );
 }
 
-// Cookie Monster mascot - simplified and cleaner
-function CookieMonsterMascot() {
+// Cookie Monster mascot - Clean and minimal
+function CookieMonsterCard() {
   return (
-    <div className="relative flex flex-col items-center justify-center h-full py-8">
-      {/* Floating cookies decoration */}
-      <div className="absolute top-8 left-8 animate-float-gentle">
-        <div className="w-6 h-6 rounded-full bg-[#FFB347] shadow-md" />
+    <div className="relative h-full flex flex-col items-center justify-center p-8">
+      {/* Background decoration */}
+      <div className="absolute inset-0 overflow-hidden rounded-2xl">
+        <div className="absolute top-6 left-6 w-16 h-16 rounded-full bg-blue-200/30 blur-xl" />
+        <div className="absolute bottom-10 right-8 w-20 h-20 rounded-full bg-amber-200/30 blur-xl" />
+        <div className="absolute top-1/2 left-1/3 w-12 h-12 rounded-full bg-emerald-200/30 blur-xl" />
       </div>
-      <div className="absolute top-20 right-6 animate-float-gentle" style={{ animationDelay: "0.5s" }}>
-        <div className="w-5 h-5 rounded-full bg-[#4F8EF7] shadow-md" />
-      </div>
-      <div className="absolute bottom-24 left-12 animate-float-gentle" style={{ animationDelay: "1s" }}>
-        <div className="w-4 h-4 rounded-full bg-[#10B981] shadow-md" />
-      </div>
-      
-      {/* Monster container */}
-      <div className="animate-monster-bounce">
-        {/* Monster body */}
-        <div className="relative">
-          {/* Main body */}
-          <div className="w-40 h-40 rounded-full bg-gradient-to-br from-[#4FACFE] to-[#00C9FF] shadow-xl relative">
-            {/* Fur texture spots */}
-            <div className="absolute inset-2 rounded-full opacity-20">
-              <div className="absolute top-2 left-4 w-4 h-2 bg-white rounded-full transform -rotate-12" />
-              <div className="absolute top-8 right-4 w-3 h-2 bg-white rounded-full transform rotate-12" />
-              <div className="absolute bottom-10 left-6 w-4 h-2 bg-white rounded-full" />
-              <div className="absolute bottom-4 right-8 w-3 h-2 bg-white rounded-full transform rotate-6" />
-            </div>
-            
-            {/* Eyes */}
-            <div className="absolute top-6 left-1/2 -translate-x-1/2 flex gap-3">
-              {/* Left eye */}
-              <div className="w-10 h-12 bg-white rounded-full shadow-inner flex items-start justify-center pt-2">
-                <div className="w-4 h-4 bg-[#1a1a2e] rounded-full relative">
-                  <div className="absolute top-0.5 left-0.5 w-1.5 h-1.5 bg-white rounded-full" />
-                </div>
-              </div>
-              {/* Right eye */}
-              <div className="w-10 h-12 bg-white rounded-full shadow-inner flex items-start justify-center pt-2">
-                <div className="w-4 h-4 bg-[#1a1a2e] rounded-full relative">
-                  <div className="absolute top-0.5 left-0.5 w-1.5 h-1.5 bg-white rounded-full" />
-                </div>
+
+      {/* Monster avatar */}
+      <div className="relative animate-monster-bounce">
+        <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-400 to-cyan-500 shadow-xl flex items-center justify-center relative overflow-hidden">
+          {/* Fur texture */}
+          <div className="absolute inset-0 opacity-20">
+            <div className="absolute top-2 left-4 w-6 h-2 bg-white rounded-full" />
+            <div className="absolute top-6 right-3 w-4 h-2 bg-white rounded-full" />
+            <div className="absolute bottom-8 left-5 w-5 h-2 bg-white rounded-full" />
+          </div>
+
+          {/* Eyes */}
+          <div className="flex gap-2 mb-4">
+            <div className="w-8 h-10 bg-white rounded-full flex items-start justify-center pt-1.5 shadow-inner">
+              <div className="w-4 h-4 bg-slate-800 rounded-full relative">
+                <div className="absolute top-0.5 left-0.5 w-1.5 h-1.5 bg-white rounded-full" />
               </div>
             </div>
-            
-            {/* Nose */}
-            <div className="absolute top-[52px] left-1/2 -translate-x-1/2 w-4 h-3 bg-[#0284C7] rounded-full" />
-            
-            {/* Mouth */}
-            <div className="absolute top-[65px] left-1/2 -translate-x-1/2 w-16 h-10 bg-[#DC2626] rounded-b-[40px] rounded-t-md overflow-hidden">
-              <div className="absolute top-0 left-0 right-0 flex justify-center gap-0.5">
-                <div className="w-2.5 h-2 bg-white rounded-b" />
-                <div className="w-2.5 h-2 bg-white rounded-b" />
-                <div className="w-2.5 h-2 bg-white rounded-b" />
+            <div className="w-8 h-10 bg-white rounded-full flex items-start justify-center pt-1.5 shadow-inner">
+              <div className="w-4 h-4 bg-slate-800 rounded-full relative">
+                <div className="absolute top-0.5 left-0.5 w-1.5 h-1.5 bg-white rounded-full" />
               </div>
             </div>
           </div>
-          
-          {/* Arms */}
-          <div className="absolute -left-4 top-16 w-8 h-12 bg-gradient-to-br from-[#4FACFE] to-[#00C9FF] rounded-full transform -rotate-12 shadow-lg" />
-          <div className="absolute -right-4 top-16 w-8 h-12 bg-gradient-to-br from-[#4FACFE] to-[#00C9FF] rounded-full transform rotate-12 shadow-lg animate-monster-wave" />
-          
-          {/* Cookie in hand */}
-          <div className="absolute -right-2 top-24 animate-cookie-float">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#FFB347] to-[#D97706] shadow-lg flex items-center justify-center">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#78350F]" />
-              <div className="absolute top-1 right-2 w-1 h-1 rounded-full bg-[#78350F]" />
-              <div className="absolute bottom-1.5 left-1.5 w-1 h-1 rounded-full bg-[#78350F]" />
+
+          {/* Mouth */}
+          <div className="absolute bottom-5 w-10 h-6 bg-red-500 rounded-b-full rounded-t-sm overflow-hidden">
+            <div className="flex justify-center gap-0.5 pt-0">
+              <div className="w-2 h-1.5 bg-white rounded-b" />
+              <div className="w-2 h-1.5 bg-white rounded-b" />
             </div>
           </div>
-          
-          {/* Feet */}
-          <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 flex gap-4">
-            <div className="w-8 h-4 bg-[#0284C7] rounded-full shadow-md" />
-            <div className="w-8 h-4 bg-[#0284C7] rounded-full shadow-md" />
+        </div>
+
+        {/* Floating cookie */}
+        <div className="absolute -right-2 -bottom-2 animate-cookie-float">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 shadow-lg flex items-center justify-center">
+            <div className="absolute top-2 left-3 w-1.5 h-1.5 rounded-full bg-amber-800" />
+            <div className="absolute bottom-3 right-2 w-1 h-1 rounded-full bg-amber-800" />
+            <div className="absolute bottom-2 left-2.5 w-1.5 h-1.5 rounded-full bg-amber-800" />
           </div>
         </div>
       </div>
-      
+
       {/* Speech bubble */}
-      <div className="mt-6 bg-white rounded-2xl px-5 py-3 shadow-lg border border-[#E8EAED] relative">
-        <p className="text-sm font-semibold text-[#1F2937]">Me love cookies!</p>
-        <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-3 h-3 bg-white border-l border-t border-[#E8EAED] transform rotate-45" />
+      <div className="mt-8 bg-white rounded-2xl px-5 py-3 shadow-lg border border-slate-100 relative z-10">
+        <p className="text-sm font-semibold text-slate-700 text-center">
+          Me love cookies!
+        </p>
+        <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-3 h-3 bg-white border-l border-t border-slate-100 transform rotate-45" />
       </div>
-      
-      {/* Stats under monster */}
-      <div className="mt-8 text-center">
-        <p className="text-xs text-[#9CA3AF] uppercase tracking-wider font-medium">Cookie Status</p>
-        <p className="text-2xl font-bold text-[#1F2937] mt-1">All Safe</p>
+
+      {/* Status */}
+      <div className="mt-6 text-center">
+        <p className="text-xs text-slate-400 uppercase tracking-widest font-medium">
+          Cookie Status
+        </p>
+        <p className="text-xl font-bold text-slate-700 mt-1">All Clear</p>
       </div>
     </div>
   );
 }
 
-export function CookieDomainList({ 
-  domains, 
-  onDomainSelect, 
+export function CookieDomainList({
+  domains,
+  onDomainSelect,
   onCookieDelete,
-  isLoading 
+  isLoading,
 }: CookieDomainListProps) {
   const [expandedDomain, setExpandedDomain] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "high" | "medium" | "low">("all");
-  
-  const filteredDomains = filter === "all" 
-    ? domains 
-    : domains.filter(d => d.riskLevel === filter);
-  
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredDomains = domains
+    .filter((d) => (filter === "all" ? true : d.riskLevel === filter))
+    .filter((d) =>
+      searchQuery
+        ? d.domain.toLowerCase().includes(searchQuery.toLowerCase())
+        : true
+    );
+
   const handleToggle = (domain: string) => {
     if (expandedDomain === domain) {
       setExpandedDomain(null);
@@ -354,93 +392,112 @@ export function CookieDomainList({
       onDomainSelect?.(domain);
     }
   };
-  
+
   // Count by risk level
   const counts = {
     all: domains.length,
-    high: domains.filter(d => d.riskLevel === "high").length,
-    medium: domains.filter(d => d.riskLevel === "medium").length,
-    low: domains.filter(d => d.riskLevel === "low").length,
+    high: domains.filter((d) => d.riskLevel === "high").length,
+    medium: domains.filter((d) => d.riskLevel === "medium").length,
+    low: domains.filter((d) => d.riskLevel === "low").length,
   };
-  
+
   return (
-    <div className="flex gap-8 min-h-[600px]">
+    <div className="flex gap-6 min-h-[600px]">
       {/* Left side - Domain list (2/3) */}
       <div className="flex-[2] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-5">
           <div>
-            <h2 className="text-xl font-bold text-[#1F2937]">Cookie Jar</h2>
-            <p className="text-sm text-[#6B7280] mt-0.5">
+            <h2 className="text-xl font-bold text-slate-800">Cookie Jar</h2>
+            <p className="text-sm text-slate-500 mt-0.5">
               {domains.length} domains detected
             </p>
           </div>
-          
-          {/* Search placeholder */}
-          <div className="flex items-center gap-2 px-3 py-2 bg-white border border-[#E8EAED] rounded-lg w-64">
-            <Icon icon="mdi:magnify" className="w-4 h-4 text-[#9CA3AF]" />
-            <input 
+
+          {/* Search */}
+          <div className="flex items-center gap-2 px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl w-72 shadow-sm focus-within:border-blue-300 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
+            <Icon icon="mdi:magnify" className="w-4 h-4 text-slate-400" />
+            <input
               type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search domains..."
-              className="flex-1 text-sm bg-transparent outline-none text-[#1F2937] placeholder:text-[#9CA3AF]"
+              className="flex-1 text-sm bg-transparent outline-none text-slate-700 placeholder:text-slate-400"
             />
           </div>
         </div>
-        
+
         {/* Filter tabs - ClickUp style */}
-        <div className="flex items-center gap-1 mb-4 border-b border-[#E8EAED]">
+        <div className="flex items-center gap-1 mb-5 bg-slate-100/60 p-1 rounded-xl w-fit">
           {(["all", "high", "medium", "low"] as const).map((level) => (
             <button
               key={level}
               onClick={() => setFilter(level)}
               className={cn(
-                "px-4 py-2.5 text-sm font-medium transition-colors relative",
+                "px-4 py-2 text-sm font-medium transition-all duration-200 rounded-lg flex items-center gap-2",
                 filter === level
-                  ? "text-[#4F8EF7]"
-                  : "text-[#6B7280] hover:text-[#1F2937]"
+                  ? "bg-white text-slate-800 shadow-sm"
+                  : "text-slate-500 hover:text-slate-700"
               )}
             >
-              <span className="flex items-center gap-2">
-                {level === "all" ? "All" : level.charAt(0).toUpperCase() + level.slice(1)}
-                <span className={cn(
-                  "px-1.5 py-0.5 rounded text-xs",
-                  filter === level 
-                    ? "bg-[#EBF5FF] text-[#4F8EF7]" 
-                    : "bg-[#F3F4F6] text-[#6B7280]"
-                )}>
-                  {counts[level]}
-                </span>
+              {level === "all"
+                ? "All"
+                : level.charAt(0).toUpperCase() + level.slice(1)}
+              <span
+                className={cn(
+                  "px-1.5 py-0.5 rounded text-xs font-semibold",
+                  filter === level
+                    ? level === "high"
+                      ? "bg-red-100 text-red-600"
+                      : level === "medium"
+                        ? "bg-amber-100 text-amber-600"
+                        : level === "low"
+                          ? "bg-emerald-100 text-emerald-600"
+                          : "bg-blue-100 text-blue-600"
+                    : "bg-slate-200/80 text-slate-500"
+                )}
+              >
+                {counts[level]}
               </span>
-              {filter === level && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#4F8EF7]" />
-              )}
             </button>
           ))}
         </div>
-        
+
         {/* Column headers - ClickUp style */}
-        <div className="flex items-center gap-4 px-4 py-2 text-xs font-medium text-[#6B7280] uppercase tracking-wider border-b border-[#E8EAED] bg-[#F9FAFB]">
+        <div className="flex items-center gap-3 px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider bg-slate-50 rounded-t-xl border border-b-0 border-slate-200">
           <div className="w-5" /> {/* Arrow space */}
-          <div className="w-10" /> {/* Icon space */}
-          <div className="flex-1">Domain</div>
-          <div className="w-16 text-center">Cookies</div>
-          <div className="w-24 text-center">Risk Level</div>
-          <div className="w-4" /> {/* Flag space */}
+          <div className="w-9" /> {/* Icon space */}
+          <div className="flex-1">Name</div>
+          <div className="w-20 text-center">Cookies</div>
+          <div className="w-24 text-center">Updated</div>
+          <div className="w-8 text-center">Priority</div>
+          <div className="w-28 text-center">Status</div>
         </div>
-        
+
         {/* Domain list */}
-        <div className="flex-1 bg-white rounded-lg border border-[#E8EAED] overflow-hidden">
+        <div className="flex-1 bg-white rounded-b-xl border border-slate-200 overflow-hidden shadow-sm">
           {isLoading ? (
-            <div className="flex items-center justify-center py-16">
-              <Icon icon="mdi:loading" className="w-8 h-8 text-[#4F8EF7] animate-spin" />
+            <div className="flex items-center justify-center py-20">
+              <div className="flex flex-col items-center gap-3">
+                <Icon
+                  icon="mdi:loading"
+                  className="w-8 h-8 text-blue-500 animate-spin"
+                />
+                <span className="text-sm text-slate-500">Loading...</span>
+              </div>
             </div>
           ) : filteredDomains.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="w-16 h-16 rounded-full bg-[#F3F4F6] flex items-center justify-center mb-4">
-                <Icon icon="mdi:cookie-off-outline" className="w-8 h-8 text-[#9CA3AF]" />
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
+                <Icon
+                  icon="mdi:cookie-off-outline"
+                  className="w-8 h-8 text-slate-400"
+                />
               </div>
-              <p className="text-[#6B7280] font-medium">No cookies found</p>
-              <p className="text-sm text-[#9CA3AF] mt-1">Try adjusting your filters</p>
+              <p className="text-slate-600 font-medium">No cookies found</p>
+              <p className="text-sm text-slate-400 mt-1">
+                Try adjusting your filters
+              </p>
             </div>
           ) : (
             filteredDomains.map((domain) => (
@@ -449,17 +506,21 @@ export function CookieDomainList({
                 domain={domain}
                 expanded={expandedDomain === domain.domain}
                 onToggle={() => handleToggle(domain.domain)}
-                onCookieDelete={onCookieDelete ? (name) => onCookieDelete(domain.domain, name) : undefined}
+                onCookieDelete={
+                  onCookieDelete
+                    ? (name) => onCookieDelete(domain.domain, name)
+                    : undefined
+                }
               />
             ))
           )}
         </div>
       </div>
-      
+
       {/* Right side - Cookie Monster (1/3) */}
       <div className="flex-1 hidden lg:block">
-        <div className="sticky top-24 bg-gradient-to-br from-[#F0F9FF] to-[#E0F2FE] rounded-2xl h-[580px] border border-[#BAE6FD]">
-          <CookieMonsterMascot />
+        <div className="sticky top-24 bg-gradient-to-br from-blue-50 via-cyan-50 to-emerald-50 rounded-2xl h-[560px] border border-slate-200/60 shadow-sm overflow-hidden">
+          <CookieMonsterCard />
         </div>
       </div>
     </div>
