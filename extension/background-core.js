@@ -1,16 +1,19 @@
-import "./background-core.js";
 const STORAGE_KEYS = {
   latestReport: "cm.latestReport",
   cleanupBatches: "cm.cleanupBatches",
   pendingFeedRequest: "cm.pendingFeedRequest",
+  protectedDomains: "cm.protectedDomains",
 };
 
-const EXTERNAL_ALLOWED_HOSTS = new Set([
-  "cookie-monster.app",
-  "www.cookie-monster.app",
-  "cookie-monster.vercel.app",
+const EXTERNAL_ORIGINS = new Set([
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "http://127.0.0.1:3000",
+  "http://127.0.0.1:3001",
+  "https://cookie-monster.app",
+  "https://www.cookie-monster.app",
+  "https://cookie-monster.vercel.app",
 ]);
-
 
 const KEYWORDS = {
   essential: ["session", "auth", "csrf", "xsrf", "sid", "token", "login", "__host-", "__secure-"],
@@ -71,10 +74,6 @@ async function writeLocal(values) {
   await chrome.storage.local.set(values);
 }
 
-function isCleanupPresetId(value) {
-  return Object.prototype.hasOwnProperty.call(PRESET_DEFINITIONS, value);
-}
-
 function getOriginFromSender(sender) {
   if (sender.origin) {
     return sender.origin;
@@ -93,21 +92,11 @@ function getOriginFromSender(sender) {
 
 function isAllowedExternalSender(sender) {
   const origin = getOriginFromSender(sender);
-  if (!origin) {
-    return false;
-  }
+  return origin ? EXTERNAL_ORIGINS.has(origin) : false;
+}
 
-  try {
-    const parsed = new URL(origin);
-    const isLocalHost = parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
-    if (isLocalHost) {
-      return parsed.protocol === "http:" || parsed.protocol === "https:";
-    }
-
-    return parsed.protocol === "https:" && EXTERNAL_ALLOWED_HOSTS.has(parsed.hostname);
-  } catch {
-    return false;
-  }
+function isCleanupPresetId(value) {
+  return Object.prototype.hasOwnProperty.call(PRESET_DEFINITIONS, value);
 }
 
 function cookieHost(domain = "") {
@@ -205,31 +194,52 @@ function createEmptyReport() {
   };
 }
 
-function analyzeCookie(cookie) {
+async function getProtectedDomains() {
+  const domains = await readLocal(STORAGE_KEYS.protectedDomains, []);
+  return [...new Set((domains || []).map((domain) => cookieHost(domain)).filter(Boolean))].sort();
+}
+
+function createCookieKey(cookie) {
+  return [cookie.storeId || "default", cookie.domain, cookie.path, cookie.name].join("::");
+}
+
+function analyzeCookie(cookie, protectedDomainSet) {
   const category = getCategory(cookie);
+  const domain = cookieHost(cookie.domain || "unknown");
   const reasons = [];
   const presetIds = new Set();
+  const protectedDomain = protectedDomainSet.has(domain);
   let score = 0;
+
+  if (protectedDomain) {
+    reasons.push("Domain is protected");
+  }
 
   if (isExpired(cookie)) {
     score += 5;
     reasons.push("Already expired");
-    presetIds.add("expired");
-    presetIds.add("balanced");
+    if (!protectedDomain) {
+      presetIds.add("expired");
+      presetIds.add("balanced");
+    }
   }
 
   if (category === "advertising") {
     score += 4;
     reasons.push("Matches advertising or tracker signature");
-    presetIds.add("trackers");
-    presetIds.add("balanced");
+    if (!protectedDomain) {
+      presetIds.add("trackers");
+      presetIds.add("balanced");
+    }
   }
 
   if (category === "analytics") {
     score += 2;
     reasons.push("Matches analytics signature");
-    presetIds.add("trackers");
-    presetIds.add("balanced");
+    if (!protectedDomain) {
+      presetIds.add("trackers");
+      presetIds.add("balanced");
+    }
   }
 
   if (!cookie.secure) {
@@ -250,7 +260,7 @@ function analyzeCookie(cookie) {
   if (isLongLived(cookie)) {
     score += 1;
     reasons.push("Persists for longer than 30 days");
-    if (category !== "essential" && !cookie.session) {
+    if (!protectedDomain && category !== "essential" && !cookie.session) {
       presetIds.add("longLived");
       presetIds.add("balanced");
     }
@@ -259,97 +269,26 @@ function analyzeCookie(cookie) {
   if (category === "essential" && cookie.session && cookie.secure) {
     score -= 3;
     reasons.push("Looks like an essential secure session cookie");
-    presetIds.delete("balanced");
-    presetIds.delete("trackers");
-    presetIds.delete("highRisk");
-    presetIds.delete("longLived");
+    presetIds.clear();
   }
 
   const risk = score >= 5 ? "high" : score >= 2 ? "medium" : "low";
 
-  if (risk === "high" && category !== "essential") {
+  if (!protectedDomain && risk === "high" && category !== "essential") {
     presetIds.add("highRisk");
     presetIds.add("balanced");
   }
 
   return {
-    category,
+    key: createCookieKey(cookie),
     cookie,
-    domain: cookieHost(cookie.domain || "unknown"),
-    key: [cookie.storeId, cookie.domain, cookie.path, cookie.name].join("::"),
+    domain,
+    category,
+    protectedDomain,
     presetIds: [...presetIds],
-    reasons: reasons.slice(0, 4),
+    reasons: reasons.slice(0, 5),
     risk,
   };
-}
-
-
-
-function buildCookieInventoryGroups(rawCookies) {
-  const groups = new Map();
-
-  for (const rawCookie of rawCookies) {
-    const analyzed = analyzeCookie(rawCookie);
-    const domain = analyzed.domain;
-    const current = groups.get(domain) || {
-      domain,
-      total: 0,
-      highRiskCount: 0,
-      recommendedKeepCount: 0,
-      items: [],
-    };
-
-    const recommendedKeep =
-      analyzed.category === "essential" && analyzed.cookie.session && analyzed.cookie.secure;
-
-    current.total += 1;
-    if (analyzed.risk === "high") {
-      current.highRiskCount += 1;
-    }
-    if (recommendedKeep) {
-      current.recommendedKeepCount += 1;
-    }
-
-    current.items.push({
-      key: analyzed.key,
-      name: analyzed.cookie.name,
-      domain,
-      path: analyzed.cookie.path || "/",
-      storeId: analyzed.cookie.storeId,
-      session: Boolean(analyzed.cookie.session),
-      secure: Boolean(analyzed.cookie.secure),
-      httpOnly: Boolean(analyzed.cookie.httpOnly),
-      sameSite: analyzed.cookie.sameSite || "unspecified",
-      category: analyzed.category,
-      risk: analyzed.risk,
-      expirationDate:
-        typeof analyzed.cookie.expirationDate === "number" ? analyzed.cookie.expirationDate : null,
-      reasons: analyzed.reasons,
-      recommendedKeep,
-      presetIds: analyzed.presetIds,
-    });
-
-    groups.set(domain, current);
-  }
-
-  return [...groups.values()]
-    .map((group) => ({
-      ...group,
-      items: group.items.sort((left, right) => {
-        const score = { high: 3, medium: 2, low: 1 };
-        const riskDelta = score[right.risk] - score[left.risk];
-        if (riskDelta !== 0) {
-          return riskDelta;
-        }
-
-        if (left.recommendedKeep !== right.recommendedKeep) {
-          return left.recommendedKeep ? 1 : -1;
-        }
-
-        return left.name.localeCompare(right.name);
-      }),
-    }))
-    .sort((left, right) => right.total - left.total);
 }
 
 function buildCleanupInsights(analyzedCookies) {
@@ -363,9 +302,8 @@ function buildCleanupInsights(analyzedCookies) {
       label: PRESET_DEFINITIONS[presetId].label,
       description: PRESET_DEFINITIONS[presetId].description,
       cookieCount: 0,
-      domainCount: 0,
-      sampleDomains: new Set(),
       domains: new Set(),
+      sampleDomains: new Set(),
     });
   }
 
@@ -398,7 +336,6 @@ function buildCleanupInsights(analyzedCookies) {
     if (item.category === "advertising") {
       currentDomain.advertisingCount += 1;
     }
-
     for (const presetId of item.presetIds) {
       if (currentDomain.samplePresetIds.size < 3) {
         currentDomain.samplePresetIds.add(presetId);
@@ -421,13 +358,13 @@ function buildCleanupInsights(analyzedCookies) {
     .sort((left, right) => right.cookieCount - left.cookieCount);
 
   const recommendations = [];
-
   const balanced = presets.find((preset) => preset.id === "balanced");
   if (balanced) {
     recommendations.push({
       id: "recommended-balanced",
       title: "Start with a balanced cleanup",
-      description: "This removes the biggest low-regret bundle while leaving likely essential cookies alone.",
+      description:
+        "This removes the biggest low-regret bundle while leaving likely essential cookies alone.",
       presetId: "balanced",
       cookieCount: balanced.cookieCount,
       tone: "medium",
@@ -439,7 +376,8 @@ function buildCleanupInsights(analyzedCookies) {
     recommendations.push({
       id: "recommended-trackers",
       title: "Feed the obvious trackers",
-      description: "Analytics and advertising cookies are the clearest monster snacks in this scan.",
+      description:
+        "Analytics and advertising cookies are the clearest monster snacks in this scan.",
       presetId: "trackers",
       cookieCount: trackers.cookieCount,
       tone: "high",
@@ -554,9 +492,91 @@ function buildSummaryReportFromAnalyzed(analyzedCookies) {
   return report;
 }
 
+function buildManagementState(analyzedCookies, cleanupBatches, protectedDomains, pendingFeedRequest) {
+  const domainStats = new Map();
+
+  for (const item of analyzedCookies) {
+    const currentDomain = domainStats.get(item.domain) || {
+      domain: item.domain,
+      cookieCount: 0,
+      protected: protectedDomains.includes(item.domain),
+      feedableCount: 0,
+      highRiskCount: 0,
+      categories: {
+        essential: 0,
+        functional: 0,
+        analytics: 0,
+        advertising: 0,
+        unknown: 0,
+      },
+      sampleCookieNames: [],
+      samplePresetIds: new Set(),
+    };
+
+    currentDomain.cookieCount += 1;
+    currentDomain.categories[item.category] += 1;
+
+    if (!item.protectedDomain && item.presetIds.length > 0) {
+      currentDomain.feedableCount += 1;
+    }
+
+    if (item.risk === "high") {
+      currentDomain.highRiskCount += 1;
+    }
+
+    if (currentDomain.sampleCookieNames.length < 4) {
+      currentDomain.sampleCookieNames.push(item.cookie.name);
+    }
+
+    for (const presetId of item.presetIds) {
+      if (currentDomain.samplePresetIds.size < 4) {
+        currentDomain.samplePresetIds.add(presetId);
+      }
+    }
+
+    domainStats.set(item.domain, currentDomain);
+  }
+
+  return {
+    generatedAt: new Date().toISOString(),
+    protectedDomains,
+    domains: [...domainStats.values()]
+      .map((domain) => ({
+        ...domain,
+        samplePresetIds: [...domain.samplePresetIds],
+      }))
+      .sort((left, right) => right.cookieCount - left.cookieCount),
+    recycleBin: cleanupBatches.map((batch) => ({
+      id: batch.id,
+      label: batch.label,
+      presetId: batch.presetId,
+      createdAt: batch.createdAt,
+      cookieCount: batch.cookieCount,
+      domainCount: batch.domainCount,
+      sampleDomains: batch.sampleDomains || [],
+      source: batch.source || "extension",
+    })),
+    pendingFeedRequest,
+  };
+}
+
+async function getRawAndAnalyzedCookies() {
+  const [rawCookies, protectedDomains] = await Promise.all([
+    chrome.cookies.getAll({}),
+    getProtectedDomains(),
+  ]);
+  const protectedDomainSet = new Set(protectedDomains);
+  const analyzedCookies = rawCookies.map((cookie) => analyzeCookie(cookie, protectedDomainSet));
+
+  return {
+    rawCookies,
+    analyzedCookies,
+    protectedDomains,
+  };
+}
+
 async function scanCookies() {
-  const cookies = await chrome.cookies.getAll({});
-  const analyzedCookies = cookies.map(analyzeCookie);
+  const { analyzedCookies } = await getRawAndAnalyzedCookies();
   const report = buildSummaryReportFromAnalyzed(analyzedCookies);
   await writeLocal({ [STORAGE_KEYS.latestReport]: report });
   return report;
@@ -597,20 +617,63 @@ function createBackupCookie(cookie) {
   };
 }
 
-function buildCleanupPlan(rawCookies, presetId) {
-  const definition = PRESET_DEFINITIONS[presetId];
-  const analyzedCookies = rawCookies.map(analyzeCookie);
-  const candidates = analyzedCookies.filter((item) => item.presetIds.includes(presetId));
+function buildPlanFromMode(analyzedCookies, mode) {
+  let candidates = [];
+  let label = "Custom Cleanup";
+  let description = "A custom cookie cleanup request.";
+  let presetId;
+
+  if (mode.type === "preset") {
+    const definition = PRESET_DEFINITIONS[mode.presetId];
+    candidates = analyzedCookies.filter((item) => item.presetIds.includes(mode.presetId));
+    label = definition.label;
+    description = definition.description;
+    presetId = mode.presetId;
+  }
+
+  if (mode.type === "domain") {
+    candidates = analyzedCookies.filter((item) => item.domain === mode.domain);
+    label = `Domain Feed: ${mode.domain}`;
+    description = `All removable cookies currently stored for ${mode.domain}.`;
+  }
+
+  if (mode.type === "keys") {
+    const keySet = new Set(mode.keys);
+    candidates = analyzedCookies.filter((item) => keySet.has(item.key));
+    label = `Selected Cookie Feed`;
+    description = "Only the specific cookies selected from the website control surface.";
+  }
+
+  if (!candidates.length) {
+    return {
+      candidates: [],
+      cookieCount: 0,
+      description,
+      domainCount: 0,
+      label,
+      presetId,
+      sampleDomains: [],
+    };
+  }
+
+  const protectedMatches = candidates.filter((item) => item.protectedDomain);
+  if (protectedMatches.length) {
+    const protectedDomainNames = [...new Set(protectedMatches.map((item) => item.domain))];
+    throw new Error(
+      `Protected domain blocked cleanup: ${protectedDomainNames.slice(0, 3).join(", ")}`
+    );
+  }
+
   const sampleDomains = [...new Set(candidates.map((item) => item.domain))];
 
   return {
     candidates,
     cookieCount: candidates.length,
-    description: definition.description,
+    description,
     domainCount: sampleDomains.length,
-    label: definition.label,
+    label,
     presetId,
-    sampleDomains: sampleDomains.slice(0, 4),
+    sampleDomains: sampleDomains.slice(0, 6),
   };
 }
 
@@ -663,7 +726,9 @@ async function storeCleanupBatch(successfulCookies, plan, source) {
 
   const batch = {
     createdAt: new Date().toISOString(),
+    cookieCount: successfulCookies.length,
     cookies: successfulCookies.map(createBackupCookie),
+    domainCount: new Set(successfulCookies.map((cookie) => cookieHost(cookie.domain || ""))).size,
     id: `cleanup-${Date.now()}`,
     label: plan.label,
     presetId: plan.presetId,
@@ -674,15 +739,15 @@ async function storeCleanupBatch(successfulCookies, plan, source) {
 
   const existingBatches = await readLocal(STORAGE_KEYS.cleanupBatches, []);
   await writeLocal({
-    [STORAGE_KEYS.cleanupBatches]: [batch, ...existingBatches].slice(0, 10),
+    [STORAGE_KEYS.cleanupBatches]: [batch, ...existingBatches].slice(0, 25),
   });
 
   return batch;
 }
 
-async function executeCleanupPreset(presetId, source) {
-  const rawCookies = await chrome.cookies.getAll({});
-  const plan = buildCleanupPlan(rawCookies, presetId);
+async function executeDeletionPlan(mode, source) {
+  const { analyzedCookies } = await getRawAndAnalyzedCookies();
+  const plan = buildPlanFromMode(analyzedCookies, mode);
 
   if (!plan.cookieCount) {
     return {
@@ -694,7 +759,7 @@ async function executeCleanupPreset(presetId, source) {
         description: plan.description,
         domainCount: plan.domainCount,
         label: plan.label,
-        presetId,
+        presetId: plan.presetId,
         sampleDomains: plan.sampleDomains,
       },
       report: await scanCookies(),
@@ -728,9 +793,35 @@ async function executeCleanupPreset(presetId, source) {
       description: plan.description,
       domainCount: plan.domainCount,
       label: plan.label,
-      presetId,
+      presetId: plan.presetId,
       sampleDomains: plan.sampleDomains,
     },
+    report: await scanCookies(),
+  };
+}
+
+async function restoreCleanupBatchById(batchId) {
+  const batches = await readLocal(STORAGE_KEYS.cleanupBatches, []);
+  const batch = batches.find((entry) => entry.id === batchId);
+
+  if (!batch) {
+    throw new Error("That recycle-bin batch could not be found.");
+  }
+
+  const results = await Promise.allSettled(batch.cookies.map(restoreCookie));
+  const restoredCount = results.filter(
+    (result) => result.status === "fulfilled" && result.value
+  ).length;
+  const failedCount = batch.cookies.length - restoredCount;
+
+  await writeLocal({
+    [STORAGE_KEYS.cleanupBatches]: batches.filter((entry) => entry.id !== batchId),
+  });
+
+  return {
+    failedCount,
+    restoredCount,
+    restoredPresetId: batch.presetId,
     report: await scanCookies(),
   };
 }
@@ -747,22 +838,7 @@ async function restoreLastCleanup() {
     };
   }
 
-  const results = await Promise.allSettled(latestBatch.cookies.map(restoreCookie));
-  const restoredCount = results.filter(
-    (result) => result.status === "fulfilled" && result.value
-  ).length;
-  const failedCount = latestBatch.cookies.length - restoredCount;
-
-  await writeLocal({
-    [STORAGE_KEYS.cleanupBatches]: batches.slice(1),
-  });
-
-  return {
-    failedCount,
-    restoredCount,
-    restoredPresetId: latestBatch.presetId,
-    report: await scanCookies(),
-  };
+  return restoreCleanupBatchById(latestBatch.id);
 }
 
 function buildExportFilename(prefix, timestamp) {
@@ -825,8 +901,8 @@ async function clearPendingFeedRequest() {
 }
 
 async function createPendingFeedRequest(presetId) {
-  const rawCookies = await chrome.cookies.getAll({});
-  const plan = buildCleanupPlan(rawCookies, presetId);
+  const { analyzedCookies } = await getRawAndAnalyzedCookies();
+  const plan = buildPlanFromMode(analyzedCookies, { type: "preset", presetId });
 
   if (!plan.cookieCount) {
     return null;
@@ -848,6 +924,82 @@ async function createPendingFeedRequest(presetId) {
   return request;
 }
 
+async function getCookieManagementState() {
+  const [{ analyzedCookies, protectedDomains }, cleanupBatches, pendingFeedRequest] =
+    await Promise.all([
+      getRawAndAnalyzedCookies(),
+      readLocal(STORAGE_KEYS.cleanupBatches, []),
+      readLocal(STORAGE_KEYS.pendingFeedRequest, null),
+    ]);
+
+  return buildManagementState(
+    analyzedCookies,
+    cleanupBatches,
+    protectedDomains,
+    pendingFeedRequest
+  );
+}
+
+async function getDomainCookies(domain) {
+  const { analyzedCookies } = await getRawAndAnalyzedCookies();
+
+  return analyzedCookies
+    .filter((item) => item.domain === domain)
+    .map((item) => ({
+      key: item.key,
+      name: item.cookie.name,
+      value: item.cookie.value,
+      domain: item.domain,
+      path: item.cookie.path,
+      storeId: item.cookie.storeId || "default",
+      size: item.cookie.value?.length || 0,
+      category: item.category,
+      risk: item.risk,
+      reasons: item.reasons,
+      presetIds: item.presetIds,
+      secure: item.cookie.secure,
+      httpOnly: item.cookie.httpOnly,
+      sameSite: item.cookie.sameSite || "unspecified",
+      session: item.cookie.session,
+      expirationDate:
+        typeof item.cookie.expirationDate === "number" ? item.cookie.expirationDate : null,
+    }))
+    .sort((left, right) => {
+      const riskOrder = { high: 0, medium: 1, low: 2 };
+      return riskOrder[left.risk] - riskOrder[right.risk];
+    });
+}
+
+function getPresetIdFromPayload(payload, fallback) {
+  if (payload && isCleanupPresetId(payload.presetId)) {
+    return payload.presetId;
+  }
+
+  return fallback;
+}
+
+function getDomainFromPayload(payload) {
+  if (payload && typeof payload.domain === "string" && payload.domain.trim()) {
+    return cookieHost(payload.domain.trim());
+  }
+
+  return null;
+}
+
+function getKeysFromPayload(payload) {
+  if (!payload || !Array.isArray(payload.keys)) {
+    return null;
+  }
+
+  const keys = payload.keys.filter((key) => typeof key === "string" && key.length > 0);
+  return keys.length ? [...new Set(keys)] : null;
+}
+
+async function handleManagementMutation(action) {
+  await action();
+  return getCookieManagementState();
+}
+
 async function getUiState() {
   const [report, cleanupBatches, pendingFeedRequest] = await Promise.all([
     getLatestReport({ refreshIfMissing: false }),
@@ -858,7 +1010,7 @@ async function getUiState() {
   const lastCleanup = cleanupBatches[0]
     ? {
         createdAt: cleanupBatches[0].createdAt,
-        cookieCount: cleanupBatches[0].cookies.length,
+        cookieCount: cleanupBatches[0].cookieCount,
         id: cleanupBatches[0].id,
         label: cleanupBatches[0].label,
         presetId: cleanupBatches[0].presetId,
@@ -875,14 +1027,6 @@ async function getUiState() {
   };
 }
 
-function getPresetIdFromPayload(payload, fallback) {
-  if (payload && isCleanupPresetId(payload.presetId)) {
-    return payload.presetId;
-  }
-
-  return fallback;
-}
-
 async function handleInternalMessage(message) {
   switch (message?.type) {
     case "GET_STATE":
@@ -891,9 +1035,65 @@ async function handleInternalMessage(message) {
       return success(message.type, {
         report: await scanCookies(),
       });
-    case "GET_COOKIE_INVENTORY": {
-      const rawCookies = await chrome.cookies.getAll({});
-      return success(message.type, buildCookieInventoryGroups(rawCookies));
+    case "GET_COOKIE_MANAGEMENT_STATE":
+      return success(message.type, await getCookieManagementState());
+    case "GET_DOMAIN_COOKIES": {
+      const domain = getDomainFromPayload(message.payload);
+      if (!domain) {
+        return failure(message.type, "A domain is required.");
+      }
+
+      return success(message.type, await getDomainCookies(domain));
+    }
+    case "SET_DOMAIN_PROTECTION": {
+      const domain = getDomainFromPayload(message.payload);
+      const nextValue = Boolean(message?.payload?.protected);
+      if (!domain) {
+        return failure(message.type, "A domain is required.");
+      }
+
+      const protectedDomains = await getProtectedDomains();
+      const nextDomains = nextValue
+        ? [...new Set([...protectedDomains, domain])].sort()
+        : protectedDomains.filter((entry) => entry !== domain);
+
+      return success(
+        message.type,
+        await handleManagementMutation(async () => {
+          await writeLocal({ [STORAGE_KEYS.protectedDomains]: nextDomains });
+          await scanCookies();
+        })
+      );
+    }
+    case "DELETE_DOMAIN_COOKIES": {
+      const domain = getDomainFromPayload(message.payload);
+      if (!domain) {
+        return failure(message.type, "A domain is required.");
+      }
+
+      await executeDeletionPlan({ type: "domain", domain }, "website");
+      return success(message.type, await getCookieManagementState());
+    }
+    case "DELETE_COOKIE_KEYS": {
+      const keys = getKeysFromPayload(message.payload);
+      if (!keys) {
+        return failure(message.type, "At least one cookie key is required.");
+      }
+
+      await executeDeletionPlan({ type: "keys", keys }, "website");
+      return success(message.type, await getCookieManagementState());
+    }
+    case "RESTORE_CLEANUP_BATCH": {
+      const batchId =
+        message?.payload && typeof message.payload.batchId === "string"
+          ? message.payload.batchId
+          : null;
+      if (!batchId) {
+        return failure(message.type, "A cleanup batch id is required.");
+      }
+
+      await restoreCleanupBatchById(batchId);
+      return success(message.type, await getCookieManagementState());
     }
     case "APPLY_CLEANUP_PRESET": {
       const presetId = getPresetIdFromPayload(message.payload);
@@ -901,17 +1101,26 @@ async function handleInternalMessage(message) {
         return failure(message.type, "A valid cleanup preset is required.");
       }
 
-      return success(message.type, await executeCleanupPreset(presetId, "extension"));
+      return success(
+        message.type,
+        await executeDeletionPlan({ type: "preset", presetId }, "extension")
+      );
     }
     case "CLEAN_HIGH_RISK":
-      return success(message.type, await executeCleanupPreset("highRisk", "extension"));
+      return success(
+        message.type,
+        await executeDeletionPlan({ type: "preset", presetId: "highRisk" }, "extension")
+      );
     case "CONFIRM_PENDING_FEED_REQUEST": {
       const pendingFeedRequest = await readLocal(STORAGE_KEYS.pendingFeedRequest, null);
       if (!pendingFeedRequest || !isCleanupPresetId(pendingFeedRequest.presetId)) {
         return failure(message.type, "There is no pending website feed request to confirm.");
       }
 
-      const result = await executeCleanupPreset(pendingFeedRequest.presetId, "website");
+      const result = await executeDeletionPlan(
+        { type: "preset", presetId: pendingFeedRequest.presetId },
+        "website"
+      );
       await clearPendingFeedRequest();
       return success(message.type, {
         ...result,
@@ -955,9 +1164,61 @@ async function handleExternalMessage(message) {
       const report = await getLatestReport({ refreshIfMissing: true });
       return success(message.type, report?.cleanup || null);
     }
-    case "GET_COOKIE_INVENTORY": {
-      const rawCookies = await chrome.cookies.getAll({});
-      return success(message.type, buildCookieInventoryGroups(rawCookies));
+    case "GET_COOKIE_MANAGEMENT_STATE":
+      return success(message.type, await getCookieManagementState());
+    case "GET_DOMAIN_COOKIES": {
+      const domain = getDomainFromPayload(message.payload);
+      if (!domain) {
+        return failure(message.type, "A domain is required.");
+      }
+
+      return success(message.type, await getDomainCookies(domain));
+    }
+    case "SET_DOMAIN_PROTECTION": {
+      const domain = getDomainFromPayload(message.payload);
+      const nextValue = Boolean(message?.payload?.protected);
+      if (!domain) {
+        return failure(message.type, "A domain is required.");
+      }
+
+      const protectedDomains = await getProtectedDomains();
+      const nextDomains = nextValue
+        ? [...new Set([...protectedDomains, domain])].sort()
+        : protectedDomains.filter((entry) => entry !== domain);
+
+      await writeLocal({ [STORAGE_KEYS.protectedDomains]: nextDomains });
+      await scanCookies();
+      return success(message.type, await getCookieManagementState());
+    }
+    case "DELETE_DOMAIN_COOKIES": {
+      const domain = getDomainFromPayload(message.payload);
+      if (!domain) {
+        return failure(message.type, "A domain is required.");
+      }
+
+      await executeDeletionPlan({ type: "domain", domain }, "website");
+      return success(message.type, await getCookieManagementState());
+    }
+    case "DELETE_COOKIE_KEYS": {
+      const keys = getKeysFromPayload(message.payload);
+      if (!keys) {
+        return failure(message.type, "At least one cookie key is required.");
+      }
+
+      await executeDeletionPlan({ type: "keys", keys }, "website");
+      return success(message.type, await getCookieManagementState());
+    }
+    case "RESTORE_CLEANUP_BATCH": {
+      const batchId =
+        message?.payload && typeof message.payload.batchId === "string"
+          ? message.payload.batchId
+          : null;
+      if (!batchId) {
+        return failure(message.type, "A cleanup batch id is required.");
+      }
+
+      await restoreCleanupBatchById(batchId);
+      return success(message.type, await getCookieManagementState());
     }
     case "REQUEST_COOKIE_FEED": {
       const presetId = getPresetIdFromPayload(message.payload);

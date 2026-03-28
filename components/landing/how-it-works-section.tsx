@@ -4,30 +4,30 @@ const steps = [
   {
     number: "01",
     icon: "mdi:download",
-    title: "Install Extension",
+    title: "Install The Engine",
     description:
-      "Load the Chrome extension locally in developer mode, then pin Cookie Monster to your toolbar.",
+      "Load the extension in Chrome so Cookie Monster gets local permission to read, back up, delete, and restore cookies.",
   },
   {
     number: "02",
-    icon: "mdi:magnify",
-    title: "Scan Cookies",
+    icon: "mdi:web-check",
+    title: "Open The Website Console",
     description:
-      "The extension automatically scans all cookies and classifies them by risk level, type, and domain.",
+      "Use the website as your main cockpit. It asks the extension for a fresh local scan and renders the domain inventory.",
   },
   {
     number: "03",
-    icon: "mdi:chart-box",
-    title: "Review Dashboard",
+    icon: "mdi:cookie-open",
+    title: "Choose What To Feed",
     description:
-      "View detailed reports and visualizations in the dashboard. Understand exactly what&apos;s tracking you.",
+      "Inspect a site, review cookie keys and values, protect trusted domains, and choose a preset meal or hand-picked cookies.",
   },
   {
     number: "04",
-    icon: "mdi:delete-sweep",
-    title: "Clean Up",
+    icon: "mdi:backup-restore",
+    title: "Delete And Restore Safely",
     description:
-      "Remove unwanted cookies with smart cleanup. Keep essential cookies, delete tracking ones.",
+      "The extension performs the local cleanup, stores a recycle-bin batch, and lets you restore individual cleanup batches later.",
   },
 ];
 
@@ -38,11 +38,11 @@ export function HowItWorksSection() {
         {/* Section header */}
         <div className="text-center max-w-2xl mx-auto mb-16">
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4 text-balance">
-            How Cookie Monster Works
+            A Website-Led Cleanup Loop
           </h2>
           <p className="text-lg text-muted-foreground text-pretty">
-            Get started in minutes. Our simple four-step process makes cookie 
-            management easy for everyone.
+            The playful layer lives on the site. The dangerous layer stays inside the browser
+            extension. That split keeps the product intuitive without giving up local control.
           </p>
         </div>
 

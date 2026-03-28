@@ -6,9 +6,15 @@
  */
 
 import {
+  getMockDomainCookies,
   COOKIE_MONSTER_EXTENSION_ID,
+  generateMockManagementState,
   type CleanupInsights,
   type CleanupPresetId,
+  type CookieDomainCookie,
+  type CookieDomainInventory,
+  type CookieManagementState,
+  type RecycleBinBatchSummary,
   generateMockReport as createMockReport,
   parseReportFile as parseCookieReportFile,
   type PendingFeedRequestSummary,
@@ -18,8 +24,12 @@ import {
 export type {
   CleanupInsights,
   CleanupPresetId,
+  CookieDomainCookie,
+  CookieDomainInventory,
+  CookieManagementState,
   CookieSummaryReport,
   PendingFeedRequestSummary,
+  RecycleBinBatchSummary,
 } from "@/lib/cookie-report";
 
 export type MessageType =
@@ -28,6 +38,12 @@ export type MessageType =
   | "GET_FEED_PREVIEW"
   | "GET_COOKIE_INVENTORY"
   | "REQUEST_COOKIE_FEED"
+  | "GET_COOKIE_MANAGEMENT_STATE"
+  | "GET_DOMAIN_COOKIES"
+  | "SET_DOMAIN_PROTECTION"
+  | "DELETE_DOMAIN_COOKIES"
+  | "DELETE_COOKIE_KEYS"
+  | "RESTORE_CLEANUP_BATCH"
   | "OPEN_EXTENSION_DASHBOARD"
   | "EXPORT_REPORT"
   | "GET_EXTENSION_VERSION";
@@ -79,6 +95,23 @@ export interface CookieDomainGroup {
 
 export interface CookieFeedRequest {
   presetId: CleanupPresetId;
+}
+
+export interface DomainProtectionRequest {
+  domain: string;
+  protected: boolean;
+}
+
+export interface DomainDeleteRequest {
+  domain: string;
+}
+
+export interface CookieDeleteRequest {
+  keys: string[];
+}
+
+export interface CleanupBatchRestoreRequest {
+  batchId: string;
 }
 
 const EXTENSION_ID_STORAGE_KEY = "cm_extension_id";
@@ -226,6 +259,88 @@ export async function requestCookieFeed(
   return null;
 }
 
+export async function getCookieManagementState(): Promise<CookieManagementState | null> {
+  const response = await sendMessageToExtension({ type: "GET_COOKIE_MANAGEMENT_STATE" });
+  if (response.success && response.data && "domains" in response.data) {
+    return response.data as CookieManagementState;
+  }
+
+  return null;
+}
+
+export async function getDomainCookies(domain: string): Promise<CookieDomainCookie[]> {
+  const response = await sendMessageToExtension({
+    type: "GET_DOMAIN_COOKIES",
+    payload: { domain },
+  });
+
+  if (response.success && Array.isArray(response.data)) {
+    return response.data as CookieDomainCookie[];
+  }
+
+  return [];
+}
+
+export async function setDomainProtection(
+  request: DomainProtectionRequest
+): Promise<CookieManagementState | null> {
+  const response = await sendMessageToExtension({
+    type: "SET_DOMAIN_PROTECTION",
+    payload: request as unknown as Record<string, unknown>,
+  });
+
+  if (response.success && response.data && "domains" in response.data) {
+    return response.data as CookieManagementState;
+  }
+
+  return null;
+}
+
+export async function deleteDomainCookies(
+  request: DomainDeleteRequest
+): Promise<CookieManagementState | null> {
+  const response = await sendMessageToExtension({
+    type: "DELETE_DOMAIN_COOKIES",
+    payload: request as unknown as Record<string, unknown>,
+  });
+
+  if (response.success && response.data && "domains" in response.data) {
+    return response.data as CookieManagementState;
+  }
+
+  return null;
+}
+
+export async function deleteCookieKeys(
+  request: CookieDeleteRequest
+): Promise<CookieManagementState | null> {
+  const response = await sendMessageToExtension({
+    type: "DELETE_COOKIE_KEYS",
+    payload: request as unknown as Record<string, unknown>,
+  });
+
+  if (response.success && response.data && "domains" in response.data) {
+    return response.data as CookieManagementState;
+  }
+
+  return null;
+}
+
+export async function restoreCleanupBatch(
+  request: CleanupBatchRestoreRequest
+): Promise<CookieManagementState | null> {
+  const response = await sendMessageToExtension({
+    type: "RESTORE_CLEANUP_BATCH",
+    payload: request as unknown as Record<string, unknown>,
+  });
+
+  if (response.success && response.data && "domains" in response.data) {
+    return response.data as CookieManagementState;
+  }
+
+  return null;
+}
+
 export async function openExtensionDashboard(): Promise<boolean> {
   const response = await sendMessageToExtension({ type: "OPEN_EXTENSION_DASHBOARD" });
   return response.success;
@@ -250,4 +365,12 @@ export function parseReportFile(jsonString: string): CookieSummaryReport | null 
 
 export function generateMockReport(): CookieSummaryReport {
   return createMockReport();
+}
+
+export function generateMockCookieManagementState(): CookieManagementState {
+  return generateMockManagementState();
+}
+
+export function getMockCookieDomainCookies(domain: string): CookieDomainCookie[] {
+  return getMockDomainCookies(domain);
 }

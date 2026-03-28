@@ -4,49 +4,49 @@ import { cn } from "@/lib/utils";
 const features = [
   {
     icon: "mdi:magnify-scan",
-    title: "Deep Cookie Analysis",
+    title: "Domain-by-Domain Inspection",
     description:
-      "Scan and analyze all cookies across your browser with detailed risk classification, expiry tracking, and domain grouping.",
+      "Open any website bucket, inspect exact cookie keys and values, and decide what the monster should eat with full context.",
     bgColor: "bg-primary/10",
     textColor: "text-primary",
   },
   {
     icon: "mdi:shield-lock",
-    title: "Privacy Focused",
+    title: "Local-Only Handling",
     description:
-      "All analysis happens locally in your browser. No cookie data ever leaves your device. We never see your browsing history.",
+      "The website talks to the installed extension inside the browser. Cookie reads, deletes, and restores happen locally on-device.",
     bgColor: "bg-chart-3/10",
     textColor: "text-chart-3",
   },
   {
     icon: "mdi:delete-sweep",
-    title: "Smart Cleanup",
+    title: "Preset Meals And Precision Bites",
     description:
-      "Intelligently remove tracking cookies, expired cookies, and unnecessary data while preserving essential site functionality.",
+      "Feed preset tracker batches, wipe an entire domain, or select specific cookie keys one by one from the website console.",
     bgColor: "bg-risk-high/10",
     textColor: "text-risk-high",
   },
   {
     icon: "mdi:backup-restore",
-    title: "Safe Restore",
+    title: "Batch Restore History",
     description:
-      "Made a mistake? Our recycle bin keeps deleted cookies safe for easy restoration. Never lose important session data again.",
+      "Every cleanup becomes a recycle-bin batch so you can restore a single domain meal or a whole preset if something breaks.",
     bgColor: "bg-secondary/10",
     textColor: "text-secondary",
   },
   {
     icon: "mdi:chart-line",
-    title: "Visual Reports",
+    title: "Monster-Friendly Visualization",
     description:
-      "Beautiful charts and visualizations help you understand your cookie landscape at a glance. Export reports for records.",
+      "Risk charts, feed queues, domain leaderboards, and cleanup recommendations make cookie clutter feel understandable and playful.",
     bgColor: "bg-chart-5/10",
     textColor: "text-chart-5",
   },
   {
     icon: "mdi:puzzle",
-    title: "Extension + Dashboard",
+    title: "Website First, Extension Powered",
     description:
-      "Keep sensitive operations inside the extension while the website handles docs, imports, and sanitized visual summaries.",
+      "The website is where people browse, choose, and act. The extension stays focused on privileged cookie functions and local backups.",
     bgColor: "bg-chart-1/10",
     textColor: "text-chart-1",
   },
@@ -59,11 +59,11 @@ export function FeaturesSection() {
         {/* Section header */}
         <div className="text-center max-w-2xl mx-auto mb-16">
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4 text-balance">
-            Everything You Need to Manage Cookies
+            Built Around Feeding, Not Just Deleting
           </h2>
           <p className="text-lg text-muted-foreground text-pretty">
-            A complete toolkit for analyzing, managing, and protecting your browser 
-            privacy without compromising your browsing experience.
+            Cookie Monster is not just another cleanup utility. It is a playful website-first
+            control surface with a serious local extension engine underneath.
           </p>
         </div>
 
