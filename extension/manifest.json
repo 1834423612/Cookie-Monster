@@ -19,7 +19,8 @@
     "type": "module"
   },
   "action": {
-    "default_title": "Cookie Monster"
+    "default_title": "Cookie Monster",
+    "default_popup": "popup.html"
   },
   "side_panel": {
     "default_path": "sidepanel.html"
