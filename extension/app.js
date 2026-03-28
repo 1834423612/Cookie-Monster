@@ -280,13 +280,15 @@ function renderInventory() {
   const list = byId("inventory-list");
   const summary = byId("inventory-summary");
   const toggleButton = byId("jar-toggle-button");
+  const layout = byId("monster-layout");
 
-  if (!shell || !list || !summary || !toggleButton) {
+  if (!shell || !list || !summary || !toggleButton || !layout) {
     return;
   }
 
   shell.hidden = !inventoryState.open;
   toggleButton.setAttribute("aria-expanded", String(inventoryState.open));
+  layout.classList.toggle("expanded", inventoryState.open);
 
   if (!inventoryState.open) {
     return;
@@ -497,6 +499,14 @@ function bindActions() {
       if (inventoryState.open) {
         refreshInventory().catch(() => undefined);
       }
+    });
+  }
+
+  const collapseInventoryButton = byId("collapse-inventory-button");
+  if (collapseInventoryButton) {
+    collapseInventoryButton.addEventListener("click", () => {
+      inventoryState.open = false;
+      renderInventory();
     });
   }
 

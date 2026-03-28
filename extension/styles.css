@@ -433,3 +433,43 @@ button.secondary {
     grid-template-columns: 1fr;
   }
 }
+
+.jar-default-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
+}
+
+.monster-panel {
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.monster-panel .monster-emoji {
+  font-size: 5rem;
+}
+
+#monster-layout.expanded {
+  grid-template-columns: minmax(0, 2fr) minmax(220px, 1fr);
+}
+
+#monster-layout.expanded .monster-panel .monster-emoji {
+  font-size: 3rem;
+}
+
+#monster-layout.expanded .monster-panel {
+  min-height: 220px;
+}
+
+#monster-layout.expanded #inventory-shell {
+  display: block;
+}
+
+#monster-layout.expanded #jar-default-panel {
+  display: none;
+}

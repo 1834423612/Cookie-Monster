@@ -11,7 +11,7 @@
       <section class="hero">
         <div class="hero-copy">
           <h1>Cookie Monster Local Workspace</h1>
-          <p>All cookie analysis happens inside this extension tab. The website only receives sanitized metadata.</p>
+          <p>Default: jar left, monster right. Click jar to expand cookie list locally.</p>
         </div>
         <div class="meta-pill">Extension v<span id="version">0.1.0</span></div>
       </section>
@@ -26,25 +26,22 @@
         <button id="export-backup-button" class="secondary">Export backup.json</button>
       </section>
 
-      <section class="monster-layout">
-        <aside class="jar-panel">
+      <section class="monster-layout" id="monster-layout">
+        <div id="jar-default-panel" class="panel jar-default-panel">
           <button id="jar-toggle-button" class="jar-button" type="button" aria-expanded="false">
             <span class="jar-emoji">🍯</span>
             <strong>Cookie Jar</strong>
             <small>Click to reveal local cookie list</small>
           </button>
-          <div class="monster-card">
-            <div class="monster-emoji">🍪👾</div>
-            <p>Monster only eats batches you confirm locally.</p>
-          </div>
-        </aside>
+        </div>
 
         <section class="panel inventory-panel" id="inventory-shell" hidden>
           <div class="panel-header">
             <div>
               <h3>Cookie Inventory</h3>
-              <p>Grouped by domain. Expand a domain to inspect cookie metadata (values never shown).</p>
+              <p>Grouped by domain. Expand a domain to inspect metadata only.</p>
             </div>
+            <button id="collapse-inventory-button" class="secondary" type="button">Back</button>
           </div>
           <div class="inventory-controls">
             <input id="inventory-search" type="search" placeholder="Filter by domain / cookie / category" />
@@ -61,6 +58,11 @@
           <div id="inventory-summary" class="muted">No inventory loaded yet.</div>
           <div id="inventory-list" class="inventory-list"></div>
         </section>
+
+        <aside class="panel monster-panel" id="monster-panel">
+          <div class="monster-emoji">👾</div>
+          <p class="muted">Monster waits for your local confirmation before cleanup.</p>
+        </aside>
       </section>
 
       <section class="panel">
