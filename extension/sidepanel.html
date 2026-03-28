@@ -3,152 +3,64 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Cookie Monster Side Panel</title>
+    <title>Cookie Monster Sidepanel</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <main class="shell sidepanel">
-      <section class="hero">
-        <div class="hero-copy">
+    <main class="workspace-shell sidepanel-shell">
+      <header class="workspace-header compact">
+        <div>
           <h1>Cookie Monster</h1>
-          <p>Scan cookies, generate monster-ready cleanup presets, and keep every destructive action inside the extension.</p>
+          <p>本地 cookie 清理助手</p>
         </div>
-        <div class="meta-pill">v<span id="version">0.1.0</span></div>
+        <span class="meta-pill">v<span id="version">0.1.0</span></span>
+      </header>
+
+      <section id="status" class="status" data-tone="info">正在加载本地状态...</section>
+
+      <section class="command-bar compact">
+        <button id="scan-button" class="primary">扫描</button>
+        <button id="recommend-select-button" class="secondary">选推荐</button>
+        <button id="delete-selected-button" class="danger">删已选</button>
+        <button id="restore-button" class="secondary">恢复</button>
       </section>
 
-      <section id="status" class="status" data-tone="info">
-        Loading local extension state...
-      </section>
-
-      <section class="button-grid">
-        <button id="scan-button" class="primary">Run Scan</button>
-        <button id="cleanup-button" class="secondary">Feed High-Risk Batch</button>
-        <button id="restore-button" class="secondary">Restore Last Batch</button>
-        <button id="export-report-button" class="secondary">Export report.json</button>
-        <button id="export-backup-button" class="secondary">Export backup.json</button>
-        <button id="open-dashboard-button" class="secondary">Open Full Dashboard</button>
-      </section>
-
-      <section class="panel">
-        <div class="panel-header">
-          <div>
-            <h3>Website Feed Requests</h3>
-            <p>If the website asks to feed cookies to the monster, confirm it here before anything is deleted.</p>
-          </div>
-        </div>
-        <div id="pending-request-empty" class="empty-state">
-          No pending website feed request yet.
-        </div>
-        <div id="pending-request-panel" class="request-card" hidden>
-          <strong id="pending-request-title">Pending request</strong>
-          <p id="pending-request-description"></p>
-          <div class="request-meta">
-            <span id="pending-request-meta"></span>
-            <span id="pending-request-domains"></span>
-          </div>
-          <div class="request-actions">
-            <button id="confirm-request-button" class="primary">Confirm Feed</button>
-            <button id="dismiss-request-button" class="secondary">Dismiss</button>
-          </div>
+      <section class="panel jar-pane compact">
+        <button id="jar-toggle-button" class="jar-button" aria-expanded="false">
+          <span class="jar-icon">🍪</span>
+          <span><strong>打开饼干罐</strong><small>展开域名列表</small></span>
+        </button>
+        <div class="jar-stats compact">
+          <article><span>总数</span><strong id="total-cookies">0</strong></article>
+          <article><span>域名</span><strong id="total-domains">0</strong></article>
+          <article><span>推荐</span><strong id="total-recommended">0</strong></article>
         </div>
       </section>
 
-      <section id="empty-state" class="empty-state">
-        No summary report yet. Run a scan to analyze current browser cookies and generate feed presets for the website.
+      <section class="panel list-pane compact">
+        <div class="filters compact">
+          <input id="domain-filter" type="search" placeholder="筛选" />
+          <select id="risk-filter">
+            <option value="all">全部风险</option><option value="high">高</option><option value="medium">中</option><option value="low">低</option>
+          </select>
+          <select id="label-filter">
+            <option value="all">全部标签</option><option value="recommended">推荐删</option><option value="critical">保护</option><option value="session">会话</option>
+          </select>
+        </div>
+        <div id="cookie-list" class="domain-list"><p class="empty">点击上方饼干罐查看。</p></div>
       </section>
 
-      <section id="report-shell" hidden>
-        <section class="panel">
-          <div class="panel-header">
-            <div>
-              <h2>Latest Summary Report</h2>
-              <p>Generated <span id="generated-at">Not available yet</span></p>
-            </div>
-          </div>
-          <div class="stats">
-            <article class="stat">
-              <span>Total Cookies</span>
-              <strong id="total-cookies">0</strong>
-            </article>
-            <article class="stat">
-              <span>Domains</span>
-              <strong id="total-domains">0</strong>
-            </article>
-            <article class="stat">
-              <span>High Risk</span>
-              <strong id="high-risk">0</strong>
-            </article>
-            <article class="stat">
-              <span>Medium Risk</span>
-              <strong id="medium-risk">0</strong>
-            </article>
-            <article class="stat">
-              <span>Low Risk</span>
-              <strong id="low-risk">0</strong>
-            </article>
-          </div>
-        </section>
-
-        <section class="panel">
-          <div class="panel-header">
-            <div>
-              <h3>Monster Feed Queue</h3>
-              <p id="feed-summary">No cleanup insights available yet.</p>
-            </div>
-          </div>
-          <div id="preset-grid" class="preset-grid"></div>
-        </section>
-
-        <section class="two-column">
-          <section class="panel">
-            <div class="panel-header">
-              <div>
-                <h3>Top Domains</h3>
-                <p>Heaviest cookie clusters across your browser.</p>
-              </div>
-            </div>
-            <ul id="top-domains" class="list"></ul>
-          </section>
-
-          <section class="panel">
-            <div class="panel-header">
-              <div>
-                <h3>Recommendations</h3>
-                <p>Monster-safe cleanup ideas based on the latest scan.</p>
-              </div>
-            </div>
-            <ul id="recommendations" class="list"></ul>
-            <p class="muted" id="flag-summary"></p>
-            <p class="muted" id="category-summary"></p>
-          </section>
-        </section>
+      <section class="panel footer-panel compact">
+        <div><strong id="cleanup-count">0</strong> 个本地备份</div>
+        <div id="cleanup-meta">暂无记录</div>
+        <div>扩展ID: <code id="extension-id">...</code></div>
       </section>
 
-      <section class="panel">
-        <div class="panel-header">
-          <div>
-            <h3>Recycle Bin</h3>
-            <p>Delete actions store a reversible local backup before removal.</p>
-          </div>
-        </div>
-        <div class="footer-meta">
-          <div><strong id="cleanup-count">0</strong> cleanup batches stored locally</div>
-          <div id="cleanup-meta">No cleanup batch stored yet.</div>
-        </div>
-      </section>
-
-      <section class="panel">
-        <div class="panel-header">
-          <div>
-            <h3>Bridge Info</h3>
-            <p>The website only receives sanitized summary data through external messaging.</p>
-          </div>
-        </div>
-        <div class="footer-meta">
-          <div>Extension ID: <code id="extension-id">loading...</code></div>
-          <div>Website-initiated cleanup requests still require local confirmation inside the extension.</div>
-        </div>
-      </section>
+      <div class="sr-only">
+        <button id="clear-selection-button"></button>
+        <button id="export-report-button"></button>
+        <button id="export-backup-button"></button>
+      </div>
     </main>
 
     <script src="app.js"></script>

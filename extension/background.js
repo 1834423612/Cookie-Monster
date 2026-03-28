@@ -794,6 +794,147 @@ async function getUiState() {
   };
 }
 
+function getCookieLabel(item) {
+  const labels = [];
+  const { cookie, category, risk } = item;
+
+  if (category === "essential") {
+    labels.push("critical");
+  }
+  if (cookie.session) {
+    labels.push("session");
+  }
+  if (cookie.httpOnly) {
+    labels.push("httpOnly");
+  }
+  if (cookie.secure) {
+    labels.push("secure");
+  }
+  if (risk === "high" && category !== "essential") {
+    labels.push("recommended");
+  }
+
+  return labels;
+}
+
+async function getCookieJarView() {
+  const rawCookies = await chrome.cookies.getAll({});
+  const analyzedCookies = rawCookies.map(analyzeCookie);
+  const domainMap = new Map();
+
+  for (const item of analyzedCookies) {
+    const domain = item.domain || "unknown";
+    const current = domainMap.get(domain) || {
+      domain,
+      cookies: [],
+      counts: { high: 0, medium: 0, low: 0 },
+      recommendedCount: 0,
+      protectedCount: 0,
+    };
+
+    if (item.risk === "high") {
+      current.counts.high += 1;
+    } else if (item.risk === "medium") {
+      current.counts.medium += 1;
+    } else {
+      current.counts.low += 1;
+    }
+
+    const labels = getCookieLabel(item);
+    if (labels.includes("recommended")) {
+      current.recommendedCount += 1;
+    }
+    if (labels.includes("critical")) {
+      current.protectedCount += 1;
+    }
+
+    current.cookies.push({
+      key: item.key,
+      name: item.cookie.name,
+      path: item.cookie.path,
+      valuePreview: item.cookie.value ? `${item.cookie.value.slice(0, 14)}…` : "(empty)",
+      category: item.category,
+      risk: item.risk,
+      labels,
+      reasons: item.reasons,
+      sameSite: item.cookie.sameSite || "unspecified",
+      expiresAt:
+        typeof item.cookie.expirationDate === "number"
+          ? new Date(item.cookie.expirationDate * 1000).toISOString()
+          : null,
+      session: Boolean(item.cookie.session),
+    });
+
+    domainMap.set(domain, current);
+  }
+
+  const domains = [...domainMap.values()]
+    .map((entry) => ({
+      ...entry,
+      cookieCount: entry.cookies.length,
+      cookies: entry.cookies.sort((a, b) => a.name.localeCompare(b.name)),
+    }))
+    .sort((a, b) => b.cookieCount - a.cookieCount);
+
+  return {
+    generatedAt: new Date().toISOString(),
+    totalCookies: rawCookies.length,
+    totalDomains: domains.length,
+    domains,
+  };
+}
+
+async function deleteSelectedCookies(keys = []) {
+  if (!Array.isArray(keys) || !keys.length) {
+    return {
+      deletedCount: 0,
+      failedCount: 0,
+      report: await scanCookies(),
+    };
+  }
+
+  const rawCookies = await chrome.cookies.getAll({});
+  const analyzedCookies = rawCookies.map(analyzeCookie);
+  const selectedSet = new Set(keys);
+  const selectedCandidates = analyzedCookies.filter((item) => selectedSet.has(item.key));
+
+  if (!selectedCandidates.length) {
+    return {
+      deletedCount: 0,
+      failedCount: keys.length,
+      report: await scanCookies(),
+    };
+  }
+
+  const results = await Promise.allSettled(
+    selectedCandidates.map((candidate) => removeCookie(candidate.cookie))
+  );
+
+  const successfulCookies = selectedCandidates
+    .filter((candidate, index) => results[index].status === "fulfilled" && results[index].value)
+    .map((candidate) => candidate.cookie);
+
+  const deletedCount = successfulCookies.length;
+  const failedCount = selectedCandidates.length - deletedCount;
+
+  await storeCleanupBatch(
+    successfulCookies,
+    {
+      label: "Custom Selected Cleanup",
+      description: "Manual cookie selection deleted from the jar workspace.",
+      presetId: "balanced",
+      sampleDomains: [...new Set(selectedCandidates.map((item) => item.domain))].slice(0, 4),
+    },
+    "extension"
+  );
+
+  return {
+    deletedCount,
+    failedCount,
+    report: await scanCookies(),
+  };
+}
+
 function getPresetIdFromPayload(payload, fallback) {
   if (payload && isCleanupPresetId(payload.presetId)) {
     return payload.presetId;
@@ -818,6 +959,13 @@ async function handleInternalMessage(message) {
 
       return success(message.type, await executeCleanupPreset(presetId, "extension"));
     }
+    case "GET_COOKIE_JAR_VIEW":
+      return success(message.type, await getCookieJarView());
+    case "DELETE_SELECTED_COOKIES":
+      return success(
+        message.type,
+        await deleteSelectedCookies(Array.isArray(message.payload?.keys) ? message.payload.keys : [])
+      );
     case "CLEAN_HIGH_RISK":
       return success(message.type, await executeCleanupPreset("highRisk", "extension"));
     case "CONFIRM_PENDING_FEED_REQUEST": {

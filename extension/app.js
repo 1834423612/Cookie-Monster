@@ -9,239 +9,183 @@ function setText(id, value) {
   }
 }
 
+function setStatus(message, tone = "info") {
+  const status = byId("status");
+  if (!status) return;
+  status.textContent = message;
+  status.dataset.tone = tone;
+}
+
 function formatNumber(value) {
   return new Intl.NumberFormat().format(value || 0);
 }
 
 function formatDate(value) {
-  if (!value) {
-    return "Not available yet";
-  }
-
+  if (!value) return "暂无";
   return new Date(value).toLocaleString();
-}
-
-function setStatus(message, tone = "info") {
-  const element = byId("status");
-  if (!element) {
-    return;
-  }
-
-  element.textContent = message;
-  element.dataset.tone = tone;
-}
-
-function toggleEmptyState(hasReport) {
-  const empty = byId("empty-state");
-  const populated = byId("report-shell");
-
-  if (!empty || !populated) {
-    return;
-  }
-
-  empty.hidden = hasReport;
-  populated.hidden = !hasReport;
-}
-
-function renderTopDomains(domains = []) {
-  const list = byId("top-domains");
-  if (!list) {
-    return;
-  }
-
-  list.innerHTML = "";
-
-  if (!domains.length) {
-    const item = document.createElement("li");
-    item.className = "list-empty";
-    item.textContent = "Run a scan to see the busiest cookie domains.";
-    list.appendChild(item);
-    return;
-  }
-
-  for (const domain of domains) {
-    const item = document.createElement("li");
-    item.className = "domain-row";
-    item.innerHTML = `
-      <div>
-        <strong>${domain.domain}</strong>
-        <span class="domain-risk risk-${domain.riskLevel}">${domain.riskLevel} risk</span>
-      </div>
-      <span>${formatNumber(domain.count)}</span>
-    `;
-    list.appendChild(item);
-  }
-}
-
-function renderRecommendations(recommendations = []) {
-  const list = byId("recommendations");
-  if (!list) {
-    return;
-  }
-
-  list.innerHTML = "";
-
-  if (!recommendations.length) {
-    const item = document.createElement("li");
-    item.className = "list-empty";
-    item.textContent = "No cleanup recommendations yet. Run a scan first.";
-    list.appendChild(item);
-    return;
-  }
-
-  for (const recommendation of recommendations) {
-    const item = document.createElement("li");
-    item.className = "recommendation-row";
-    item.innerHTML = `
-      <div>
-        <strong>${recommendation.title}</strong>
-        <p>${recommendation.description}</p>
-      </div>
-      <span class="recommendation-pill risk-${recommendation.tone}">${formatNumber(
-        recommendation.cookieCount
-      )}</span>
-    `;
-    list.appendChild(item);
-  }
-}
-
-function renderPresetCards(presets = []) {
-  const grid = byId("preset-grid");
-  if (!grid) {
-    return;
-  }
-
-  grid.innerHTML = "";
-
-  if (!presets.length) {
-    const empty = document.createElement("div");
-    empty.className = "list-empty";
-    empty.textContent = "No monster-ready cookie presets yet. Scan the browser to generate them.";
-    grid.appendChild(empty);
-    return;
-  }
-
-  for (const preset of presets) {
-    const card = document.createElement("article");
-    card.className = "preset-card";
-    card.innerHTML = `
-      <div>
-        <div class="preset-head">
-          <h4>${preset.label}</h4>
-          <span>${formatNumber(preset.cookieCount)} cookies</span>
-        </div>
-        <p>${preset.description}</p>
-        <div class="preset-meta">
-          <span>${formatNumber(preset.domainCount)} domains</span>
-          <span>${preset.sampleDomains.join(", ") || "No sample domains yet"}</span>
-        </div>
-      </div>
-      <button class="secondary preset-action" data-preset-id="${preset.id}">Feed This Batch</button>
-    `;
-    grid.appendChild(card);
-  }
-
-  for (const button of grid.querySelectorAll(".preset-action")) {
-    button.addEventListener("click", () => {
-      const presetId = button.getAttribute("data-preset-id");
-      runAction("APPLY_CLEANUP_PRESET", { presetId }).catch((error) => {
-        setStatus(error instanceof Error ? error.message : "Unknown error", "error");
-      });
-    });
-  }
-}
-
-function renderCleanup(state) {
-  const lastCleanup = state.lastCleanup;
-  setText("cleanup-count", formatNumber(state.cleanupCount));
-
-  if (!lastCleanup) {
-    setText("cleanup-meta", "No cleanup batch stored yet.");
-    return;
-  }
-
-  setText(
-    "cleanup-meta",
-    `${lastCleanup.label} backed up ${formatNumber(lastCleanup.cookieCount)} cookies on ${formatDate(
-      lastCleanup.createdAt
-    )}`
-  );
-}
-
-function renderPendingFeedRequest(pendingFeedRequest) {
-  const panel = byId("pending-request-panel");
-  const empty = byId("pending-request-empty");
-
-  if (!panel || !empty) {
-    return;
-  }
-
-  if (!pendingFeedRequest) {
-    panel.hidden = true;
-    empty.hidden = false;
-    return;
-  }
-
-  empty.hidden = true;
-  panel.hidden = false;
-
-  setText("pending-request-title", pendingFeedRequest.label);
-  setText("pending-request-meta", `${formatNumber(pendingFeedRequest.cookieCount)} cookies across ${formatNumber(pendingFeedRequest.domainCount)} domains`);
-  setText("pending-request-description", pendingFeedRequest.description);
-  setText(
-    "pending-request-domains",
-    pendingFeedRequest.sampleDomains.length
-      ? pendingFeedRequest.sampleDomains.join(", ")
-      : "No sample domains available"
-  );
-}
-
-function renderReport(report) {
-  toggleEmptyState(Boolean(report));
-
-  if (!report) {
-    renderPresetCards([]);
-    renderRecommendations([]);
-    return;
-  }
-
-  setText("generated-at", formatDate(report.generatedAt));
-  setText("total-cookies", formatNumber(report.totals.cookies));
-  setText("total-domains", formatNumber(report.totals.domains));
-  setText("high-risk", formatNumber(report.risk.high));
-  setText("medium-risk", formatNumber(report.risk.medium));
-  setText("low-risk", formatNumber(report.risk.low));
-  setText(
-    "flag-summary",
-    `${formatNumber(report.flags.secure)} secure / ${formatNumber(report.flags.httpOnly)} HttpOnly`
-  );
-  setText(
-    "category-summary",
-    `${formatNumber(report.categories.analytics)} analytics / ${formatNumber(
-      report.categories.advertising
-    )} advertising`
-  );
-  setText(
-    "feed-summary",
-    report.cleanup
-      ? `${formatNumber(report.cleanup.totalCandidates)} cookies currently look feedable to the monster.`
-      : "No cleanup insights available yet."
-  );
-
-  renderTopDomains(report.topDomains);
-  renderPresetCards(report.cleanup?.presets || []);
-  renderRecommendations(report.cleanup?.recommendations || []);
 }
 
 async function sendInternalMessage(message) {
   return chrome.runtime.sendMessage(message);
 }
 
+let jarData = null;
+let isJarOpen = false;
+const selectedKeys = new Set();
+
+function getFilters() {
+  return {
+    query: byId("domain-filter")?.value?.trim().toLowerCase() || "",
+    risk: byId("risk-filter")?.value || "all",
+    label: byId("label-filter")?.value || "all",
+  };
+}
+
+function getFilteredDomains() {
+  if (!jarData?.domains) return [];
+  const filters = getFilters();
+
+  return jarData.domains
+    .map((domainEntry) => {
+      const cookies = domainEntry.cookies.filter((cookie) => {
+        const queryMatch =
+          !filters.query ||
+          domainEntry.domain.toLowerCase().includes(filters.query) ||
+          cookie.name.toLowerCase().includes(filters.query);
+        const riskMatch = filters.risk === "all" || cookie.risk === filters.risk;
+        const labelMatch = filters.label === "all" || cookie.labels.includes(filters.label);
+        return queryMatch && riskMatch && labelMatch;
+      });
+
+      return {
+        ...domainEntry,
+        filteredCookies: cookies,
+      };
+    })
+    .filter((domainEntry) => domainEntry.filteredCookies.length > 0);
+}
+
+function renderCookieList() {
+  const container = byId("cookie-list");
+  if (!container) return;
+
+  if (!isJarOpen) {
+    container.innerHTML = '<p class="empty">请点击左侧罐子加载 cookie 列表。</p>';
+    return;
+  }
+
+  if (!jarData?.domains?.length) {
+    container.innerHTML = '<p class="empty">未发现 cookie，或尚未扫描。</p>';
+    return;
+  }
+
+  const domains = getFilteredDomains();
+  if (!domains.length) {
+    container.innerHTML = '<p class="empty">当前筛选条件下没有匹配项。</p>';
+    return;
+  }
+
+  container.innerHTML = "";
+
+  for (const domainEntry of domains) {
+    const details = document.createElement("details");
+    details.className = "domain-item";
+    details.open = false;
+
+    const summary = document.createElement("summary");
+    summary.innerHTML = `
+      <div>
+        <strong>${domainEntry.domain}</strong>
+        <small>${formatNumber(domainEntry.filteredCookies.length)} / ${formatNumber(domainEntry.cookieCount)} cookies</small>
+      </div>
+      <div class="domain-badges">
+        <span class="badge danger">高风险 ${domainEntry.counts.high}</span>
+        <span class="badge warning">中风险 ${domainEntry.counts.medium}</span>
+        <span class="badge safe">低风险 ${domainEntry.counts.low}</span>
+      </div>
+    `;
+
+    const cookieRows = document.createElement("div");
+    cookieRows.className = "cookie-rows";
+
+    for (const cookie of domainEntry.filteredCookies) {
+      const checked = selectedKeys.has(cookie.key) ? "checked" : "";
+      const locked = cookie.labels.includes("critical");
+      const disabled = locked ? "disabled" : "";
+      const row = document.createElement("article");
+      row.className = "cookie-row";
+      row.innerHTML = `
+        <label class="cookie-select">
+          <input type="checkbox" data-cookie-key="${cookie.key}" ${checked} ${disabled} />
+          <span></span>
+        </label>
+        <div class="cookie-main">
+          <div class="cookie-title">
+            <strong>${cookie.name}</strong>
+            <span class="risk-pill risk-${cookie.risk}">${cookie.risk}</span>
+          </div>
+          <p class="cookie-meta">path: ${cookie.path} · value: ${cookie.valuePreview}</p>
+          <div class="cookie-labels">
+            ${cookie.labels
+              .map((label) => `<span class="label label-${label}">${label}</span>`)
+              .join("")}
+          </div>
+          <p class="cookie-extra">${cookie.reasons.join("；") || "暂无风险注释"}</p>
+          <p class="cookie-extra">SameSite: ${cookie.sameSite} · ${
+            cookie.session ? "Session" : `Expires: ${formatDate(cookie.expiresAt)}`
+          }</p>
+        </div>
+      `;
+      cookieRows.appendChild(row);
+    }
+
+    details.appendChild(summary);
+    details.appendChild(cookieRows);
+    container.appendChild(details);
+  }
+
+  for (const checkbox of container.querySelectorAll("input[type=checkbox][data-cookie-key]")) {
+    checkbox.addEventListener("change", () => {
+      const key = checkbox.getAttribute("data-cookie-key");
+      if (!key) return;
+      if (checkbox.checked) selectedKeys.add(key);
+      else selectedKeys.delete(key);
+      syncSelectionStatus();
+    });
+  }
+
+  syncSelectionStatus();
+}
+
+function syncSelectionStatus() {
+  const deleteButton = byId("delete-selected-button");
+  if (deleteButton) {
+    deleteButton.textContent = selectedKeys.size
+      ? `删除已选 (${selectedKeys.size})`
+      : "删除已选";
+  }
+}
+
+function renderCleanup(state) {
+  setText("cleanup-count", formatNumber(state.cleanupCount));
+  const lastCleanup = state.lastCleanup;
+  if (!lastCleanup) {
+    setText("cleanup-meta", "暂无删除记录");
+    return;
+  }
+
+  setText(
+    "cleanup-meta",
+    `${lastCleanup.label}：${formatNumber(lastCleanup.cookieCount)} cookies，${formatDate(
+      lastCleanup.createdAt
+    )}`
+  );
+}
+
 async function refreshState(message) {
   const response = await sendInternalMessage({ type: "GET_STATE" });
-
   if (!response.success) {
-    setStatus(response.error || "Could not load extension state.", "error");
+    setStatus(response.error || "无法读取扩展状态", "error");
     return;
   }
 
@@ -249,126 +193,112 @@ async function refreshState(message) {
   setText("version", state.version);
   setText("extension-id", state.extensionId);
   renderCleanup(state);
-  renderPendingFeedRequest(state.pendingFeedRequest);
-  renderReport(state.report);
 
   if (message) {
     setStatus(message, "success");
-  } else if (state.pendingFeedRequest) {
-    setStatus("A website feed request is waiting for your local confirmation.", "info");
-  } else if (state.report) {
-    setStatus("Summary report is ready. Website sync uses sanitized data only.", "info");
   } else {
-    setStatus("Run your first scan to generate a local summary report.", "info");
+    setStatus("就绪：所有 cookie 分析与删除动作仅在本地执行。", "info");
+  }
+}
+
+async function refreshJarData(message) {
+  const response = await sendInternalMessage({ type: "GET_COOKIE_JAR_VIEW" });
+  if (!response.success) {
+    setStatus(response.error || "读取罐子失败", "error");
+    return;
+  }
+
+  jarData = response.data;
+  setText("total-cookies", formatNumber(jarData.totalCookies));
+  setText("total-domains", formatNumber(jarData.totalDomains));
+
+  const recommended = jarData.domains.reduce((sum, domain) => sum + domain.recommendedCount, 0);
+  setText("total-recommended", formatNumber(recommended));
+
+  renderCookieList();
+  if (message) {
+    setStatus(message, "success");
   }
 }
 
 async function runAction(type, payload) {
-  const statusLabelMap = {
-    APPLY_CLEANUP_PRESET: "Feeding the selected cookie batch to the monster...",
-    CONFIRM_PENDING_FEED_REQUEST: "Confirming website feed request...",
-    DISMISS_PENDING_FEED_REQUEST: "Dismissing pending website request...",
-    EXPORT_BACKUP: "Preparing cleanup backup export...",
-    EXPORT_REPORT: "Preparing summary report export...",
-    OPEN_DASHBOARD: "Opening the full extension dashboard...",
-    RESTORE_LAST_CLEANUP: "Restoring the latest cleanup batch...",
-    RUN_SCAN: "Scanning cookies locally...",
+  const labelMap = {
+    RUN_SCAN: "正在本地扫描 cookie...",
+    DELETE_SELECTED_COOKIES: "正在删除已选 cookie...",
+    RESTORE_LAST_CLEANUP: "正在恢复上次删除批次...",
+    EXPORT_REPORT: "正在导出摘要...",
+    EXPORT_BACKUP: "正在导出备份...",
   };
-
-  setStatus(statusLabelMap[type] || "Working...", "info");
+  setStatus(labelMap[type] || "处理中...", "info");
 
   const response = await sendInternalMessage({ type, payload });
   if (!response.success) {
-    setStatus(response.error || "The action failed.", "error");
+    setStatus(response.error || "操作失败", "error");
     return;
   }
 
-  switch (type) {
-    case "RUN_SCAN":
-      await refreshState("Scan complete. Cleanup presets and website sync data were refreshed.");
-      break;
-    case "APPLY_CLEANUP_PRESET": {
-      const deleted = response.data.deletedCount || 0;
-      await refreshState(
-        deleted
-          ? `Fed ${deleted} cookies to the monster and stored a recycle-bin backup.`
-          : "No cookies matched that preset right now."
-      );
-      break;
-    }
-    case "CONFIRM_PENDING_FEED_REQUEST": {
-      const deleted = response.data.deletedCount || 0;
-      await refreshState(
-        deleted
-          ? `Website request confirmed. Fed ${deleted} cookies to the monster.`
-          : "The pending request did not match any removable cookies."
-      );
-      break;
-    }
-    case "DISMISS_PENDING_FEED_REQUEST":
-      await refreshState("The pending website feed request was dismissed.");
-      break;
-    case "RESTORE_LAST_CLEANUP": {
-      const restored = response.data.restoredCount || 0;
-      await refreshState(
-        restored
-          ? `Restored ${restored} cookies from the latest cleanup batch.`
-          : "No cleanup batch was available to restore."
-      );
-      break;
-    }
-    case "EXPORT_REPORT":
-      await refreshState("The summary report export dialog was opened.");
-      break;
-    case "EXPORT_BACKUP":
-      await refreshState("The latest cleanup backup was exported locally.");
-      break;
-    case "OPEN_DASHBOARD":
-      setStatus("Opened the full extension dashboard in a new tab.", "success");
-      break;
-    default:
-      await refreshState();
-      break;
-  }
+  selectedKeys.clear();
+  await refreshState();
+  await refreshJarData(
+    type === "DELETE_SELECTED_COOKIES"
+      ? `删除完成：${response.data?.deletedCount || 0} 个 cookie。`
+      : "操作完成。"
+  );
 }
 
-function bindActions() {
-  const bindings = [
-    ["scan-button", "RUN_SCAN"],
-    ["restore-button", "RESTORE_LAST_CLEANUP"],
-    ["export-report-button", "EXPORT_REPORT"],
-    ["export-backup-button", "EXPORT_BACKUP"],
-    ["open-dashboard-button", "OPEN_DASHBOARD"],
-    ["confirm-request-button", "CONFIRM_PENDING_FEED_REQUEST"],
-    ["dismiss-request-button", "DISMISS_PENDING_FEED_REQUEST"],
-  ];
+function bindEvents() {
+  byId("scan-button")?.addEventListener("click", () => runAction("RUN_SCAN"));
+  byId("restore-button")?.addEventListener("click", () => runAction("RESTORE_LAST_CLEANUP"));
+  byId("export-report-button")?.addEventListener("click", () => runAction("EXPORT_REPORT"));
+  byId("export-backup-button")?.addEventListener("click", () => runAction("EXPORT_BACKUP"));
 
-  for (const [id, type] of bindings) {
-    const button = byId(id);
-    if (!button) {
-      continue;
+  byId("jar-toggle-button")?.addEventListener("click", async () => {
+    isJarOpen = !isJarOpen;
+    byId("jar-toggle-button")?.setAttribute("aria-expanded", String(isJarOpen));
+    if (isJarOpen && !jarData) {
+      await refreshJarData("饼干罐已打开。");
+    } else {
+      renderCookieList();
     }
+  });
 
-    button.addEventListener("click", () => {
-      runAction(type).catch((error) => {
-        setStatus(error instanceof Error ? error.message : "Unknown error", "error");
-      });
-    });
-  }
+  byId("recommend-select-button")?.addEventListener("click", () => {
+    if (!jarData?.domains) return;
+    selectedKeys.clear();
+    for (const domain of jarData.domains) {
+      for (const cookie of domain.cookies) {
+        if (cookie.labels.includes("recommended") && !cookie.labels.includes("critical")) {
+          selectedKeys.add(cookie.key);
+        }
+      }
+    }
+    renderCookieList();
+    setStatus(`已自动选择 ${selectedKeys.size} 个推荐删除项。`, "success");
+  });
 
-  const cleanupButton = byId("cleanup-button");
-  if (cleanupButton) {
-    cleanupButton.addEventListener("click", () => {
-      runAction("APPLY_CLEANUP_PRESET", { presetId: "highRisk" }).catch((error) => {
-        setStatus(error instanceof Error ? error.message : "Unknown error", "error");
-      });
-    });
+  byId("clear-selection-button")?.addEventListener("click", () => {
+    selectedKeys.clear();
+    renderCookieList();
+    setStatus("已清空选择。", "info");
+  });
+
+  byId("delete-selected-button")?.addEventListener("click", () => {
+    if (!selectedKeys.size) {
+      setStatus("请至少选择一个 cookie。", "error");
+      return;
+    }
+    runAction("DELETE_SELECTED_COOKIES", { keys: [...selectedKeys] });
+  });
+
+  for (const filterId of ["domain-filter", "risk-filter", "label-filter"]) {
+    byId(filterId)?.addEventListener("input", () => renderCookieList());
+    byId(filterId)?.addEventListener("change", () => renderCookieList());
   }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  bindActions();
+  bindEvents();
   refreshState().catch((error) => {
-    setStatus(error instanceof Error ? error.message : "Unknown error", "error");
+    setStatus(error instanceof Error ? error.message : "初始化失败", "error");
   });
 });
