@@ -5,19 +5,19 @@ import { Footer } from "@/components/footer";
 
 const sections = [
   {
-    id: "getting-started",
-    title: "Getting Started",
-    icon: "mdi:rocket-launch",
+    id: "chrome-install",
+    title: "Chrome Install",
+    icon: "mdi:google-chrome",
     content: [
       {
-        question: "How do I install Cookie Monster?",
+        question: "How do I install the Chrome extension from this repo?",
         answer:
-          "Visit the Chrome Web Store (or your browser&apos;s extension store) and search for Cookie Monster. Click &apos;Add to Browser&apos; and the extension will be installed automatically. You can also download from our GitHub releases page.",
+          "Open chrome://extensions, enable Developer mode, click Load unpacked, and select the repo&apos;s extension folder. The bundled manifest already uses a stable extension ID so the local website bridge can recognize it.",
       },
       {
         question: "What browsers are supported?",
         answer:
-          "Cookie Monster currently supports Chrome, Firefox, and Microsoft Edge. Safari support is planned for a future release.",
+          "This MVP is Chrome-first. Because it uses standard MV3 APIs, other Chromium browsers may be able to load it manually, but the repo currently documents and tests the Chrome path only.",
       },
       {
         question: "Do I need to create an account?",
@@ -49,14 +49,14 @@ const sections = [
     ],
   },
   {
-    id: "api",
+    id: "bridge",
     title: "Website-Extension API",
     icon: "mdi:api",
     content: [
       {
         question: "How does the website communicate with the extension?",
         answer:
-          "The website uses Chrome&apos;s external messaging API to communicate with the extension. Only summary data (never raw cookie values) is transferred. The extension validates the sender origin before responding.",
+          "The website uses Chrome&apos;s external messaging API to communicate with the extension. Only sanitized summary data is transferred, never raw cookie values. The extension also re-validates the sender origin in its service worker before responding.",
       },
       {
         question: "What data is shared with the website?",
@@ -67,6 +67,11 @@ const sections = [
         question: "Can I use the dashboard without the extension?",
         answer:
           "Yes! You can export a report.json file from the extension and import it into the dashboard manually. This allows you to view analysis on any device.",
+      },
+      {
+        question: "What is the current local bridge setup?",
+        answer:
+          "The bundled extension manifest uses a stable ID and allows localhost plus the placeholder production domains in its externally_connectable list. If you self-host the site on another origin, update the manifest allowlist and NEXT_PUBLIC_EXTENSION_ID together.",
       },
     ],
   },
@@ -94,6 +99,23 @@ const sections = [
         question: "How can I contribute or report issues?",
         answer:
           "Cookie Monster is open source! Visit our GitHub repository to report issues, suggest features, or contribute code. We welcome all contributions.",
+      },
+    ],
+  },
+  {
+    id: "roadmap",
+    title: "Roadmap",
+    icon: "mdi:map-marker-path",
+    content: [
+      {
+        question: "What ships in this MVP?",
+        answer:
+          "The repo now includes a Chrome MV3 extension with a side panel, full dashboard page, local cookie scan, high-risk cleanup, restore-from-recycle-bin, report export, backup export, and a summary-only website bridge.",
+      },
+      {
+        question: "What comes next?",
+        answer:
+          "The next sensible step is polishing the heuristics and UI, then deciding whether Firefox or Edge should get dedicated packaging. The sensitive-data boundary stays the same: destructive actions remain extension-only.",
       },
     ],
   },
@@ -194,21 +216,19 @@ export default function DocsPage() {
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link
-                href="/#install"
+                href="#chrome-install"
                 className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-xl font-medium hover:bg-primary/90 transition-colors"
               >
                 <Icon icon="mdi:puzzle" className="w-5 h-5" />
-                Install Extension
+                Open Install Guide
               </Link>
-              <a
-                href="https://github.com"
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                href="/dashboard"
                 className="inline-flex items-center gap-2 bg-muted text-foreground px-6 py-3 rounded-xl font-medium hover:bg-muted/80 transition-colors"
               >
-                <Icon icon="mdi:github" className="w-5 h-5" />
-                View on GitHub
-              </a>
+                <Icon icon="mdi:chart-box" className="w-5 h-5" />
+                Open Dashboard
+              </Link>
             </div>
           </div>
         </div>

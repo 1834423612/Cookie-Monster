@@ -28,6 +28,7 @@ export function useExtensionStatus(): ExtensionStatus {
   const checkExtension = useCallback(async () => {
     setIsLoading(true);
     setError(null);
+    setReport(null);
 
     try {
       // Check for dev mode skip
@@ -69,6 +70,7 @@ export function useExtensionStatus(): ExtensionStatus {
       setIsDevMode(newValue);
       
       if (newValue) {
+        setError(null);
         setIsInstalled(true);
         setReport(generateMockReport());
       } else {

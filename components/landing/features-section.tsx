@@ -46,7 +46,7 @@ const features = [
     icon: "mdi:puzzle",
     title: "Extension + Dashboard",
     description:
-      "Powerful browser extension for real-time management, plus a beautiful web dashboard for detailed analysis and reports.",
+      "Keep sensitive operations inside the extension while the website handles docs, imports, and sanitized visual summaries.",
     bgColor: "bg-chart-1/10",
     textColor: "text-chart-1",
   },

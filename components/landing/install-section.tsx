@@ -7,19 +7,19 @@ const browsers = [
     name: "Chrome",
     icon: "mdi:google-chrome",
     available: true,
-    url: "#chrome",
+    url: "/docs#chrome-install",
   },
   {
     name: "Firefox",
     icon: "mdi:firefox",
-    available: true,
-    url: "#firefox",
+    available: false,
+    url: "/docs#roadmap",
   },
   {
     name: "Edge",
     icon: "mdi:microsoft-edge",
-    available: true,
-    url: "#edge",
+    available: false,
+    url: "/docs#roadmap",
   },
   {
     name: "Safari",
@@ -42,8 +42,8 @@ export function InstallSection() {
             Install Cookie Monster Extension
           </h2>
           <p className="text-lg text-muted-foreground text-pretty max-w-2xl mx-auto">
-            Choose your browser below to install the free Cookie Monster extension. 
-            Takes less than 10 seconds to get started.
+            The current repo ships a Chrome-first MV3 extension. Load it unpacked
+            in a minute, then connect the website dashboard to the same local summary report.
           </p>
         </div>
 
@@ -70,13 +70,13 @@ export function InstallSection() {
               <span className="font-medium text-foreground">{browser.name}</span>
               {!browser.available && (
                 <span className="text-xs text-muted-foreground mt-1">
-                  Coming Soon
+                  Planned
                 </span>
               )}
               {browser.available && (
                 <span className="text-xs text-primary mt-1 flex items-center gap-1">
-                  <Icon icon="mdi:download" className="w-3 h-3" />
-                  Install
+                  <Icon icon="mdi:book-open-variant" className="w-3 h-3" />
+                  Open Guide
                 </span>
               )}
             </a>
@@ -96,19 +96,17 @@ export function InstallSection() {
                 Privacy Guaranteed
               </h3>
               <p className="text-sm text-muted-foreground">
-                Cookie Monster never uploads your cookie data to any server. All 
-                analysis happens locally in your browser. The extension is open 
-                source and can be audited by anyone.
+                Cookie Monster never uploads raw cookie values to any server. The
+                extension owns scanning, cleanup, restore, and backups; the website
+                only handles imported or bridged summary data.
               </p>
             </div>
             <a
-              href="https://github.com"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="/docs#chrome-install"
               className="flex-shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-muted text-foreground text-sm font-medium hover:bg-muted/80 transition-colors"
             >
-              <Icon icon="mdi:github" className="w-4 h-4" />
-              View Source
+              <Icon icon="mdi:book-open-page-variant" className="w-4 h-4" />
+              Install Steps
             </a>
           </div>
         </div>

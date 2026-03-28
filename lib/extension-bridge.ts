@@ -6,8 +6,14 @@
  * Only summary/report data is exchanged for visualization purposes.
  */
 
-// Extension ID - will be set after extension is published
-const EXTENSION_ID = process.env.NEXT_PUBLIC_EXTENSION_ID || "development";
+import {
+  COOKIE_MONSTER_EXTENSION_ID,
+  generateMockReport as createMockReport,
+  parseReportFile as parseCookieReportFile,
+  type CookieSummaryReport,
+} from "@/lib/cookie-report";
+
+export type { CookieSummaryReport } from "@/lib/cookie-report";
 
 // Message types for extension communication
 export type MessageType = 
@@ -20,48 +26,6 @@ export type MessageType =
 export interface ExtensionMessage {
   type: MessageType;
   payload?: Record<string, unknown>;
-}
-
-export interface CookieSummaryReport {
-  generatedAt: string;
-  totals: {
-    cookies: number;
-    domains: number;
-    stores: number;
-  };
-  risk: {
-    high: number;
-    medium: number;
-    low: number;
-  };
-  flags: {
-    secure: number;
-    httpOnly: number;
-    sameSiteStrict: number;
-    sameSiteLax: number;
-    sameSiteNone: number;
-    session: number;
-    persistent: number;
-  };
-  expiry: {
-    expired: number;
-    expiringWithin24h: number;
-    expiringWithinWeek: number;
-    expiringWithinMonth: number;
-    longLived: number;
-  };
-  topDomains: Array<{
-    domain: string;
-    count: number;
-    riskLevel: "high" | "medium" | "low";
-  }>;
-  categories: {
-    essential: number;
-    functional: number;
-    analytics: number;
-    advertising: number;
-    unknown: number;
-  };
 }
 
 export interface ExtensionResponse {
@@ -106,19 +70,23 @@ export async function sendMessageToExtension(
       return;
     }
 
+    const runtime = chrome.runtime;
+
     try {
-      chrome.runtime.sendMessage(
-        EXTENSION_ID,
+      runtime.sendMessage(
+        COOKIE_MONSTER_EXTENSION_ID,
         message,
-        (response: ExtensionResponse | undefined) => {
-          if (chrome.runtime.lastError) {
+        (response) => {
+          const extensionResponse = response as ExtensionResponse | undefined;
+
+          if (runtime.lastError) {
             resolve({ 
               success: false, 
               type: message.type, 
-              error: chrome.runtime.lastError.message 
+              error: runtime.lastError.message 
             });
-          } else if (response) {
-            resolve(response);
+          } else if (extensionResponse) {
+            resolve(extensionResponse);
           } else {
             resolve({ success: false, type: message.type, error: "No response" });
           }
@@ -177,79 +145,12 @@ export async function getExtensionVersion(): Promise<string | null> {
  * This validates the structure before accepting
  */
 export function parseReportFile(jsonString: string): CookieSummaryReport | null {
-  try {
-    const data = JSON.parse(jsonString);
-    
-    // Validate required fields
-    if (
-      !data.generatedAt ||
-      !data.totals ||
-      typeof data.totals.cookies !== "number" ||
-      typeof data.totals.domains !== "number"
-    ) {
-      return null;
-    }
-    
-    // Ensure no raw cookie values are present (security check)
-    if (data.rawCookies || data.cookieValues || data.values) {
-      console.warn("Report file contains raw cookie data - rejecting for security");
-      return null;
-    }
-    
-    return data as CookieSummaryReport;
-  } catch {
-    return null;
-  }
+  return parseCookieReportFile(jsonString);
 }
 
 /**
  * Generate mock data for development/demo purposes
  */
 export function generateMockReport(): CookieSummaryReport {
-  return {
-    generatedAt: new Date().toISOString(),
-    totals: {
-      cookies: 2847,
-      domains: 183,
-      stores: 2,
-    },
-    risk: {
-      high: 156,
-      medium: 842,
-      low: 1849,
-    },
-    flags: {
-      secure: 1892,
-      httpOnly: 1245,
-      sameSiteStrict: 423,
-      sameSiteLax: 1156,
-      sameSiteNone: 1268,
-      session: 634,
-      persistent: 2213,
-    },
-    expiry: {
-      expired: 23,
-      expiringWithin24h: 87,
-      expiringWithinWeek: 234,
-      expiringWithinMonth: 567,
-      longLived: 1936,
-    },
-    topDomains: [
-      { domain: "google.com", count: 78, riskLevel: "medium" },
-      { domain: "facebook.com", count: 65, riskLevel: "high" },
-      { domain: "youtube.com", count: 54, riskLevel: "medium" },
-      { domain: "twitter.com", count: 43, riskLevel: "medium" },
-      { domain: "amazon.com", count: 38, riskLevel: "medium" },
-      { domain: "linkedin.com", count: 32, riskLevel: "low" },
-      { domain: "github.com", count: 28, riskLevel: "low" },
-      { domain: "reddit.com", count: 25, riskLevel: "medium" },
-    ],
-    categories: {
-      essential: 423,
-      functional: 567,
-      analytics: 892,
-      advertising: 743,
-      unknown: 222,
-    },
-  };
+  return createMockReport();
 }

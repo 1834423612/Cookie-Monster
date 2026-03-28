@@ -1,11 +1,10 @@
 // Chrome Extension API type declarations for external messaging
 
 interface ChromeRuntime {
-  sendMessage: (
-    extensionId: string,
-    message: unknown,
-    callback: (response: unknown) => void
-  ) => void;
+  sendMessage: {
+    (extensionId: string, message: unknown, callback?: (response: unknown) => void): void;
+    (message: unknown, callback?: (response: unknown) => void): void;
+  };
   lastError?: {
     message: string;
   };

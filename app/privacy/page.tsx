@@ -69,7 +69,7 @@ Ironically, a cookie management tool should set as few cookies as possible!`,
 
 - Vercel: Hosts our website. Standard web server logs may include IP addresses and request URLs. No cookie data is transmitted.
 - GitHub: Hosts our open source code. No user data is shared with GitHub.
-- Chrome Web Store / Firefox Add-ons: Distribute our extension. Standard extension marketplace policies apply.
+- Chrome Extensions: You can load the extension locally in developer mode from this repository. If we later distribute through a marketplace, their standard policies will apply.
 
 We do not use any analytics services, advertising networks, or data processors.`,
   },
@@ -203,13 +203,11 @@ export default function PrivacyPage() {
               Have questions about our privacy practices?
             </p>
             <a
-              href="https://github.com"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="/docs#chrome-install"
               className="inline-flex items-center gap-2 text-primary hover:underline"
             >
-              <Icon icon="mdi:github" className="w-5 h-5" />
-              Open an issue on GitHub
+              <Icon icon="mdi:book-open-page-variant" className="w-5 h-5" />
+              Review the install and privacy docs
             </a>
           </div>
         </div>

@@ -6,7 +6,7 @@ const steps = [
     icon: "mdi:download",
     title: "Install Extension",
     description:
-      "Add Cookie Monster to your browser with one click. Available for Chrome, Firefox, and Edge.",
+      "Load the Chrome extension locally in developer mode, then pin Cookie Monster to your toolbar.",
   },
   {
     number: "02",

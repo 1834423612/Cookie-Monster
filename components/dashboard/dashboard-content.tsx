@@ -12,12 +12,18 @@ interface DashboardContentProps {
   report: CookieSummaryReport;
   onClearReport?: () => void;
   isDevMode?: boolean;
+  onExport: () => void;
+  onOpenExtension?: () => void;
+  source: "extension" | "imported";
 }
 
 export function DashboardContent({
   report,
   onClearReport,
   isDevMode,
+  onExport,
+  onOpenExtension,
+  source,
 }: DashboardContentProps) {
   const generatedDate = new Date(report.generatedAt);
   
@@ -38,6 +44,9 @@ export function DashboardContent({
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <span className="text-xs bg-muted text-muted-foreground px-3 py-1 rounded-full font-medium">
+            {source === "extension" ? "Live extension summary" : "Imported report"}
+          </span>
           {isDevMode && (
             <span className="text-xs bg-risk-medium/10 text-risk-medium px-3 py-1 rounded-full font-medium">
               Demo Mode
@@ -52,7 +61,19 @@ export function DashboardContent({
               Clear
             </button>
           )}
-          <button className="inline-flex items-center gap-2 text-sm bg-muted text-foreground px-4 py-2 rounded-lg hover:bg-muted/80 transition-colors">
+          {onOpenExtension && (
+            <button
+              onClick={onOpenExtension}
+              className="inline-flex items-center gap-2 text-sm bg-muted text-foreground px-4 py-2 rounded-lg hover:bg-muted/80 transition-colors"
+            >
+              <Icon icon="mdi:puzzle" className="w-4 h-4" />
+              Open Extension
+            </button>
+          )}
+          <button
+            onClick={onExport}
+            className="inline-flex items-center gap-2 text-sm bg-muted text-foreground px-4 py-2 rounded-lg hover:bg-muted/80 transition-colors"
+          >
             <Icon icon="mdi:download" className="w-4 h-4" />
             Export
           </button>
@@ -129,7 +150,9 @@ export function DashboardContent({
       {/* Privacy footer */}
       <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-4">
         <Icon icon="mdi:shield-check" className="w-5 h-5 text-chart-3" />
-        <span>All data shown above is processed locally. Nothing leaves your browser.</span>
+        <span>
+          All data shown above is processed locally. Sensitive cookie values stay inside the extension.
+        </span>
       </div>
     </div>
   );

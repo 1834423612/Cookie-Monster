@@ -4,14 +4,14 @@ import { Icon } from "@iconify/react";
 export function Footer() {
   const footerLinks = {
     product: [
-      { label: "Features", href: "#features" },
+      { label: "Features", href: "/#features" },
       { label: "Dashboard", href: "/dashboard" },
-      { label: "Extension", href: "#install" },
-      { label: "Changelog", href: "/docs#changelog" },
+      { label: "Extension", href: "/#install" },
+      { label: "Install Guide", href: "/docs#chrome-install" },
     ],
     resources: [
       { label: "Documentation", href: "/docs" },
-      { label: "API Reference", href: "/docs#api" },
+      { label: "API Reference", href: "/docs#bridge" },
       { label: "FAQ", href: "/docs#faq" },
       { label: "Support", href: "/docs#support" },
     ],
@@ -43,22 +43,18 @@ export function Footer() {
             </p>
             <div className="flex items-center gap-3">
               <a
-                href="https://github.com"
-                target="_blank"
-                rel="noopener noreferrer"
+                href="/docs"
                 className="p-2 rounded-lg bg-muted hover:bg-accent hover:text-accent-foreground transition-colors"
-                aria-label="GitHub"
+                aria-label="Documentation"
               >
-                <Icon icon="mdi:github" className="w-5 h-5" />
+                <Icon icon="mdi:file-document-outline" className="w-5 h-5" />
               </a>
               <a
-                href="https://twitter.com"
-                target="_blank"
-                rel="noopener noreferrer"
+                href="/privacy"
                 className="p-2 rounded-lg bg-muted hover:bg-accent hover:text-accent-foreground transition-colors"
-                aria-label="Twitter"
+                aria-label="Privacy"
               >
-                <Icon icon="mdi:twitter" className="w-5 h-5" />
+                <Icon icon="mdi:shield-check" className="w-5 h-5" />
               </a>
             </div>
           </div>

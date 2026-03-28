@@ -38,7 +38,7 @@ export function HeroSection() {
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-8 py-3 rounded-xl text-base font-medium hover:bg-primary/90 transition-all hover:scale-105"
             >
               <Icon icon="mdi:puzzle" className="w-5 h-5" />
-              Install Free Extension
+              Install Chrome Extension
             </a>
             <a
               href="/dashboard"
@@ -157,7 +157,7 @@ export function HeroSection() {
               </div>
               <div>
                 <p className="font-medium text-foreground text-sm">Quick Cleanup</p>
-                <p className="text-xs text-muted-foreground">Remove 847 tracking cookies</p>
+                <p className="text-xs text-muted-foreground">Back up first, then remove risky cookies</p>
               </div>
             </div>
           </div>
