@@ -233,6 +233,144 @@ function renderReport(report) {
   renderRecommendations(report.cleanup?.recommendations || []);
 }
 
+
+
+const inventoryState = {
+  open: false,
+  allGroups: [],
+  search: "",
+  filter: "all",
+};
+
+function applyWorkspaceMode() {
+  const workspace = byId("workspace");
+  const jarScene = byId("jar-scene");
+  const inventoryShell = byId("inventory-shell");
+
+  if (!workspace || !inventoryShell) {
+    return;
+  }
+
+  workspace.classList.toggle("expanded", inventoryState.open);
+
+  if (jarScene) {
+    jarScene.hidden = inventoryState.open;
+  }
+
+  inventoryShell.hidden = !inventoryState.open;
+}
+
+function formatExpiryForInventory(expirationDate) {
+  if (!expirationDate) {
+    return "Session";
+  }
+
+  return new Date(expirationDate * 1000).toLocaleString();
+}
+
+function applyInventoryFilters(groups) {
+  const query = inventoryState.search.trim().toLowerCase();
+  const filter = inventoryState.filter;
+
+  return groups
+    .map((group) => {
+      const items = group.items.filter((item) => {
+        const queryHit =
+          !query ||
+          item.name.toLowerCase().includes(query) ||
+          item.domain.toLowerCase().includes(query) ||
+          item.category.toLowerCase().includes(query);
+        const filterHit = filter === "all" || (item.presetIds || []).includes(filter);
+        return queryHit && filterHit;
+      });
+
+      return {
+        ...group,
+        items,
+      };
+    })
+    .filter((group) => group.items.length > 0)
+    .sort((left, right) => right.items.length - left.items.length);
+}
+
+function renderInventory() {
+  const shell = byId("inventory-shell");
+  const list = byId("inventory-list");
+  const summary = byId("inventory-summary");
+  const toggleButton = byId("jar-toggle-button");
+
+  if (!shell || !list || !summary || !toggleButton) {
+    return;
+  }
+
+  toggleButton.setAttribute("aria-expanded", String(inventoryState.open));
+  applyWorkspaceMode();
+
+  if (!inventoryState.open) {
+    return;
+  }
+
+  const groups = applyInventoryFilters(inventoryState.allGroups);
+  const totalCookies = groups.reduce((count, group) => count + group.items.length, 0);
+  summary.textContent = `${formatNumber(groups.length)} domains / ${formatNumber(totalCookies)} cookies in current view`;
+
+  list.innerHTML = "";
+
+  if (!groups.length) {
+    const empty = document.createElement("div");
+    empty.className = "list-empty";
+    empty.textContent = "No cookies match this filter.";
+    list.appendChild(empty);
+    return;
+  }
+
+  for (const group of groups) {
+    const details = document.createElement("details");
+    details.className = "inventory-domain";
+
+    const summaryLine = document.createElement("summary");
+    summaryLine.innerHTML = `<strong>${group.domain}</strong><span>${formatNumber(group.items.length)} cookies</span>`;
+    details.appendChild(summaryLine);
+
+    for (const item of group.items) {
+      const card = document.createElement("article");
+      card.className = "inventory-cookie";
+      const labels = [
+        `<span class="recommendation-pill risk-${item.risk}">${item.risk}</span>`,
+        `<span class="recommendation-pill">${item.category}</span>`,
+        item.recommendedKeep ? `<span class="recommendation-pill">keep-protected</span>` : "",
+      ]
+        .filter(Boolean)
+        .join("");
+
+      card.innerHTML = `
+        <div class="inventory-cookie-head">
+          <strong>${item.name}</strong>
+          <div class="inventory-labels">${labels}</div>
+        </div>
+        <p class="muted">Path ${item.path} · Expires ${formatExpiryForInventory(item.expirationDate)}</p>
+        <p class="muted">${(item.reasons || []).join("; ") || "No additional reasons"}</p>
+      `;
+      details.appendChild(card);
+    }
+
+    list.appendChild(details);
+  }
+}
+
+async function refreshInventory() {
+  const response = await sendInternalMessage({ type: "GET_COOKIE_INVENTORY" });
+
+  if (!response.success || !Array.isArray(response.data)) {
+    inventoryState.allGroups = [];
+    renderInventory();
+    return;
+  }
+
+  inventoryState.allGroups = response.data;
+  renderInventory();
+}
+
 async function sendInternalMessage(message) {
   return chrome.runtime.sendMessage(message);
 }
@@ -251,6 +389,10 @@ async function refreshState(message) {
   renderCleanup(state);
   renderPendingFeedRequest(state.pendingFeedRequest);
   renderReport(state.report);
+
+  if (inventoryState.open) {
+    refreshInventory().catch(() => undefined);
+  }
 
   if (message) {
     setStatus(message, "success");
@@ -364,6 +506,48 @@ function bindActions() {
       });
     });
   }
+
+  const jarToggleButton = byId("jar-toggle-button");
+  if (jarToggleButton) {
+    jarToggleButton.addEventListener("click", () => {
+      inventoryState.open = true;
+      renderInventory();
+      refreshInventory().catch(() => undefined);
+    });
+  }
+
+  const inventoryBackButton = byId("inventory-back-button");
+  if (inventoryBackButton) {
+    inventoryBackButton.addEventListener("click", () => {
+      inventoryState.open = false;
+      renderInventory();
+    });
+  }
+
+  const inventorySearch = byId("inventory-search");
+  if (inventorySearch) {
+    inventorySearch.addEventListener("input", (event) => {
+      inventoryState.search = event.target.value || "";
+      renderInventory();
+    });
+  }
+
+  const inventoryFilter = byId("inventory-filter");
+  if (inventoryFilter) {
+    inventoryFilter.addEventListener("change", (event) => {
+      inventoryState.filter = event.target.value || "all";
+      renderInventory();
+    });
+  }
+
+  const inventoryRefresh = byId("inventory-refresh-button");
+  if (inventoryRefresh) {
+    inventoryRefresh.addEventListener("click", () => {
+      refreshInventory().catch((error) => {
+        setStatus(error instanceof Error ? error.message : "Unknown error", "error");
+      });
+    });
+  }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -371,4 +555,6 @@ document.addEventListener("DOMContentLoaded", () => {
   refreshState().catch((error) => {
     setStatus(error instanceof Error ? error.message : "Unknown error", "error");
   });
+  renderInventory();
+  applyWorkspaceMode();
 });

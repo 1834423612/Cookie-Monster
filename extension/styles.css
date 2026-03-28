@@ -316,3 +316,188 @@ button.secondary {
     padding: 16px;
   }
 }
+
+.monster-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(0, 2fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.jar-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.jar-button {
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.86);
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 18px;
+}
+
+.jar-emoji {
+  font-size: 3rem;
+  transition: transform 160ms ease;
+}
+
+.jar-button[aria-expanded="true"] .jar-emoji {
+  transform: scale(1.08) rotate(4deg);
+}
+
+.monster-card {
+  border-radius: 20px;
+  padding: 16px;
+  border: 1px dashed var(--border);
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--muted);
+}
+
+.monster-emoji {
+  font-size: 2.1rem;
+  margin-bottom: 8px;
+}
+
+.inventory-panel {
+  min-height: 320px;
+}
+
+.inventory-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 180px auto;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.inventory-controls input,
+.inventory-controls select {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font: inherit;
+  background: #fff;
+}
+
+.inventory-list {
+  display: grid;
+  gap: 10px;
+  max-height: 56vh;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.inventory-domain {
+  border: 1px solid rgba(66, 54, 35, 0.12);
+  border-radius: 16px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.inventory-domain summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  list-style: none;
+}
+
+.inventory-cookie {
+  margin-top: 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(66, 54, 35, 0.08);
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.inventory-cookie-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+
+.inventory-labels {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 900px) {
+  .monster-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .inventory-controls {
+    grid-template-columns: 1fr;
+  }
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(220px, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
+  align-items: start;
+}
+
+.workspace.sidepanel-workspace {
+  grid-template-columns: 1fr;
+}
+
+.jar-scene {
+  min-height: 320px;
+  display: grid;
+  place-items: center;
+}
+
+.workspace .inventory-panel {
+  min-height: 320px;
+}
+
+.monster-panel {
+  min-height: 320px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  text-align: center;
+}
+
+.monster-panel.compact {
+  min-height: 180px;
+}
+
+.workspace .monster-emoji {
+  font-size: 7rem;
+  line-height: 1;
+}
+
+.workspace.expanded {
+  grid-template-columns: minmax(0, 2fr) minmax(180px, 1fr);
+}
+
+.workspace.expanded .monster-panel {
+  min-height: 220px;
+}
+
+.workspace.expanded .monster-emoji {
+  font-size: 4rem;
+}
+
+@media (max-width: 900px) {
+  .workspace,
+  .workspace.expanded {
+    grid-template-columns: 1fr;
+  }
+
+  .workspace .monster-panel,
+  .workspace.expanded .monster-panel {
+    min-height: 180px;
+  }
+
+  .workspace .monster-emoji,
+  .workspace.expanded .monster-emoji {
+    font-size: 4rem;
+  }
+}
