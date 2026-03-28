@@ -271,6 +271,75 @@ function analyzeCookie(cookie) {
   };
 }
 
+
+
+function buildCookieInventoryGroups(rawCookies) {
+  const groups = new Map();
+
+  for (const rawCookie of rawCookies) {
+    const analyzed = analyzeCookie(rawCookie);
+    const domain = analyzed.domain;
+    const current = groups.get(domain) || {
+      domain,
+      total: 0,
+      highRiskCount: 0,
+      recommendedKeepCount: 0,
+      items: [],
+    };
+
+    const recommendedKeep =
+      analyzed.category === "essential" && analyzed.cookie.session && analyzed.cookie.secure;
+
+    current.total += 1;
+    if (analyzed.risk === "high") {
+      current.highRiskCount += 1;
+    }
+    if (recommendedKeep) {
+      current.recommendedKeepCount += 1;
+    }
+
+    current.items.push({
+      key: analyzed.key,
+      name: analyzed.cookie.name,
+      domain,
+      path: analyzed.cookie.path || "/",
+      storeId: analyzed.cookie.storeId,
+      session: Boolean(analyzed.cookie.session),
+      secure: Boolean(analyzed.cookie.secure),
+      httpOnly: Boolean(analyzed.cookie.httpOnly),
+      sameSite: analyzed.cookie.sameSite || "unspecified",
+      category: analyzed.category,
+      risk: analyzed.risk,
+      expirationDate:
+        typeof analyzed.cookie.expirationDate === "number" ? analyzed.cookie.expirationDate : null,
+      reasons: analyzed.reasons,
+      recommendedKeep,
+      presetIds: analyzed.presetIds,
+    });
+
+    groups.set(domain, current);
+  }
+
+  return [...groups.values()]
+    .map((group) => ({
+      ...group,
+      items: group.items.sort((left, right) => {
+        const score = { high: 3, medium: 2, low: 1 };
+        const riskDelta = score[right.risk] - score[left.risk];
+        if (riskDelta !== 0) {
+          return riskDelta;
+        }
+
+        if (left.recommendedKeep !== right.recommendedKeep) {
+          return left.recommendedKeep ? 1 : -1;
+        }
+
+        return left.name.localeCompare(right.name);
+      }),
+    }))
+    .sort((left, right) => right.total - left.total);
+}
+
 function buildCleanupInsights(analyzedCookies) {
   const candidates = analyzedCookies.filter((item) => item.presetIds.length > 0);
   const presetStats = new Map();
@@ -810,6 +879,10 @@ async function handleInternalMessage(message) {
       return success(message.type, {
         report: await scanCookies(),
       });
+    case "GET_COOKIE_INVENTORY": {
+      const rawCookies = await chrome.cookies.getAll({});
+      return success(message.type, buildCookieInventoryGroups(rawCookies));
+    }
     case "APPLY_CLEANUP_PRESET": {
       const presetId = getPresetIdFromPayload(message.payload);
       if (!presetId) {
@@ -869,6 +942,10 @@ async function handleExternalMessage(message) {
     case "GET_FEED_PREVIEW": {
       const report = await getLatestReport({ refreshIfMissing: true });
       return success(message.type, report?.cleanup || null);
+    }
+    case "GET_COOKIE_INVENTORY": {
+      const rawCookies = await chrome.cookies.getAll({});
+      return success(message.type, buildCookieInventoryGroups(rawCookies));
     }
     case "REQUEST_COOKIE_FEED": {
       const presetId = getPresetIdFromPayload(message.payload);

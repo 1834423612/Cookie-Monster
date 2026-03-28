@@ -10,15 +10,13 @@
     <main class="shell">
       <section class="hero">
         <div class="hero-copy">
-          <h1>Cookie Monster Dashboard</h1>
-          <p>Scan, preview, feed, back up, and restore cookies locally. The website only gets the summary layer.</p>
+          <h1>Cookie Monster Local Workspace</h1>
+          <p>All cookie analysis happens inside this extension tab. The website only receives sanitized metadata.</p>
         </div>
         <div class="meta-pill">Extension v<span id="version">0.1.0</span></div>
       </section>
 
-      <section id="status" class="status" data-tone="info">
-        Loading local extension state...
-      </section>
+      <section id="status" class="status" data-tone="info">Loading local extension state...</section>
 
       <section class="button-grid">
         <button id="scan-button" class="primary">Run Full Scan</button>
@@ -28,16 +26,51 @@
         <button id="export-backup-button" class="secondary">Export backup.json</button>
       </section>
 
+      <section class="monster-layout">
+        <aside class="jar-panel">
+          <button id="jar-toggle-button" class="jar-button" type="button" aria-expanded="false">
+            <span class="jar-emoji">🍯</span>
+            <strong>Cookie Jar</strong>
+            <small>Click to reveal local cookie list</small>
+          </button>
+          <div class="monster-card">
+            <div class="monster-emoji">🍪👾</div>
+            <p>Monster only eats batches you confirm locally.</p>
+          </div>
+        </aside>
+
+        <section class="panel inventory-panel" id="inventory-shell" hidden>
+          <div class="panel-header">
+            <div>
+              <h3>Cookie Inventory</h3>
+              <p>Grouped by domain. Expand a domain to inspect cookie metadata (values never shown).</p>
+            </div>
+          </div>
+          <div class="inventory-controls">
+            <input id="inventory-search" type="search" placeholder="Filter by domain / cookie / category" />
+            <select id="inventory-filter">
+              <option value="all">All groups</option>
+              <option value="balanced">Recommended removable</option>
+              <option value="trackers">Trackers</option>
+              <option value="highRisk">High risk</option>
+              <option value="expired">Expired</option>
+              <option value="longLived">Long lived</option>
+            </select>
+            <button id="inventory-refresh-button" class="secondary" type="button">Refresh list</button>
+          </div>
+          <div id="inventory-summary" class="muted">No inventory loaded yet.</div>
+          <div id="inventory-list" class="inventory-list"></div>
+        </section>
+      </section>
+
       <section class="panel">
         <div class="panel-header">
           <div>
             <h3>Website Feed Requests</h3>
-            <p>Website interactions can ask for a monster feed, but deletion only happens after you confirm here.</p>
+            <p>Website interactions can ask for a feed, but deletion only happens after confirmation here.</p>
           </div>
         </div>
-        <div id="pending-request-empty" class="empty-state">
-          No pending website feed request yet.
-        </div>
+        <div id="pending-request-empty" class="empty-state">No pending website feed request yet.</div>
         <div id="pending-request-panel" class="request-card" hidden>
           <strong id="pending-request-title">Pending request</strong>
           <p id="pending-request-description"></p>
@@ -52,103 +85,13 @@
         </div>
       </section>
 
-      <section id="empty-state" class="empty-state">
-        No summary report exists yet. Run a scan to analyze the current browser state and power the website dashboard bridge.
-      </section>
-
-      <section id="report-shell" hidden>
-        <section class="panel">
-          <div class="panel-header">
-            <div>
-              <h2>Latest Summary Report</h2>
-              <p>Generated <span id="generated-at">Not available yet</span></p>
-            </div>
-          </div>
-          <div class="stats">
-            <article class="stat">
-              <span>Total Cookies</span>
-              <strong id="total-cookies">0</strong>
-            </article>
-            <article class="stat">
-              <span>Domains</span>
-              <strong id="total-domains">0</strong>
-            </article>
-            <article class="stat">
-              <span>High Risk</span>
-              <strong id="high-risk">0</strong>
-            </article>
-            <article class="stat">
-              <span>Medium Risk</span>
-              <strong id="medium-risk">0</strong>
-            </article>
-            <article class="stat">
-              <span>Low Risk</span>
-              <strong id="low-risk">0</strong>
-            </article>
-          </div>
-        </section>
-
-        <section class="panel">
-          <div class="panel-header">
-            <div>
-              <h3>Monster Feed Queue</h3>
-              <p id="feed-summary">No cleanup insights available yet.</p>
-            </div>
-          </div>
-          <div id="preset-grid" class="preset-grid"></div>
-        </section>
-
-        <section class="two-column">
-          <section class="panel">
-            <div class="panel-header">
-              <div>
-                <h3>Top Domains</h3>
-                <p>Largest cookie clusters sorted by volume.</p>
-              </div>
-            </div>
-            <ul id="top-domains" class="list"></ul>
-          </section>
-
-          <section class="panel">
-            <div class="panel-header">
-              <div>
-                <h3>Recommendations</h3>
-                <p>Use these presets to shape the monster-feeding flow on the website later.</p>
-              </div>
-            </div>
-            <ul id="recommendations" class="list"></ul>
-            <p class="muted" id="flag-summary"></p>
-            <p class="muted" id="category-summary"></p>
-          </section>
-        </section>
-      </section>
-
-      <section class="two-column">
-        <section class="panel">
-          <div class="panel-header">
-            <div>
-              <h3>Recycle Bin</h3>
-              <p>Every cleanup stores the removed cookies locally before deletion.</p>
-            </div>
-          </div>
-          <div class="footer-meta">
-            <div><strong id="cleanup-count">0</strong> cleanup batches stored locally</div>
-            <div id="cleanup-meta">No cleanup batch stored yet.</div>
-          </div>
-        </section>
-
-        <section class="panel">
-          <div class="panel-header">
-            <div>
-              <h3>Bridge Info</h3>
-              <p>This extension responds to the website with sanitized summary payloads only.</p>
-            </div>
-          </div>
-          <div class="footer-meta">
-            <div>Extension ID: <code id="extension-id">loading...</code></div>
-            <div>Website requests can create pending cleanup intents, but local confirmation stays inside the extension.</div>
-          </div>
-        </section>
+      <section class="panel">
+        <p class="muted">Extension ID: <code id="extension-id">loading...</code></p>
+        <p class="muted">Cookies are processed locally. No raw cookie values are sent to external pages.</p>
+        <div class="footer-meta">
+          <div><strong id="cleanup-count">0</strong> cleanup batches stored locally</div>
+          <div id="cleanup-meta">No cleanup batch stored yet.</div>
+        </div>
       </section>
     </main>
 

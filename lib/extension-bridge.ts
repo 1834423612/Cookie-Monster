@@ -28,6 +28,7 @@ export type MessageType =
   | "PING"
   | "GET_SUMMARY_REPORT"
   | "GET_FEED_PREVIEW"
+  | "GET_COOKIE_INVENTORY"
   | "REQUEST_COOKIE_FEED"
   | "OPEN_EXTENSION_DASHBOARD"
   | "EXPORT_REPORT"
@@ -45,10 +46,38 @@ export interface ExtensionResponse {
     | CookieSummaryReport
     | CleanupInsights
     | PendingFeedRequestSummary
+    | CookieDomainGroup[]
     | { version: string }
     | { extensionId: string }
     | null;
   error?: string;
+}
+
+
+export interface CookieInventoryItem {
+  key: string;
+  name: string;
+  domain: string;
+  path: string;
+  storeId: string;
+  session: boolean;
+  secure: boolean;
+  httpOnly: boolean;
+  sameSite: string;
+  category: "essential" | "functional" | "analytics" | "advertising" | "unknown";
+  risk: "high" | "medium" | "low";
+  expirationDate: number | null;
+  reasons: string[];
+  recommendedKeep: boolean;
+  presetIds: CleanupPresetId[];
+}
+
+export interface CookieDomainGroup {
+  domain: string;
+  total: number;
+  highRiskCount: number;
+  recommendedKeepCount: number;
+  items: CookieInventoryItem[];
 }
 
 export interface CookieFeedRequest {
@@ -137,6 +166,17 @@ export async function getCleanupPreview(): Promise<CleanupInsights | null> {
   const response = await sendMessageToExtension({ type: "GET_FEED_PREVIEW" });
   if (response.success && response.data && "presets" in response.data) {
     return response.data as CleanupInsights;
+  }
+
+  return null;
+}
+
+
+export async function getCookieInventory(): Promise<CookieDomainGroup[] | null> {
+  const response = await sendMessageToExtension({ type: "GET_COOKIE_INVENTORY" });
+
+  if (response.success && Array.isArray(response.data)) {
+    return response.data as CookieDomainGroup[];
   }
 
   return null;
