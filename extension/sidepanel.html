@@ -11,14 +11,12 @@
       <section class="hero">
         <div class="hero-copy">
           <h1>Cookie Monster</h1>
-          <p>Scan cookies, generate monster-ready cleanup presets, and keep every destructive action inside the extension.</p>
+          <p>单页面本地清理流程：开罐、筛选、多选、删除，全程本地处理。</p>
         </div>
         <div class="meta-pill">v<span id="version">0.1.0</span></div>
       </section>
 
-      <section id="status" class="status" data-tone="info">
-        Loading local extension state...
-      </section>
+      <section id="status" class="status" data-tone="info">Loading local extension state...</section>
 
       <section class="button-grid">
         <button id="scan-button" class="primary">Run Scan</button>
@@ -29,16 +27,56 @@
         <button id="open-dashboard-button" class="secondary">Open Full Dashboard</button>
       </section>
 
+      <section class="workspace compact">
+        <aside class="jar-panel">
+          <button id="jar-toggle" class="jar-button" aria-expanded="false">
+            <span class="jar-icon">🫙</span>
+            <span>
+              <strong>Cookie Jar</strong>
+              <small>点击展开列表</small>
+            </span>
+          </button>
+          <div class="jar-meta">
+            <div><strong id="total-cookies">0</strong> cookies</div>
+            <div><strong id="total-domains">0</strong> domains</div>
+            <div id="generated-at">Not available yet</div>
+          </div>
+        </aside>
+
+        <section class="monster-panel" id="report-shell" hidden>
+          <header class="monster-header">
+            <div>
+              <h2>Local Cookie List</h2>
+              <p>每个域名支持展开看详细字段。</p>
+            </div>
+            <div class="monster-art" aria-hidden="true">👾</div>
+          </header>
+
+          <div class="filter-bar">
+            <input id="search-input" type="search" placeholder="Search" />
+            <button class="filter-chip active" data-filter="all">All</button>
+            <button class="filter-chip" data-filter="recommended">Recommend</button>
+            <button class="filter-chip" data-filter="high">High</button>
+            <button class="filter-chip" data-filter="essential">Protect</button>
+          </div>
+          <div id="selection-summary" class="selection-summary">0 selected</div>
+          <div id="cookie-domain-list" class="domain-list"></div>
+          <div class="request-actions">
+            <button id="delete-selected-button" class="primary" disabled>Delete Selected</button>
+          </div>
+        </section>
+      </section>
+
+      <section id="empty-state" class="empty-state">No summary report yet. Run a scan first.</section>
+
       <section class="panel">
         <div class="panel-header">
           <div>
             <h3>Website Feed Requests</h3>
-            <p>If the website asks to feed cookies to the monster, confirm it here before anything is deleted.</p>
+            <p>确认后才会删除，网站端无法直接清理。</p>
           </div>
         </div>
-        <div id="pending-request-empty" class="empty-state">
-          No pending website feed request yet.
-        </div>
+        <div id="pending-request-empty" class="empty-state">No pending request.</div>
         <div id="pending-request-panel" class="request-card" hidden>
           <strong id="pending-request-title">Pending request</strong>
           <p id="pending-request-description"></p>
@@ -53,101 +91,15 @@
         </div>
       </section>
 
-      <section id="empty-state" class="empty-state">
-        No summary report yet. Run a scan to analyze current browser cookies and generate feed presets for the website.
-      </section>
-
-      <section id="report-shell" hidden>
-        <section class="panel">
-          <div class="panel-header">
-            <div>
-              <h2>Latest Summary Report</h2>
-              <p>Generated <span id="generated-at">Not available yet</span></p>
-            </div>
-          </div>
-          <div class="stats">
-            <article class="stat">
-              <span>Total Cookies</span>
-              <strong id="total-cookies">0</strong>
-            </article>
-            <article class="stat">
-              <span>Domains</span>
-              <strong id="total-domains">0</strong>
-            </article>
-            <article class="stat">
-              <span>High Risk</span>
-              <strong id="high-risk">0</strong>
-            </article>
-            <article class="stat">
-              <span>Medium Risk</span>
-              <strong id="medium-risk">0</strong>
-            </article>
-            <article class="stat">
-              <span>Low Risk</span>
-              <strong id="low-risk">0</strong>
-            </article>
-          </div>
-        </section>
-
-        <section class="panel">
-          <div class="panel-header">
-            <div>
-              <h3>Monster Feed Queue</h3>
-              <p id="feed-summary">No cleanup insights available yet.</p>
-            </div>
-          </div>
-          <div id="preset-grid" class="preset-grid"></div>
-        </section>
-
-        <section class="two-column">
-          <section class="panel">
-            <div class="panel-header">
-              <div>
-                <h3>Top Domains</h3>
-                <p>Heaviest cookie clusters across your browser.</p>
-              </div>
-            </div>
-            <ul id="top-domains" class="list"></ul>
-          </section>
-
-          <section class="panel">
-            <div class="panel-header">
-              <div>
-                <h3>Recommendations</h3>
-                <p>Monster-safe cleanup ideas based on the latest scan.</p>
-              </div>
-            </div>
-            <ul id="recommendations" class="list"></ul>
-            <p class="muted" id="flag-summary"></p>
-            <p class="muted" id="category-summary"></p>
-          </section>
-        </section>
-      </section>
-
-      <section class="panel">
-        <div class="panel-header">
-          <div>
-            <h3>Recycle Bin</h3>
-            <p>Delete actions store a reversible local backup before removal.</p>
-          </div>
-        </div>
-        <div class="footer-meta">
+      <section class="two-column">
+        <section class="panel footer-meta">
           <div><strong id="cleanup-count">0</strong> cleanup batches stored locally</div>
           <div id="cleanup-meta">No cleanup batch stored yet.</div>
-        </div>
-      </section>
-
-      <section class="panel">
-        <div class="panel-header">
-          <div>
-            <h3>Bridge Info</h3>
-            <p>The website only receives sanitized summary data through external messaging.</p>
-          </div>
-        </div>
-        <div class="footer-meta">
+        </section>
+        <section class="panel footer-meta">
           <div>Extension ID: <code id="extension-id">loading...</code></div>
-          <div>Website-initiated cleanup requests still require local confirmation inside the extension.</div>
-        </div>
+          <div id="privacy-note">Sensitive cookie values never leave your browser.</div>
+        </section>
       </section>
     </main>
 
