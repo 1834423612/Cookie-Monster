@@ -149,36 +149,9 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_#f6ecd8,_#efe6d7_45%,_#ece7df)] text-[#2d261a]">
-      <main className="mx-auto max-w-7xl px-4 py-6 md:px-8 md:py-10">
-        <section className="mb-6 rounded-3xl border border-[#d7c7af] bg-white/85 p-5 shadow-[0_16px_45px_rgba(60,44,20,0.08)]">
-          <h1 className="text-2xl font-bold md:text-3xl">Cookie Monster Workspace</h1>
-          <p className="mt-2 text-sm text-[#6c6357]">
-            Default view is left jar + right monster. Click the jar to switch into the large cookie list view and shrink the monster panel.
-          </p>
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-            <span className="rounded-full bg-slate-100 px-3 py-1">Data source: {extensionStatus.isUsingMockData ? "Mock" : "Extension"}</span>
-            {extensionStatus.isDevMode && (
-              <>
-                <button
-                  onClick={() => extensionStatus.setDataMode("auto")}
-                  className={`rounded-full px-3 py-1 ${extensionStatus.dataMode === "auto" ? "bg-emerald-100" : "bg-slate-100"}`}
-                >
-                  Auto real data
-                </button>
-                <button
-                  onClick={() => extensionStatus.setDataMode("mock")}
-                  className={`rounded-full px-3 py-1 ${extensionStatus.dataMode === "mock" ? "bg-amber-100" : "bg-slate-100"}`}
-                >
-                  Force mock data
-                </button>
-              </>
-            )}
-          </div>
-          {message && <p className="mt-3 text-sm text-emerald-700">{message}</p>}
-        </section>
-
-        <section className={`grid gap-4 ${isJarOpened ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
+    <div className="flex h-screen flex-col overflow-hidden bg-[radial-gradient(circle_at_top_left,_#f6ecd8,_#efe6d7_45%,_#ece7df)] text-[#2d261a]">
+      <main className="mx-auto flex min-h-0 w-full max-w-7xl flex-1 flex-col px-4 py-6 md:px-8 md:py-10">
+        <section className="grid min-h-0 flex-1 gap-4 md:grid-cols-[2fr_1fr]">
           {!isJarOpened ? (
             <button
               onClick={() => setIsJarOpened(true)}
@@ -189,15 +162,9 @@ export default function HomePage() {
               <p className="mt-2 text-sm text-[#6f6453]">Placeholder art for jar and monster can be replaced with final assets.</p>
             </button>
           ) : (
-            <section className="rounded-3xl border border-[#d7c7af] bg-white/95 p-4 shadow-[0_14px_36px_rgba(70,54,26,0.08)] md:col-span-2">
+            <section className="flex min-h-0 flex-col rounded-3xl border border-[#d7c7af] bg-white/95 p-4 shadow-[0_14px_36px_rgba(70,54,26,0.08)]">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <h2 className="text-lg font-semibold">Domain cookie inventory (local)</h2>
-                <button
-                  onClick={() => setIsJarOpened(false)}
-                  className="rounded-xl border border-[#ddcfba] bg-white px-3 py-1.5 text-sm hover:bg-[#faf6f0]"
-                >
-                  Back to jar view
-                </button>
               </div>
 
               <div className="mb-3 grid gap-2 md:grid-cols-[1fr_auto_auto]">
@@ -242,7 +209,7 @@ export default function HomePage() {
                 </div>
               )}
 
-              <div className="max-h-[62vh] space-y-3 overflow-auto pr-1">
+              <div className="min-h-0 flex-1 space-y-3 overflow-auto pr-1">
                 {filteredGroups.map((group) => (
                   <article key={group.domain} className="rounded-2xl border border-[#ecdcc9] bg-[#fffdf9]">
                     <button
@@ -309,18 +276,13 @@ export default function HomePage() {
             </section>
           )}
 
-          <aside className="rounded-3xl border border-[#d7c7af] bg-white/85 p-4 shadow-[0_14px_32px_rgba(60,43,22,0.08)]">
-            <div className={`mx-auto text-center ${isJarOpened ? "max-w-[180px]" : "max-w-[320px]"}`}>
-              <div className={`mx-auto rounded-3xl border border-[#dbc8ad] bg-white/90 ${isJarOpened ? "h-32 w-32 text-6xl leading-[8rem]" : "h-56 w-56 text-8xl leading-[14rem]"}`}>👾</div>
-              <h3 className="mt-3 font-semibold">Monster placeholder</h3>
-              <p className="mt-1 text-xs text-[#6f6453]">After jar click, the monster shrinks to keep the list in focus.</p>
-            </div>
+          <aside className="min-h-0 overflow-hidden">
+            <img
+              src="/cookiemonster_tp.png"
+              alt="Cookie Monster"
+              className="h-full w-full object-contain"
+            />
           </aside>
-        </section>
-
-        <section className="mt-6 rounded-3xl border border-[#cde4d2] bg-[#eefaf0] p-4 text-sm text-[#2e6240]">
-          <strong>Privacy guarantee:</strong> Cookie values and session data remain local inside your extension.
-          The website receives sanitized metadata only, and deletion is never executed without local extension confirmation.
         </section>
       </main>
     </div>
