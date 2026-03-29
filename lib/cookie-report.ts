@@ -52,8 +52,7 @@ export interface CleanupInsights {
 export interface PendingFeedRequestSummary {
   requestId: string;
   createdAt: string;
-  presetId?: CleanupPresetId;
-  selectionType?: "preset" | "keys";
+  presetId: CleanupPresetId;
   label: string;
   description: string;
   cookieCount: number;

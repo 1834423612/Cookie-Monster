@@ -1196,17 +1196,9 @@ async function clearPendingFeedRequest() {
   await writeLocal({ [STORAGE_KEYS.pendingFeedRequest]: null });
 }
 
-function getTextValueFromPayload(payload, key) {
-  if (payload && typeof payload[key] === "string" && payload[key].trim()) {
-    return payload[key].trim();
-  }
-
-  return null;
-}
-
-async function createPendingFeedRequest(mode, options = {}) {
+async function createPendingFeedRequest(presetId) {
   const { analyzedCookies } = await getRawAndAnalyzedCookies();
-  const plan = buildPlanFromMode(analyzedCookies, mode);
+  const plan = buildPlanFromMode(analyzedCookies, { type: "preset", presetId });
 
   if (!plan.cookieCount) {
     return null;
@@ -1215,19 +1207,14 @@ async function createPendingFeedRequest(mode, options = {}) {
   const request = {
     cookieCount: plan.cookieCount,
     createdAt: new Date().toISOString(),
-    description: options.description || plan.description,
+    description: plan.description,
     domainCount: plan.domainCount,
-    label: options.label || plan.label,
-    presetId: mode.type === "preset" ? mode.presetId : options.presetId,
+    label: plan.label,
+    presetId,
     requestId: `feed-request-${Date.now()}`,
     sampleDomains: plan.sampleDomains,
-    selectionType: mode.type,
     source: "website",
   };
-
-  if (mode.type === "keys") {
-    request.keys = [...new Set(mode.keys)];
-  }
 
   await writeLocal({ [STORAGE_KEYS.pendingFeedRequest]: request });
   return request;
@@ -1458,19 +1445,12 @@ async function handleInternalMessage(message) {
       );
     case "CONFIRM_PENDING_FEED_REQUEST": {
       const pendingFeedRequest = await readLocal(STORAGE_KEYS.pendingFeedRequest, null);
-      if (!pendingFeedRequest) {
+      if (!pendingFeedRequest || !isCleanupPresetId(pendingFeedRequest.presetId)) {
         return failure(message.type, "There is no pending website feed request to confirm.");
       }
 
-      const keys = getKeysFromPayload(pendingFeedRequest);
-      const presetId = getPresetIdFromPayload(pendingFeedRequest);
-
-      if (!keys && !presetId) {
-        return failure(message.type, "The pending website request is missing its cookie target.");
-      }
-
       const result = await executeDeletionPlan(
-        keys ? { type: "keys", keys } : { type: "preset", presetId },
+        { type: "preset", presetId: pendingFeedRequest.presetId },
         "website"
       );
       await clearPendingFeedRequest();
@@ -1580,27 +1560,14 @@ async function handleExternalMessage(message) {
       return success(message.type, await getCookieManagementState());
     }
     case "REQUEST_COOKIE_FEED": {
-      const keys = getKeysFromPayload(message.payload);
       const presetId = getPresetIdFromPayload(message.payload);
-      if (!keys && !presetId) {
-        return failure(message.type, "A cleanup preset or cookie selection is required.");
+      if (!presetId) {
+        return failure(message.type, "A valid cleanup preset is required.");
       }
 
-      const pendingFeedRequest = await createPendingFeedRequest(
-        keys ? { type: "keys", keys } : { type: "preset", presetId },
-        {
-          description: getTextValueFromPayload(message.payload, "description") || undefined,
-          label: getTextValueFromPayload(message.payload, "label") || undefined,
-          presetId,
-        }
-      );
+      const pendingFeedRequest = await createPendingFeedRequest(presetId);
       if (!pendingFeedRequest) {
-        return failure(
-          message.type,
-          keys
-            ? "No cookies from the current website selection can be cleaned right now."
-            : "No cookies match that cleanup preset right now."
-        );
+        return failure(message.type, "No cookies match that cleanup preset right now.");
       }
 
       await openDashboardPage();
