@@ -69,55 +69,85 @@ const filterScopeOptions = [
 const JAR_FRAME_MS = 220;
 const JAR_OPEN_HOLD_MS = 120;
 const JAR_REVEAL_MS = 700;
-const COOKIE_BURST_TOTAL_MS = 1200;
+const COOKIE_BURST_TOTAL_MS = 1900;
 const JAR_FRAME_SEQUENCE = [1, 2, 3, 4] as const;
 const COOKIE_BURST_FRAMES = ["/c1.png", "/c1.png", "/c1.png"] as const;
-type CookieBurstWaypoint = {
-  x: string;
-  y: string;
-  scale: number;
-  rotate: number;
+type CookieBurstPath = {
+  popOffsetX: string;
+  popOffsetY: string;
+  endOffsetX: string;
+  endOffsetY: string;
+  startScale: number;
+  popScale: number;
+  endScale: number;
+  startRotate: number;
+  popRotate: number;
+  endRotate: number;
 };
 
-const COOKIE_BURST_PATHS: CookieBurstWaypoint[][] = [
-  [
-    { x: "clamp(210px, 24vw, 420px)", y: "clamp(470px, 76vh, 760px)", scale: 0.95, rotate: -18 },
-    { x: "clamp(190px, 22vw, 380px)", y: "clamp(420px, 67vh, 660px)", scale: 1, rotate: -24 },
-    { x: "clamp(115px, 12vw, 220px)", y: "clamp(320px, 50vh, 500px)", scale: 0.99, rotate: -40 },
-    { x: "clamp(150px, 16vw, 280px)", y: "clamp(200px, 30vh, 300px)", scale: 0.9, rotate: -14 },
-    { x: "clamp(300px, 33vw, 560px)", y: "clamp(165px, 25vh, 255px)", scale: 0.82, rotate: -2 },
-    { x: "clamp(560px, 60vw, 980px)", y: "clamp(205px, 32vh, 330px)", scale: 0.6, rotate: 14 },
-    { x: "clamp(700px, 75vw, 1210px)", y: "clamp(250px, 40vh, 410px)", scale: 0.28, rotate: 24 },
-  ],
-  [
-    { x: "clamp(190px, 22vw, 390px)", y: "clamp(500px, 80vh, 790px)", scale: 0.95, rotate: -28 },
-    { x: "clamp(175px, 20vw, 360px)", y: "clamp(450px, 72vh, 690px)", scale: 1, rotate: -34 },
-    { x: "clamp(95px, 10vw, 190px)", y: "clamp(345px, 54vh, 530px)", scale: 0.99, rotate: -48 },
-    { x: "clamp(135px, 14vw, 250px)", y: "clamp(215px, 32vh, 315px)", scale: 0.88, rotate: -20 },
-    { x: "clamp(280px, 31vw, 530px)", y: "clamp(175px, 26vh, 270px)", scale: 0.8, rotate: -4 },
-    { x: "clamp(545px, 58vw, 960px)", y: "clamp(215px, 34vh, 340px)", scale: 0.58, rotate: 10 },
-    { x: "clamp(695px, 74vw, 1200px)", y: "clamp(255px, 41vh, 415px)", scale: 0.28, rotate: 20 },
-  ],
-  [
-    { x: "clamp(235px, 27vw, 455px)", y: "clamp(515px, 82vh, 810px)", scale: 0.95, rotate: -10 },
-    { x: "clamp(220px, 25vw, 420px)", y: "clamp(460px, 73vh, 705px)", scale: 1, rotate: -14 },
-    { x: "clamp(125px, 13vw, 235px)", y: "clamp(335px, 52vh, 515px)", scale: 0.99, rotate: -30 },
-    { x: "clamp(170px, 18vw, 300px)", y: "clamp(190px, 29vh, 290px)", scale: 0.9, rotate: -8 },
-    { x: "clamp(320px, 35vw, 585px)", y: "clamp(160px, 24vh, 245px)", scale: 0.83, rotate: 0 },
-    { x: "clamp(575px, 61vw, 1000px)", y: "clamp(205px, 32vh, 330px)", scale: 0.58, rotate: 16 },
-    { x: "clamp(710px, 76vw, 1220px)", y: "clamp(250px, 40vh, 410px)", scale: 0.28, rotate: 26 },
-  ],
+type CookieBurstAnchors = {
+  startX: string;
+  startY: string;
+  endX: string;
+  endY: string;
+};
+
+const DEFAULT_COOKIE_BURST_ANCHORS: CookieBurstAnchors = {
+  startX: "230px",
+  startY: "520px",
+  endX: "705px",
+  endY: "250px",
+};
+
+const COOKIE_BURST_PATHS: CookieBurstPath[] = [
+  {
+    popOffsetX: "-52px",
+    popOffsetY: "-48px",
+    endOffsetX: "8px",
+    endOffsetY: "-2px",
+    startScale: 0.6,
+    popScale: 0.84,
+    endScale: 0.28,
+    startRotate: -6,
+    popRotate: -28,
+    endRotate: 20,
+  },
+  {
+    popOffsetX: "4px",
+    popOffsetY: "-74px",
+    endOffsetX: "0px",
+    endOffsetY: "0px",
+    startScale: 0.6,
+    popScale: 0.88,
+    endScale: 0.28,
+    startRotate: 0,
+    popRotate: -4,
+    endRotate: 24,
+  },
+  {
+    popOffsetX: "72px",
+    popOffsetY: "-50px",
+    endOffsetX: "14px",
+    endOffsetY: "2px",
+    startScale: 0.6,
+    popScale: 0.84,
+    endScale: 0.28,
+    startRotate: 8,
+    popRotate: 22,
+    endRotate: 28,
+  },
 ];
 
-function createCookieBurstPathStyle(path: CookieBurstWaypoint[]): CSSProperties {
-  return path.reduce((style, waypoint, index) => {
-    style[`--cookie-transform${index}` as keyof CSSProperties] =
-      `translate3d(${waypoint.x}, ${waypoint.y}, 0) scale(${waypoint.scale}) rotate(${waypoint.rotate}deg)`;
-    return style;
-  }, {} as CSSProperties);
+function createCookieBurstPathStyle(path: CookieBurstPath, anchors: CookieBurstAnchors): CSSProperties {
+  return {
+    "--cookie-transform-start":
+      `translate3d(${anchors.startX}, ${anchors.startY}, 0) scale(${path.startScale}) rotate(${path.startRotate}deg)`,
+    "--cookie-transform-pop":
+      `translate3d(calc(${anchors.startX} + ${path.popOffsetX}), calc(${anchors.startY} + ${path.popOffsetY}), 0) scale(${path.popScale}) rotate(${path.popRotate}deg)`,
+    "--cookie-transform-end":
+      `translate3d(calc(${anchors.endX} + ${path.endOffsetX}), calc(${anchors.endY} + ${path.endOffsetY}), 0) scale(${path.endScale}) rotate(${path.endRotate}deg)`,
+  } as CSSProperties;
 }
-
-const COOKIE_BURST_PATH_STYLES = COOKIE_BURST_PATHS.map(createCookieBurstPathStyle);
 const STATIC_ASSET_CACHE_NAME = "cookie-monster-static-assets";
 const STATIC_ASSET_MANIFEST_KEY = "cm-static-asset-manifest-v1";
 const STATIC_ASSET_MANIFEST = [
@@ -639,6 +669,9 @@ export default function HomePage() {
   const popupOpenTimeoutRef = useRef<number | null>(null);
   const pendingPopupOpenRef = useRef(false);
   const cookieBurstTimeoutRef = useRef<number | null>(null);
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const sendButtonRef = useRef<HTMLButtonElement | null>(null);
+  const mouthTargetRef = useRef<HTMLDivElement | null>(null);
 
   const [jarPhase, setJarPhase] = useState<"idle" | 1 | 2 | 3 | 4 | "fading" | "done">("idle");
   const [expandedDomains, setExpandedDomains] = useState<Record<string, true>>({});
@@ -651,6 +684,9 @@ export default function HomePage() {
   const [isReturningToIdle, setIsReturningToIdle] = useState(false);
   const [cookieBurstId, setCookieBurstId] = useState(0);
   const [showCookieBurst, setShowCookieBurst] = useState(false);
+  const [cookieBurstAnchors, setCookieBurstAnchors] = useState<CookieBurstAnchors>(
+    DEFAULT_COOKIE_BURST_ANCHORS
+  );
   const [isTagGuideCollapsed, setIsTagGuideCollapsed] = useState(true);
   const [isCookieListExpanded, setIsCookieListExpanded] = useState(false);
   const [isGuideCollapsed, setIsGuideCollapsed] = useState(true);
@@ -685,7 +721,43 @@ export default function HomePage() {
     }
   }, [clearPopupOpenTimer]);
 
+  const measureCookieBurstAnchors = useCallback(() => {
+    const section = sectionRef.current;
+    const sendButton = sendButtonRef.current;
+    const mouthTarget = mouthTargetRef.current;
+
+    if (!section || !sendButton || !mouthTarget) {
+      return;
+    }
+
+    const sectionRect = section.getBoundingClientRect();
+    const sendButtonRect = sendButton.getBoundingClientRect();
+    const mouthTargetRect = mouthTarget.getBoundingClientRect();
+
+    const nextAnchors: CookieBurstAnchors = {
+      startX: `${sendButtonRect.left + sendButtonRect.width / 2 - sectionRect.left*2}px`,
+      startY: `${sendButtonRect.top + sendButtonRect.height / 2 - sectionRect.top*2}px`,
+      endX: `${mouthTargetRect.left + mouthTargetRect.width / 2 - sectionRect.left*5}px`,
+      endY: `${mouthTargetRect.top + mouthTargetRect.height / 2 - sectionRect.top*4}px`,
+    };
+
+    setCookieBurstAnchors((current) => {
+      if (
+        current.startX === nextAnchors.startX &&
+        current.startY === nextAnchors.startY &&
+        current.endX === nextAnchors.endX &&
+        current.endY === nextAnchors.endY
+      ) {
+        return current;
+      }
+
+      return nextAnchors;
+    });
+  }, []);
+
   const startCookieBurst = useCallback(() => {
+    measureCookieBurstAnchors();
+
     if (cookieBurstTimeoutRef.current) {
       window.clearTimeout(cookieBurstTimeoutRef.current);
     }
@@ -696,7 +768,7 @@ export default function HomePage() {
       setShowCookieBurst(false);
       cookieBurstTimeoutRef.current = null;
     }, COOKIE_BURST_TOTAL_MS);
-  }, []);
+  }, [measureCookieBurstAnchors]);
 
   const handleJarClick = useCallback(() => {
     if (jarPhase !== "idle") return;
@@ -816,6 +888,39 @@ export default function HomePage() {
   );
 
   useEffect(() => {
+    const updateAnchors = () => {
+      measureCookieBurstAnchors();
+    };
+    const section = sectionRef.current;
+
+    const resizeObserver =
+      typeof ResizeObserver === "undefined" || !section
+        ? null
+        : new ResizeObserver(() => {
+            measureCookieBurstAnchors();
+          });
+
+    if (resizeObserver && section) {
+      resizeObserver.observe(section);
+      if (sendButtonRef.current) {
+        resizeObserver.observe(sendButtonRef.current);
+      }
+      if (mouthTargetRef.current) {
+        resizeObserver.observe(mouthTargetRef.current);
+      }
+    }
+
+    const animationFrameId = window.requestAnimationFrame(updateAnchors);
+    window.addEventListener("resize", updateAnchors);
+
+    return () => {
+      window.cancelAnimationFrame(animationFrameId);
+      window.removeEventListener("resize", updateAnchors);
+      resizeObserver?.disconnect();
+    };
+  }, [measureCookieBurstAnchors]);
+
+  useEffect(() => {
     if (!isCookieListExpanded) {
       return;
     }
@@ -835,6 +940,16 @@ export default function HomePage() {
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isCookieListExpanded]);
+
+  useEffect(() => {
+    const animationFrameId = window.requestAnimationFrame(() => {
+      measureCookieBurstAnchors();
+    });
+
+    return () => {
+      window.cancelAnimationFrame(animationFrameId);
+    };
+  }, [measureCookieBurstAnchors, isEating, jarPhase, selectedLookup]);
 
   const keyToDomain = useMemo(() => {
     const next = new Map<string, string>();
@@ -951,6 +1066,10 @@ export default function HomePage() {
   }, [baseFilteredGroups, selectedCount]);
 
   const activeScope = getFilterScopeMeta(filterScope);
+  const cookieBurstPathStyles = useMemo(
+    () => COOKIE_BURST_PATHS.map((path) => createCookieBurstPathStyle(path, cookieBurstAnchors)),
+    [cookieBurstAnchors]
+  );
 
   const toggleCookie = useCallback((key: string) => {
     startTransition(() => {
@@ -1154,6 +1273,7 @@ export default function HomePage() {
     <div className="flex h-screen flex-col overflow-hidden bg-[radial-gradient(circle_at_top_left,#f6ecd8,#efe6d7_45%,#ece7df)] text-[#2d261a]">
       <main className="mx-auto flex min-h-0 w-full max-w-auto flex-1 flex-col px-4 py-6 md:px-8 md:py-10">
         <section
+          ref={sectionRef}
           className={`relative grid min-h-0 flex-1 gap-4 transition-[grid-template-columns] duration-500 ease-in-out ${
             isEating
               ? "md:grid-cols-[minmax(0,1.50fr)_minmax(0,1.50fr)]"
@@ -1171,16 +1291,10 @@ export default function HomePage() {
                 src={cookieSrc}
                 alt=""
                 className={`absolute w-12 object-contain ${
-                  showCookieBurst
-                    ? index === 0
-                      ? "animate-cookie-to-mouth-1"
-                      : index === 1
-                        ? "animate-cookie-to-mouth-2"
-                        : "animate-cookie-to-mouth-3"
-                    : ""
+                  showCookieBurst ? "animate-cookie-burst" : ""
                 }`}
                 style={{
-                  ...COOKIE_BURST_PATH_STYLES[index],
+                  ...cookieBurstPathStyles[index],
                   opacity: 0,
                 }}
               />
@@ -1493,6 +1607,7 @@ export default function HomePage() {
 
                   <div className="flex flex-wrap gap-2">
                     <button
+                      ref={sendButtonRef}
                       onClick={requestFeed}
                       disabled={!canRequestFeed || selectedCount === 0}
                       className="rounded-xl bg-[#1d6ed8] px-3 py-1.5 text-xs font-semibold text-white transition enabled:hover:bg-[#185db7] disabled:cursor-not-allowed disabled:bg-slate-300"
@@ -1522,11 +1637,16 @@ export default function HomePage() {
               transform:
                 jarPhase === "fading" || jarPhase === "done"
                   ? "translateX(0)"
-                  : "translateX(-18%)",
+                  : "translateX(-36%)",
             }}
           >
             <div className="flex h-full w-full items-center justify-center overflow-visible px-2 py-4 md:px-4 lg:px-8">
               <div className="relative flex h-full w-full items-center justify-center overflow-visible">
+                <div
+                  ref={mouthTargetRef}
+                  className="pointer-events-none absolute left-[58%] top-[43%] h-1 w-1 -translate-x-1/2 -translate-y-1/2"
+                  aria-hidden="true"
+                />
                 <video
                   src="/cm_idle.mp4"
                   autoPlay
@@ -1567,4 +1687,3 @@ export default function HomePage() {
     </div>
   );
 }
-

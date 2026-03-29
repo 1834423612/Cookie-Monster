@@ -174,38 +174,23 @@
   }
 }
 
-@keyframes cookie-to-mouth {
+@keyframes cookie-burst {
   0% {
     opacity: 0;
-    transform: var(--cookie-transform0);
+    transform: var(--cookie-transform-start);
+    animation-timing-function: cubic-bezier(0.2, 0.72, 0.24, 1);
   }
   10% {
     opacity: 1;
-    transform: var(--cookie-transform1);
   }
-  20% {
+  56% {
     opacity: 1;
-    transform: var(--cookie-transform2);
-  }
-  35% {
-    opacity: 1;
-    transform: var(--cookie-transform3);
-  }
-  55% {
-    opacity: 1;
-    transform: var(--cookie-transform4);
-  }
-  78% {
-    opacity: 1;
-    transform: var(--cookie-transform5);
-  }
-  92% {
-    opacity: 1;
-    transform: var(--cookie-transform5);
+    transform: var(--cookie-transform-pop);
+    animation-timing-function: cubic-bezier(0.22, 0.78, 0.2, 1);
   }
   100% {
     opacity: 0;
-    transform: var(--cookie-transform6);
+    transform: var(--cookie-transform-end);
   }
 }
 
@@ -221,18 +206,8 @@
   animation: cookie-float 3s ease-in-out infinite;
 }
 
-.animate-cookie-to-mouth-1 {
-  animation: cookie-to-mouth 0.62s cubic-bezier(0.22, 1, 0.36, 1) both;
-  will-change: opacity, transform;
-}
-
-.animate-cookie-to-mouth-2 {
-  animation: cookie-to-mouth 0.62s 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
-  will-change: opacity, transform;
-}
-
-.animate-cookie-to-mouth-3 {
-  animation: cookie-to-mouth 0.62s 0.36s cubic-bezier(0.22, 1, 0.36, 1) both;
+.animate-cookie-burst {
+  animation: cookie-burst 1.8s both;
   will-change: opacity, transform;
 }
 
