@@ -7,6 +7,7 @@ import {
   generateMockReport,
   type CookieSummaryReport,
 } from "@/lib/extension-bridge";
+import { subscribeToExtensionSync } from "@/lib/extension-sync";
 
 type DataMode = "auto" | "mock";
 
@@ -121,6 +122,12 @@ export function useExtensionStatus(): ExtensionStatus {
 
   useEffect(() => {
     checkExtension();
+  }, [checkExtension]);
+
+  useEffect(() => {
+    return subscribeToExtensionSync(() => {
+      checkExtension().catch(() => undefined);
+    });
   }, [checkExtension]);
 
   return {

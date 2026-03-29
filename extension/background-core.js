@@ -11,6 +11,16 @@ const EXTERNAL_ALLOWED_HOSTS = new Set([
   "cookie-monster.vercel.app",
 ]);
 
+const SYNC_BROADCAST_MATCHES = [
+  "http://localhost/*",
+  "http://127.0.0.1/*",
+  "https://127.0.0.1/*",
+  "https://localhost/*",
+  "https://cookie-monster.app/*",
+  "https://www.cookie-monster.app/*",
+  "https://cookie-monster.vercel.app/*",
+];
+
 const KEYWORDS = {
   essential: ["session", "auth", "csrf", "xsrf", "sid", "token", "login", "__host-", "__secure-"],
   functional: ["lang", "locale", "theme", "prefs", "cart", "remember", "currency", "recent"],
@@ -683,6 +693,7 @@ async function getLatestReport(options = {}) {
 
 function createBackupCookie(cookie) {
   return {
+    key: createCookieKey(cookie),
     domain: cookie.domain,
     expirationDate: cookie.expirationDate,
     hostOnly: cookie.hostOnly,
@@ -694,6 +705,46 @@ function createBackupCookie(cookie) {
     session: cookie.session,
     storeId: cookie.storeId,
     value: cookie.value,
+  };
+}
+
+function getStoredCookieKey(cookie) {
+  if (typeof cookie?.key === "string" && cookie.key) {
+    return cookie.key;
+  }
+
+  return createCookieKey(cookie);
+}
+
+function buildCleanupBatchSummary(batch) {
+  return {
+    id: batch.id,
+    label: batch.label,
+    presetId: batch.presetId,
+    createdAt: batch.createdAt,
+    cookieCount: batch.cookieCount,
+    domainCount: batch.domainCount,
+    sampleDomains: batch.sampleDomains || [],
+    source: batch.source || "extension",
+  };
+}
+
+function buildStoredCookiePreview(cookie) {
+  const domain = cookieHost(cookie.domain || "unknown");
+
+  return {
+    key: getStoredCookieKey(cookie),
+    name: cookie.name,
+    domain,
+    path: cookie.path || "/",
+    storeId: cookie.storeId || "default",
+    secure: Boolean(cookie.secure),
+    httpOnly: Boolean(cookie.httpOnly),
+    sameSite: cookie.sameSite || "unspecified",
+    session: Boolean(cookie.session),
+    expirationDate:
+      typeof cookie.expirationDate === "number" ? cookie.expirationDate : null,
+    valueSize: cookie.value?.length || 0,
   };
 }
 
@@ -880,7 +931,7 @@ async function executeDeletionPlan(mode, source) {
   };
 }
 
-async function restoreCleanupBatchById(batchId) {
+async function restoreCleanupBatchById(batchId, selectedKeys = null) {
   const batches = await readLocal(STORAGE_KEYS.cleanupBatches, []);
   const batch = batches.find((entry) => entry.id === batchId);
 
@@ -888,18 +939,57 @@ async function restoreCleanupBatchById(batchId) {
     throw new Error("That recycle-bin batch could not be found.");
   }
 
-  const results = await Promise.allSettled(batch.cookies.map(restoreCookie));
-  const restoredCount = results.filter(
-    (result) => result.status === "fulfilled" && result.value
-  ).length;
-  const failedCount = batch.cookies.length - restoredCount;
+  const selectedKeySet = selectedKeys?.length ? new Set(selectedKeys) : null;
+  const targetCookies = selectedKeySet
+    ? batch.cookies.filter((cookie) => selectedKeySet.has(getStoredCookieKey(cookie)))
+    : batch.cookies;
+
+  if (!targetCookies.length) {
+    throw new Error("No matching cookies were found in that recycle-bin batch.");
+  }
+
+  const results = await Promise.allSettled(targetCookies.map(restoreCookie));
+  const restoredCookies = targetCookies.filter(
+    (_cookie, index) => results[index].status === "fulfilled" && results[index].value
+  );
+  const restoredKeySet = new Set(restoredCookies.map(getStoredCookieKey));
+  const restoredCount = restoredCookies.length;
+  const failedCount = targetCookies.length - restoredCount;
+  const remainingCookies = batch.cookies.filter(
+    (cookie) => !restoredKeySet.has(getStoredCookieKey(cookie))
+  );
+
+  const nextBatches = batches.flatMap((entry) => {
+    if (entry.id !== batchId) {
+      return [entry];
+    }
+
+    if (!remainingCookies.length) {
+      return [];
+    }
+
+    return [
+      {
+        ...entry,
+        cookieCount: remainingCookies.length,
+        cookies: remainingCookies,
+        domainCount: new Set(
+          remainingCookies.map((cookie) => cookieHost(cookie.domain || ""))
+        ).size,
+        sampleDomains: [...new Set(remainingCookies.map((cookie) => cookieHost(cookie.domain || "")))]
+          .filter(Boolean)
+          .slice(0, 6),
+      },
+    ];
+  });
 
   await writeLocal({
-    [STORAGE_KEYS.cleanupBatches]: batches.filter((entry) => entry.id !== batchId),
+    [STORAGE_KEYS.cleanupBatches]: nextBatches,
   });
 
   return {
     failedCount,
+    remainingCount: remainingCookies.length,
     restoredCount,
     restoredPresetId: batch.presetId,
     report: await scanCookies(),
@@ -919,6 +1009,71 @@ async function restoreLastCleanup() {
   }
 
   return restoreCleanupBatchById(latestBatch.id);
+}
+
+async function getPendingFeedRequestDetails() {
+  const pendingFeedRequest = await readLocal(STORAGE_KEYS.pendingFeedRequest, null);
+
+  if (!pendingFeedRequest) {
+    return null;
+  }
+
+  const { analyzedCookies } = await getRawAndAnalyzedCookies();
+  const keys = getKeysFromPayload(pendingFeedRequest);
+  const presetId = getPresetIdFromPayload(pendingFeedRequest);
+
+  if (!keys && !presetId) {
+    return {
+      cookies: [],
+      request: pendingFeedRequest,
+    };
+  }
+
+  const plan = buildPlanFromMode(
+    analyzedCookies,
+    keys ? { type: "keys", keys } : { type: "preset", presetId }
+  );
+
+  return {
+    cookies: plan.candidates.map((candidate) => ({
+      category: candidate.category,
+      domain: candidate.domain,
+      expirationDate:
+        typeof candidate.cookie.expirationDate === "number"
+          ? candidate.cookie.expirationDate
+          : null,
+      httpOnly: Boolean(candidate.cookie.httpOnly),
+      key: candidate.key,
+      name: candidate.cookie.name,
+      path: candidate.cookie.path || "/",
+      presetIds: candidate.presetIds,
+      reasons: candidate.reasons,
+      recommendedKeep:
+        candidate.category === "essential" &&
+        candidate.cookie.session &&
+        candidate.cookie.secure,
+      risk: candidate.risk,
+      sameSite: candidate.cookie.sameSite || "unspecified",
+      secure: Boolean(candidate.cookie.secure),
+      session: Boolean(candidate.cookie.session),
+      storeId: candidate.cookie.storeId || "default",
+    })),
+    request: pendingFeedRequest,
+  };
+}
+
+async function getRecycleBinBatchDetails(batchId) {
+  const batches = await readLocal(STORAGE_KEYS.cleanupBatches, []);
+  const batch = batches.find((entry) => entry.id === batchId);
+
+  if (!batch) {
+    throw new Error("That recycle-bin batch could not be found.");
+  }
+
+  return {
+    batch: buildCleanupBatchSummary(batch),
+    cookies: batch.cookies.map(buildStoredCookiePreview),
+  };
 }
 
 function buildExportFilename(prefix, timestamp) {
@@ -1001,6 +1156,40 @@ async function openSidePanelForCurrentWindow() {
   }
 
   await chrome.sidePanel.open({ windowId: activeTab.windowId });
+}
+
+async function updateActionBadge() {
+  if (!chrome.action?.setBadgeText) {
+    return;
+  }
+
+  const pendingFeedRequest = await readLocal(STORAGE_KEYS.pendingFeedRequest, null);
+  const pendingCount = Number(pendingFeedRequest?.cookieCount || 0);
+
+  await chrome.action.setBadgeBackgroundColor({ color: "#ef4444" });
+  await chrome.action.setBadgeText({
+    text: pendingCount > 99 ? "99+" : pendingCount > 0 ? String(pendingCount) : "",
+  });
+}
+
+async function broadcastWebsiteUpdate(detail = {}) {
+  const tabs = await chrome.tabs.query({
+    url: SYNC_BROADCAST_MATCHES,
+  });
+
+  await Promise.allSettled(
+    tabs
+      .filter((tab) => typeof tab.id === "number")
+      .map((tab) =>
+        chrome.tabs.sendMessage(tab.id, {
+          detail: {
+            ...detail,
+            timestamp: Date.now(),
+          },
+          type: "CM_EXTENSION_SYNC",
+        })
+      )
+  );
 }
 
 async function clearPendingFeedRequest() {
@@ -1142,6 +1331,7 @@ async function getUiState() {
     extensionId: chrome.runtime.id,
     lastCleanup,
     pendingFeedRequest,
+    recycleBin: cleanupBatches.map(buildCleanupBatchSummary),
     report,
     version: chrome.runtime.getManifest().version,
   };
@@ -1151,6 +1341,25 @@ async function handleInternalMessage(message) {
   switch (message?.type) {
     case "GET_STATE":
       return success(message.type, await getUiState());
+    case "GET_PENDING_FEED_REQUEST_DETAILS": {
+      const details = await getPendingFeedRequestDetails();
+      if (!details) {
+        return failure(message.type, "There is no pending website request to inspect.");
+      }
+
+      return success(message.type, details);
+    }
+    case "GET_RECYCLE_BIN_BATCH_DETAILS": {
+      const batchId =
+        message?.payload && typeof message.payload.batchId === "string"
+          ? message.payload.batchId
+          : null;
+      if (!batchId) {
+        return failure(message.type, "A cleanup batch id is required.");
+      }
+
+      return success(message.type, await getRecycleBinBatchDetails(batchId));
+    }
     case "RUN_SCAN":
       return success(message.type, {
         report: await scanCookies(),
@@ -1218,6 +1427,18 @@ async function handleInternalMessage(message) {
 
       await restoreCleanupBatchById(batchId);
       return success(message.type, await getCookieManagementState());
+    }
+    case "RESTORE_BATCH_COOKIES": {
+      const batchId =
+        message?.payload && typeof message.payload.batchId === "string"
+          ? message.payload.batchId
+          : null;
+      const keys = getKeysFromPayload(message.payload);
+      if (!batchId || !keys) {
+        return failure(message.type, "A cleanup batch id and at least one cookie key are required.");
+      }
+
+      return success(message.type, await restoreCleanupBatchById(batchId, keys));
     }
     case "APPLY_CLEANUP_PRESET": {
       const presetId = getPresetIdFromPayload(message.payload);
@@ -1402,13 +1623,33 @@ async function handleExternalMessage(message) {
 
 chrome.runtime.onInstalled.addListener(() => {
   syncActionClickBehavior().catch(() => undefined);
+  updateActionBadge().catch(() => undefined);
 });
 
 chrome.runtime.onStartup?.addListener(() => {
   syncActionClickBehavior().catch(() => undefined);
+  updateActionBadge().catch(() => undefined);
 });
 
 syncActionClickBehavior().catch(() => undefined);
+updateActionBadge().catch(() => undefined);
+
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName !== "local") {
+    return;
+  }
+
+  const changedKeys = Object.keys(changes).filter((key) =>
+    Object.values(STORAGE_KEYS).includes(key)
+  );
+
+  if (!changedKeys.length) {
+    return;
+  }
+
+  updateActionBadge().catch(() => undefined);
+  broadcastWebsiteUpdate({ changedKeys }).catch(() => undefined);
+});
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   handleInternalMessage(message)

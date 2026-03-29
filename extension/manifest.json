@@ -25,6 +25,23 @@
   "side_panel": {
     "default_path": "sidepanel.html"
   },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://localhost/*",
+        "http://127.0.0.1/*",
+        "https://127.0.0.1/*",
+        "https://localhost/*",
+        "https://cookie-monster.app/*",
+        "https://www.cookie-monster.app/*",
+        "https://cookie-monster.vercel.app/*"
+      ],
+      "js": [
+        "page-bridge.js"
+      ],
+      "run_at": "document_start"
+    }
+  ],
   "options_page": "dashboard.html",
   "externally_connectable": {
     "matches": [

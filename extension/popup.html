@@ -135,8 +135,19 @@
           <div class="request-info">
             <strong id="pending-request-title">Cleanup Request</strong>
             <p id="pending-request-description"></p>
-            <span class="request-meta" id="pending-request-meta"></span>
+            <div class="request-meta-row">
+              <span class="request-meta" id="pending-request-meta"></span>
+              <button
+                id="toggle-pending-details-button"
+                class="ghost-inline-btn"
+                data-action="toggle-pending-details"
+                type="button"
+              >
+                View details
+              </button>
+            </div>
           </div>
+          <div id="pending-details" class="detail-panel" hidden></div>
           <div class="request-actions">
             <button id="confirm-request-button" class="btn-confirm">Confirm</button>
             <button id="dismiss-request-button" class="btn-dismiss">Dismiss</button>
@@ -156,6 +167,7 @@
           </div>
           <span class="recycle-meta" id="cleanup-meta">No backup yet</span>
         </div>
+        <div id="recycle-bin-list" class="recycle-list"></div>
       </div>
 
       <!-- Export Options -->

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { getCookieInventory, type CookieDomainGroup } from "@/lib/extension-bridge";
+import { subscribeToExtensionSync } from "@/lib/extension-sync";
 
 interface CookieInventoryState {
   groups: CookieDomainGroup[];
@@ -43,6 +44,16 @@ export function useCookieInventory(enabled: boolean): CookieInventoryState {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
+    return subscribeToExtensionSync(() => {
+      load().catch(() => undefined);
+    });
+  }, [enabled, load]);
 
   return { groups, isLoading, error, refresh: load };
 }

@@ -13,6 +13,7 @@ import {
   type CookieDomainCookie,
   type CookieManagementState,
 } from "@/lib/extension-bridge";
+import { subscribeToExtensionSync } from "@/lib/extension-sync";
 
 interface UseCookieManagementOptions {
   enabled: boolean;
@@ -180,6 +181,16 @@ export function useCookieManagement({
   useEffect(() => {
     refresh().catch(() => undefined);
   }, [refresh]);
+
+  useEffect(() => {
+    if (!enabled || isDevMode) {
+      return;
+    }
+
+    return subscribeToExtensionSync(() => {
+      refresh().catch(() => undefined);
+    });
+  }, [enabled, isDevMode, refresh]);
 
   return {
     management,
