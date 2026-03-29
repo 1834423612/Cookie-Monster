@@ -69,8 +69,7 @@ When a preset is confirmed:
 - Stable extension ID baked into the manifest: `fkgahfgnfpnmnkbamedpjkeciljakheb`
 - Allowed dev origin: `http://localhost/*`
 - Allowed production placeholders:
-  - `https://cookie-monster.app/*`
-  - `https://www.cookie-monster.app/*`
-  - `https://cookie-monster.vercel.app/*`
+  - `https://cookie-monster-git-cookie-monster-kjchs-projects.vercel.app/*`
+  - `https://cookie-monster.makesome.cool/*`
 
 If you change the manifest `key`, the extension ID will also change and the website bridge should be updated through `NEXT_PUBLIC_EXTENSION_ID`.

@@ -6,9 +6,8 @@ const STORAGE_KEYS = {
 };
 
 const EXTERNAL_ALLOWED_HOSTS = new Set([
-  "cookie-monster.app",
-  "www.cookie-monster.app",
-  "cookie-monster.vercel.app",
+  "cookie-monster-git-cookie-monster-kjchs-projects.vercel.app/*",
+  "cookie-monster.makesome.cool/*",
 ]);
 
 const SYNC_BROADCAST_MATCHES = [
@@ -16,9 +15,8 @@ const SYNC_BROADCAST_MATCHES = [
   "http://127.0.0.1/*",
   "https://127.0.0.1/*",
   "https://localhost/*",
-  "https://cookie-monster.app/*",
-  "https://www.cookie-monster.app/*",
-  "https://cookie-monster.vercel.app/*",
+  "https://cookie-monster-git-cookie-monster-kjchs-projects.vercel.app/*",
+  "https://cookie-monster.makesome.cool/*",
 ];
 
 const KEYWORDS = {
