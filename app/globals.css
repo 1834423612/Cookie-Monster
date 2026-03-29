@@ -131,6 +131,39 @@
   }
 }
 
+@keyframes jar-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes jar-idle-shake {
+  0%, 86%, 100% {
+    transform: rotate(0deg);
+  }
+  88% {
+    transform: rotate(-2deg);
+  }
+  90% {
+    transform: rotate(2deg);
+  }
+  92% {
+    transform: rotate(-2.5deg);
+  }
+  94% {
+    transform: rotate(2.5deg);
+  }
+  96% {
+    transform: rotate(-1.5deg);
+  }
+  98% {
+    transform: rotate(1.5deg);
+  }
+}
+
 @keyframes float-gentle {
   0%, 100% {
     transform: translateY(0);
@@ -150,6 +183,15 @@
 
 .animate-cookie-float {
   animation: cookie-float 3s ease-in-out infinite;
+}
+
+.animate-jar-fade-out {
+  animation: jar-fade-out 1s ease-out forwards;
+}
+
+.animate-jar-idle-shake {
+  animation: jar-idle-shake 3s ease-in-out infinite;
+  transform-origin: bottom center;
 }
 
 .animate-crumb-fall {

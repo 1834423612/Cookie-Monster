@@ -476,11 +476,11 @@ export default function HomePage() {
   const handleJarClick = useCallback(() => {
     if (jarPhase !== "idle") return;
     setJarPhase(1);
-    setTimeout(() => setJarPhase(2), 250);
-    setTimeout(() => setJarPhase(3), 500);
-    setTimeout(() => setJarPhase(4), 750);
-    setTimeout(() => setJarPhase("fading"), 1000);
-    setTimeout(() => setJarPhase("done"), 2000);
+    setTimeout(() => setJarPhase(2), 500);
+    setTimeout(() => setJarPhase(3), 1000);
+    setTimeout(() => setJarPhase(4), 1500);
+    setTimeout(() => setJarPhase("fading"), 2000);
+    setTimeout(() => setJarPhase("done"), 3000);
   }, [jarPhase]);
 
   const deferredQuery = useDeferredValue(query);
@@ -682,7 +682,11 @@ export default function HomePage() {
               onClick={handleJarClick}
               className="flex items-center justify-center transition hover:-translate-y-0.5"
             >
-              <img src="/jar1.svg" alt="Cookie jar" className="h-135 w-135" />
+              <img
+                src="/jar1.svg"
+                alt="Cookie jar"
+                className="h-135 w-135 animate-jar-idle-shake"
+              />
             </button>
           ) : jarPhase !== "fading" && jarPhase !== "done" ? (
             <div className="flex items-center justify-center">
@@ -699,7 +703,7 @@ export default function HomePage() {
                   <img
                     src="/jar4.svg"
                     alt="Cookie jar"
-                    className="h-135 w-135 transition-opacity duration-1000 opacity-0"
+                    className="h-135 w-135 animate-jar-fade-out"
                   />
                 </div>
               )}
