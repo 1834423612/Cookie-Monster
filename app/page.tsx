@@ -807,7 +807,7 @@ export default function HomePage() {
 
               <div className="min-h-0 flex-1 overflow-auto rounded-[1.35rem] border border-[#e3d7c5] bg-white/60 pr-1">
                 <div className="sticky top-0 z-10 hidden grid-cols-[minmax(0,1.7fr)_82px_110px_140px] gap-2 border-b border-[#e7dccd] bg-[#f5ede1]/95 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a7b66] backdrop-blur md:grid">
-                  <span className="pl-[66px]">Domain</span>
+                  <span className="pl-16.5">Domain</span>
                   <span className="text-center">Cookies</span>
                   <span className="text-center">Expiry</span>
                   <span>Status</span>
