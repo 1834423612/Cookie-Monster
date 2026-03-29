@@ -596,6 +596,7 @@ export default function HomePage() {
   const [message, setMessage] = useState<string | null>(null);
   const [isEating, setIsEating] = useState(false);
   const [isReturningToIdle, setIsReturningToIdle] = useState(false);
+  const [isTagGuideCollapsed, setIsTagGuideCollapsed] = useState(true);
   const [isCookieListExpanded, setIsCookieListExpanded] = useState(false);
   const [isGuideCollapsed, setIsGuideCollapsed] = useState(true);
 
@@ -1396,8 +1397,6 @@ export default function HomePage() {
               className={`absolute inset-0 h-full w-full object-contain transition-opacity duration-200 ${
                 isEating && !isReturningToIdle ? "opacity-0" : "opacity-100"
               }`}
-              preload="auto"
-              style={{ willChange: "opacity" }}
             />
             <video
               key={isEating ? "eating" : "idle"}
@@ -1412,9 +1411,7 @@ export default function HomePage() {
                   setIsReturningToIdle(false);
                 }, 180);
               }}
-              preload="auto"
               className={`h-full w-full object-contain transition-[opacity,transform] duration-200 ${isEating ? "scale-135 opacity-100" : "scale-100 opacity-0"}`}
-              style={{ willChange: "opacity, transform" }}
             />
           </aside>
         </section>
