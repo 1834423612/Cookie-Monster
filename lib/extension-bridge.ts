@@ -275,10 +275,7 @@ async function sendMessageThroughPageBridge(
     return null;
   }
 
-  const ready = await waitForLocalPageBridgeReady();
-  if (!ready) {
-    return null;
-  }
+  await waitForLocalPageBridgeReady();
 
   return new Promise((resolve) => {
     const requestId = `cm-page-bridge-${Date.now()}-${pageBridgeRequestSequence++}`;

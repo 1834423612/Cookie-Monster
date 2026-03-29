@@ -5,10 +5,8 @@ const STORAGE_KEYS = {
   protectedDomains: "cm.protectedDomains",
 };
 
-const EXTERNAL_ALLOWED_HOSTS = new Set([
-  "cookie-monster-git-cookie-monster-kjchs-projects.vercel.app",
-  "cookie-monster.makesome.cool",
-]);
+const EXTERNAL_ALLOWED_HOST_SUFFIXES = ["makesome.cool", "vercel.app"];
+const EXTERNAL_ALLOWED_HOSTS = new Set(["cookie-monster.makesome.cool"]);
 
 const KEYWORDS = {
   essential: ["session", "auth", "csrf", "xsrf", "sid", "token", "login", "__host-", "__secure-"],
@@ -107,7 +105,18 @@ function isAllowedExternalSender(sender) {
       return parsed.protocol === "http:" || parsed.protocol === "https:";
     }
 
-    return parsed.protocol === "https:" && EXTERNAL_ALLOWED_HOSTS.has(parsed.hostname);
+    if (parsed.protocol !== "https:") {
+      return false;
+    }
+
+    if (EXTERNAL_ALLOWED_HOSTS.has(parsed.hostname)) {
+      return true;
+    }
+
+    return EXTERNAL_ALLOWED_HOST_SUFFIXES.some(
+      (suffix) =>
+        parsed.hostname === suffix || parsed.hostname.endsWith(`.${suffix}`)
+    );
   } catch {
     return false;
   }

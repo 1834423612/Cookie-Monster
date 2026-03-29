@@ -16,6 +16,17 @@
   "host_permissions": [
     "<all_urls>"
   ],
+  "externally_connectable": {
+    "matches": [
+      "http://localhost/*",
+      "https://localhost/*",
+      "http://127.0.0.1/*",
+      "https://127.0.0.1/*",
+      "https://cookie-monster.makesome.cool/*",
+      "https://*.makesome.cool/*",
+      "https://*.vercel.app/*"
+    ]
+  },
   "background": {
     "service_worker": "background.js",
     "type": "module"
