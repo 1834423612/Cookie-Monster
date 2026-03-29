@@ -7,6 +7,7 @@ import {
   useDeferredValue,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { Icon } from "@iconify/react";
@@ -63,12 +64,26 @@ const filterScopeOptions = [
   },
 ] as const;
 
-const JAR_ASSET_PATHS = ["/jar1.svg", "/jar2.svg", "/jar3.svg", "/jar4.svg"] as const;
 const JAR_FRAME_MS = 220;
 const JAR_OPEN_HOLD_MS = 120;
 const JAR_REVEAL_MS = 700;
+const JAR_FRAME_SEQUENCE = [1, 2, 3, 4] as const;
+const STATIC_ASSET_CACHE_NAME = "cookie-monster-static-assets";
+const STATIC_ASSET_MANIFEST_KEY = "cm-static-asset-manifest-v1";
+const STATIC_ASSET_MANIFEST = [
+  { path: "/jar1.svg", type: "image", revision: "2026-03-29-1", priority: "high" },
+  { path: "/jar2.svg", type: "image", revision: "2026-03-29-1", priority: "high" },
+  { path: "/jar3.svg", type: "image", revision: "2026-03-29-1", priority: "high" },
+  { path: "/jar4.svg", type: "image", revision: "2026-03-29-1", priority: "high" },
+  { path: "/c2.png", type: "image", revision: "2026-03-29-1", priority: "low" },
+  { path: "/c3.png", type: "image", revision: "2026-03-29-1", priority: "low" },
+  { path: "/c4.png", type: "image", revision: "2026-03-29-1", priority: "low" },
+  { path: "/cm_idle.mp4", type: "video", revision: "2026-03-29-1", priority: "high" },
+  { path: "/cm_eat.mp4", type: "video", revision: "2026-03-29-1", priority: "high" },
+] as const;
 
 type FilterScope = (typeof filterScopeOptions)[number]["id"];
+type IdleWarmupHandle = number | ReturnType<typeof globalThis.setTimeout>;
 
 interface FilteredDomainGroup extends CookieDomainGroup {
   cleanupCandidateCount: number;
@@ -76,6 +91,78 @@ interface FilteredDomainGroup extends CookieDomainGroup {
 
 function getFilterScopeMeta(scope: FilterScope) {
   return filterScopeOptions.find((option) => option.id === scope) || filterScopeOptions[0];
+}
+
+function getStaticAssetManifestSignature() {
+  return STATIC_ASSET_MANIFEST.map((asset) => `${asset.path}:${asset.revision}`).join("|");
+}
+
+function preloadStaticAsset(asset: (typeof STATIC_ASSET_MANIFEST)[number]) {
+  if (typeof document === "undefined") {
+    return;
+  }
+
+  const selector = `link[data-cookie-monster-preload="${asset.path}"]`;
+  if (document.head.querySelector(selector)) {
+    return;
+  }
+
+  const link = document.createElement("link");
+  link.rel = "preload";
+  link.as = asset.type;
+  link.href = asset.path;
+  link.setAttribute("data-cookie-monster-preload", asset.path);
+  if (asset.priority === "high") {
+    link.setAttribute("fetchpriority", "high");
+  }
+  document.head.appendChild(link);
+}
+
+function warmStaticAssetInMemory(asset: (typeof STATIC_ASSET_MANIFEST)[number]) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  if (asset.type === "image") {
+    const image = new window.Image();
+    image.decoding = "async";
+    image.src = asset.path;
+    return;
+  }
+
+  const video = document.createElement("video");
+  video.preload = "auto";
+  video.muted = true;
+  video.playsInline = true;
+  video.src = asset.path;
+  video.load();
+}
+
+async function primeStaticAssetCache(forceRefresh: boolean) {
+  if (typeof window === "undefined" || !("caches" in window)) {
+    return;
+  }
+
+  const cache = await window.caches.open(STATIC_ASSET_CACHE_NAME);
+
+  if (forceRefresh) {
+    const existingRequests = await cache.keys();
+    await Promise.all(existingRequests.map((request) => cache.delete(request)));
+  }
+
+  await Promise.all(
+    STATIC_ASSET_MANIFEST.map(async (asset) => {
+      const cachedResponse = forceRefresh ? null : await cache.match(asset.path);
+      if (cachedResponse) {
+        return;
+      }
+
+      const response = await fetch(asset.path, { cache: forceRefresh ? "reload" : "force-cache" });
+      if (response.ok) {
+        await cache.put(asset.path, response.clone());
+      }
+    })
+  );
 }
 
 function formatExpiry(expirationDate: number | null) {
@@ -318,11 +405,11 @@ const CookieRow = memo(function CookieRow({ cookie, isSelected, onToggle }: Cook
           onToggle(cookie.key);
         }
       }}
-      className={`grid cursor-pointer grid-cols-1 items-center gap-2 border-t border-[#eee4d6] px-4 py-2 transition-colors hover:bg-[#f6efe5] md:grid-cols-[minmax(0,1.7fr)_82px_110px_140px] ${
+      className={`grid cursor-pointer grid-cols-1 items-center gap-1.5 border-t border-[#eee4d6] px-3 py-1.5 transition-colors hover:bg-[#f6efe5] md:grid-cols-[minmax(0,1.7fr)_70px_96px_126px] ${
         isSelected ? "bg-[#efe2cf]" : ""
       }`}
     >
-      <div className="flex items-center gap-3 pl-5">
+      <div className="flex items-center gap-2.5 pl-3">
         <button
           type="button"
           onClick={(event) => {
@@ -337,33 +424,33 @@ const CookieRow = memo(function CookieRow({ cookie, isSelected, onToggle }: Cook
         >
           <Icon
             icon={isSelected ? "mdi:checkbox-marked-circle" : "mdi:checkbox-blank-circle-outline"}
-            className="h-4 w-4"
+            className="h-3.5 w-3.5"
           />
         </button>
-        <img src={getCookieArt(cookie.risk)} alt="" className="h-5 w-5 shrink-0" />
+        <img src={getCookieArt(cookie.risk)} alt="" className="h-4.5 w-4.5 shrink-0" />
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span className="truncate text-[13px] font-medium text-[#342c22]">{cookie.name}</span>
+            <span className="truncate text-[12px] font-medium text-[#342c22]">{cookie.name}</span>
           </div>
-          <p className="mt-0.5 truncate text-[10px] text-[#8a7b66]">
+          <p className="truncate text-[10px] text-[#8a7b66]">
             {cookie.category} - {getSameSiteLabel(cookie.sameSite)} - {getCookieGuidance(cookie)}
           </p>
         </div>
       </div>
 
-      <span className="hidden text-center text-xs text-[#6f6453] md:block">1</span>
+      <span className="hidden text-center text-[11px] text-[#6f6453] md:block">1</span>
       <span
         title={formatExpiry(cookie.expirationDate)}
-        className={`hidden text-center text-xs md:block ${
+        className={`hidden text-center text-[11px] md:block ${
           isUrgent ? "font-semibold text-[#c44b3c]" : "text-[#8a7b66]"
         }`}
       >
         {expiry}
       </span>
       <span
-        className={`hidden items-center gap-2 rounded-md border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] md:inline-flex ${status.className}`}
+        className={`hidden items-center gap-1.5 rounded-md border px-2 py-0.75 text-[9px] font-semibold uppercase tracking-[0.08em] md:inline-flex ${status.className}`}
       >
-        <span className={`h-4 w-1 rounded-full ${status.accentClass}`} />
+        <span className={`h-3.5 w-1 rounded-full ${status.accentClass}`} />
         {status.label}
       </span>
     </div>
@@ -401,7 +488,7 @@ const DomainGroupRow = memo(
       >
         <button
           onClick={() => onToggleExpanded(group.domain)}
-          className={`grid w-full grid-cols-1 items-center gap-2 px-4 py-3 text-left transition-all md:grid-cols-[minmax(0,1.7fr)_82px_110px_140px] ${
+          className={`grid w-full grid-cols-1 items-center gap-1.5 px-3 py-2.5 text-left transition-all md:grid-cols-[minmax(0,1.7fr)_70px_96px_126px] ${
             isExpanded
               ? "bg-[#f8efe3] shadow-[inset_3px_0_0_#d8b48a]"
               : "hover:bg-[#f7f0e5]"
@@ -412,10 +499,10 @@ const DomainGroupRow = memo(
               icon={isExpanded ? "mdi:chevron-down" : "mdi:chevron-right"}
               className="h-4 w-4 shrink-0 text-[#8a7b66]"
             />
-            <img src={getCookieArt(groupRisk)} alt="" className="h-7 w-7 shrink-0" />
+            <img src={getCookieArt(groupRisk)} alt="" className="h-6 w-6 shrink-0" />
             <div className="min-w-0">
-              <p className="truncate font-semibold text-[#342c22]">{group.domain}</p>
-              <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-[#8a7b66]">
+              <p className="truncate text-[13px] font-semibold text-[#342c22]">{group.domain}</p>
+              <div className="mt-0.5 flex flex-wrap gap-1.5 text-[10px] text-[#8a7b66]">
                 {group.cleanupCandidateCount > 0 && (
                   <span className="rounded-full bg-[#fff7ec] px-2 py-0.5 text-[#9b7120]">
                     {group.cleanupCandidateCount} cleanup ready
@@ -440,12 +527,12 @@ const DomainGroupRow = memo(
             </div>
           </div>
 
-          <span className="hidden text-center text-sm text-[#5e5548] md:block">{group.total}</span>
-          <span className="hidden text-center text-xs text-[#8a7b66] md:block">--</span>
+          <span className="hidden text-center text-[12px] text-[#5e5548] md:block">{group.total}</span>
+          <span className="hidden text-center text-[11px] text-[#8a7b66] md:block">--</span>
           <span
-            className={`hidden items-center gap-2 rounded-md border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] md:inline-flex ${groupStatus.className}`}
+            className={`hidden items-center gap-1.5 rounded-md border px-2 py-0.75 text-[9px] font-semibold uppercase tracking-[0.08em] md:inline-flex ${groupStatus.className}`}
           >
-            <span className={`h-4 w-1 rounded-full ${groupStatus.accentClass}`} />
+            <span className={`h-3.5 w-1 rounded-full ${groupStatus.accentClass}`} />
             {groupStatus.label}
           </span>
         </button>
@@ -457,8 +544,8 @@ const DomainGroupRow = memo(
         >
           <div className="overflow-hidden">
             <div
-              className="ml-9 border-l border-[#eadfce] bg-[#fbf7f1]/85"
-              style={{ contentVisibility: "auto", containIntrinsicSize: "220px" }}
+              className="ml-7 border-l border-[#eadfce] bg-[#fbf7f1]/85"
+              style={{ contentVisibility: "auto", containIntrinsicSize: "180px" }}
             >
               {group.items.map((cookie) => (
                 <CookieRow
@@ -498,6 +585,7 @@ const DomainGroupRow = memo(
 export default function HomePage() {
   const extensionStatus = useExtensionStatus();
   const inventory = useCookieInventory(extensionStatus.isInstalled && !extensionStatus.isUsingMockData);
+  const jarTimeoutIdsRef = useRef<number[]>([]);
 
   const [jarPhase, setJarPhase] = useState<"idle" | 1 | 2 | 3 | 4 | "fading" | "done">("idle");
   const [expandedDomains, setExpandedDomains] = useState<Record<string, true>>({});
@@ -510,14 +598,28 @@ export default function HomePage() {
   const [isCookieListExpanded, setIsCookieListExpanded] = useState(false);
   const [isGuideCollapsed, setIsGuideCollapsed] = useState(true);
 
+  const clearJarTimers = useCallback(() => {
+    for (const timeoutId of jarTimeoutIdsRef.current) {
+      window.clearTimeout(timeoutId);
+    }
+    jarTimeoutIdsRef.current = [];
+  }, []);
+
   const handleJarClick = useCallback(() => {
     if (jarPhase !== "idle") return;
+
+    clearJarTimers();
     setJarPhase(2);
-    setTimeout(() => setJarPhase(3), JAR_FRAME_MS);
-    setTimeout(() => setJarPhase(4), JAR_FRAME_MS * 2);
-    setTimeout(() => setJarPhase("fading"), JAR_FRAME_MS * 2 + JAR_OPEN_HOLD_MS);
-    setTimeout(() => setJarPhase("done"), JAR_FRAME_MS * 2 + JAR_OPEN_HOLD_MS + JAR_REVEAL_MS);
-  }, [jarPhase]);
+    jarTimeoutIdsRef.current = [
+      window.setTimeout(() => setJarPhase(3), JAR_FRAME_MS),
+      window.setTimeout(() => setJarPhase(4), JAR_FRAME_MS * 2),
+      window.setTimeout(() => setJarPhase("fading"), JAR_FRAME_MS * 2 + JAR_OPEN_HOLD_MS),
+      window.setTimeout(
+        () => setJarPhase("done"),
+        JAR_FRAME_MS * 2 + JAR_OPEN_HOLD_MS + JAR_REVEAL_MS
+      ),
+    ];
+  }, [clearJarTimers, jarPhase]);
 
   const deferredQuery = useDeferredValue(query);
 
@@ -558,11 +660,57 @@ export default function HomePage() {
   }, [filteredGroups]);
 
   useEffect(() => {
-    for (const path of JAR_ASSET_PATHS) {
-      const image = new window.Image();
-      image.src = path;
+    const manifestSignature = getStaticAssetManifestSignature();
+    const previousManifest = window.localStorage.getItem(STATIC_ASSET_MANIFEST_KEY);
+    const needsRefresh = previousManifest !== manifestSignature;
+    const criticalAssets = STATIC_ASSET_MANIFEST.filter((asset) => asset.priority === "high");
+    const idleAssets = STATIC_ASSET_MANIFEST.filter((asset) => asset.priority !== "high");
+
+    for (const asset of criticalAssets) {
+      preloadStaticAsset(asset);
+      warmStaticAssetInMemory(asset);
     }
+
+    const scheduleIdleWarmup = (callback: IdleRequestCallback) => {
+      if (typeof globalThis.requestIdleCallback === "function") {
+        return globalThis.requestIdleCallback(callback);
+      }
+
+      return globalThis.setTimeout(
+        () => callback({ didTimeout: false, timeRemaining: () => 0 } as IdleDeadline),
+        180
+      );
+    };
+
+    const cancelIdleWarmup = (handle: IdleWarmupHandle) => {
+      if (typeof globalThis.cancelIdleCallback === "function") {
+        globalThis.cancelIdleCallback(handle as number);
+        return;
+      }
+
+      globalThis.clearTimeout(handle as ReturnType<typeof globalThis.setTimeout>);
+    };
+
+    const idleHandle = scheduleIdleWarmup(async () => {
+      for (const asset of idleAssets) {
+        preloadStaticAsset(asset);
+        warmStaticAssetInMemory(asset);
+      }
+
+      try {
+        await primeStaticAssetCache(needsRefresh);
+        window.localStorage.setItem(STATIC_ASSET_MANIFEST_KEY, manifestSignature);
+      } catch {
+        // Ignore cache warmup failures and fall back to normal browser caching.
+      }
+    });
+
+    return () => {
+      cancelIdleWarmup(idleHandle);
+    };
   }, []);
+
+  useEffect(() => clearJarTimers, [clearJarTimers]);
 
   useEffect(() => {
     if (!isCookieListExpanded) {
@@ -651,14 +799,16 @@ export default function HomePage() {
   const visibleSelectedCount = useMemo(() => {
     let total = 0;
 
-    for (const key of visibleSelectableKeys) {
-      if (selectedLookup[key]) {
-        total += 1;
+    for (const group of filteredGroups) {
+      for (const cookie of group.items) {
+        if (selectedLookup[cookie.key]) {
+          total += 1;
+        }
       }
     }
 
     return total;
-  }, [selectedLookup, visibleSelectableKeys]);
+  }, [filteredGroups, selectedLookup]);
 
   const hiddenSelectedCount = Math.max(0, selectedCount - selectionInCurrentSearchCount);
 
@@ -820,11 +970,12 @@ export default function HomePage() {
   }, [keyToDomain, selectedCount, selectedKeys]);
 
   const handleReturnToJar = useCallback(() => {
+    clearJarTimers();
     setIsCookieListExpanded(false);
     setIsEating(false);
     setMessage(null);
     setJarPhase("idle");
-  }, []);
+  }, [clearJarTimers]);
 
   const canRequestFeed = extensionStatus.isInstalled && !extensionStatus.isUsingMockData;
 
@@ -849,7 +1000,7 @@ export default function HomePage() {
     if (pending) {
       setTimeout(() => setIsEating(true), 1000);
       setMessage(
-        `${pending.label} created. The extension will confirm exactly ${pending.cookieCount} cookies before deletion.`
+        `${pending.cookieCount} cookies were sent to the extension. Open the extension to approve the request before cleanup.`
       );
       return;
     }
@@ -894,12 +1045,8 @@ export default function HomePage() {
                 className="flex items-center justify-center transition hover:-translate-y-0.5"
               >
                 <div className="relative h-135 w-135">
-                  {[1, 2, 3, 4].map((frame) => {
-                    const isVisible =
-                      (frame === 1 && (jarPhase === "idle" || jarPhase === 1)) ||
-                      (frame === 2 && jarPhase === 2) ||
-                      (frame === 3 && jarPhase === 3) ||
-                      (frame === 4 && jarPhase === 4);
+                  {JAR_FRAME_SEQUENCE.map((frame) => {
+                    const isVisible = frame === 1;
 
                     return (
                       <img
@@ -907,9 +1054,12 @@ export default function HomePage() {
                         src={`/jar${frame}.svg`}
                         alt="Cookie jar"
                         aria-hidden={!isVisible}
+                        decoding="async"
+                        fetchPriority={frame === 1 ? "high" : "auto"}
                         className={`absolute inset-0 h-135 w-135 transition-opacity duration-75 ${
                           isVisible ? "opacity-100" : "opacity-0"
                         } ${frame === 1 && jarPhase === "idle" ? "animate-jar-idle-shake" : ""}`}
+                        style={{ willChange: "opacity, transform" }}
                       />
                     );
                   })}
@@ -918,7 +1068,7 @@ export default function HomePage() {
             ) : (
               <div className="flex items-center justify-center">
                 <div className="relative h-135 w-135">
-                  {[1, 2, 3, 4].map((frame) => {
+                  {JAR_FRAME_SEQUENCE.map((frame) => {
                     const isVisible =
                       (frame === 1 && jarPhase === 1) ||
                       (frame === 2 && jarPhase === 2) ||
@@ -931,9 +1081,11 @@ export default function HomePage() {
                         src={`/jar${frame}.svg`}
                         alt="Cookie jar"
                         aria-hidden={!isVisible}
+                        decoding="async"
                         className={`absolute inset-0 h-135 w-135 transition-opacity duration-75 ${
                           isVisible ? "opacity-100" : "opacity-0"
                         }`}
+                        style={{ willChange: "opacity, transform" }}
                       />
                     );
                   })}
@@ -948,6 +1100,8 @@ export default function HomePage() {
                     src="/jar4.svg"
                     alt="Cookie jar"
                     className="h-135 w-135 animate-jar-fade-out"
+                    decoding="async"
+                    style={{ willChange: "opacity, transform" }}
                   />
                 </div>
               )}
@@ -1144,8 +1298,8 @@ export default function HomePage() {
                 </div>
 
                 <div className="min-h-0 flex-1 overflow-auto pr-1">
-                  <div className="sticky top-0 z-10 hidden grid-cols-[minmax(0,1.7fr)_82px_110px_140px] gap-2 border-b border-[#e7dccd] bg-[#f5ede1]/95 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a7b66] backdrop-blur md:grid">
-                    <span className="pl-16.5">Domain</span>
+                  <div className="sticky top-0 z-10 hidden grid-cols-[minmax(0,1.7fr)_70px_96px_126px] gap-1.5 border-b border-[#e7dccd] bg-[#f5ede1]/95 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8a7b66] backdrop-blur md:grid">
+                    <span className="pl-12">Domain</span>
                     <span className="text-center">Cookies</span>
                     <span className="text-center">Expiry</span>
                     <span>Status</span>
@@ -1186,7 +1340,7 @@ export default function HomePage() {
                         {visibleSelectedCount.toLocaleString()} visible
                       </span>
                     )}
-                    <span>{selectedCount > 0 ? "Only checked cookies will be queued." : "Select cookies in the list to queue a review."}</span>
+                    <span>{selectedCount > 0 ? "Send only checked cookies. Approve the request in the extension." : "Select cookies in the list, then send them to the extension for approval."}</span>
                   </div>
 
                   <div className="flex flex-wrap gap-2">
@@ -1195,7 +1349,7 @@ export default function HomePage() {
                       disabled={!canRequestFeed || selectedCount === 0}
                       className="rounded-xl bg-[#1d6ed8] px-3 py-1.5 text-xs font-semibold text-white transition enabled:hover:bg-[#185db7] disabled:cursor-not-allowed disabled:bg-slate-300"
                     >
-                      {selectedCount > 0 ? `Queue ${selectedCount.toLocaleString()}` : "Queue selected"}
+                      {selectedCount > 0 ? `Send ${selectedCount.toLocaleString()}` : "Send selected"}
                     </button>
                     <button
                       type="button"
@@ -1229,7 +1383,9 @@ export default function HomePage() {
               loop
               muted
               playsInline
+              preload="auto"
               className={`absolute inset-0 h-full w-full object-contain transition-opacity duration-200 ${isEating ? "opacity-0" : "opacity-100"}`}
+              style={{ willChange: "opacity" }}
             />
             <video
               key={isEating ? "eating" : "idle"}
@@ -1237,8 +1393,10 @@ export default function HomePage() {
               autoPlay={isEating}
               muted
               playsInline
+              preload="auto"
               onEnded={() => setIsEating(false)}
               className={`h-full w-full object-contain transition-[opacity,transform] duration-200 ${isEating ? "scale-145 opacity-100" : "scale-100 opacity-0"}`}
+              style={{ willChange: "opacity, transform" }}
             />
           </aside>
         </section>
