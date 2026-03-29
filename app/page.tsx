@@ -476,6 +476,7 @@ export default function HomePage() {
   const [selectedLookup, setSelectedLookup] = useState<Record<string, true>>({});
   const [message, setMessage] = useState<string | null>(null);
   const [isEating, setIsEating] = useState(false);
+  const [isReturningToIdle, setIsReturningToIdle] = useState(false);
   const [isTagGuideCollapsed, setIsTagGuideCollapsed] = useState(true);
   const [isCookieListExpanded, setIsCookieListExpanded] = useState(false);
 
@@ -695,20 +696,29 @@ export default function HomePage() {
     });
 
     if (pending) {
-      setTimeout(() => setIsEating(true), 1000);
       setMessage(
         `${pending.label} created. The extension will confirm exactly ${pending.cookieCount} cookies before deletion.`
       );
       return;
     }
 
+    setTimeout(() => {
+      setIsReturningToIdle(false);
+      setIsEating(true);
+    }, 1000);
     setMessage("The extension could not create a cleanup request from this selection.");
   };
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-[radial-gradient(circle_at_top_left,#f6ecd8,#efe6d7_45%,#ece7df)] text-[#2d261a]">
       <main className="mx-auto flex min-h-0 w-full max-w-auto flex-1 flex-col px-4 py-6 md:px-8 md:py-10">
-        <section className="grid min-h-0 flex-1 gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <section
+          className={`grid min-h-0 flex-1 gap-4 transition-[grid-template-columns] duration-500 ease-in-out ${
+            isEating
+              ? "md:grid-cols-[minmax(0,1.55fr)_minmax(0,1.45fr)]"
+              : "md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]"
+          }`}
+        >
           {jarPhase !== "fading" && jarPhase !== "done" ? (
             jarPhase === "idle" ? (
               <button
@@ -1059,16 +1069,24 @@ export default function HomePage() {
               loop
               muted
               playsInline
-              className={`absolute inset-0 h-full w-full object-contain transition-opacity duration-200 ${isEating ? "opacity-0" : "opacity-100"}`}
+              className={`absolute inset-0 h-full w-full object-contain transition-opacity duration-200 ${
+                isEating && !isReturningToIdle ? "opacity-0" : "opacity-100"
+              }`}
             />
             <video
               key={isEating ? "eating" : "idle"}
-              src="/cm_eat.mp4"
+              src="/cm_eat2.mp4"
               autoPlay={isEating}
               muted
               playsInline
-              onEnded={() => setIsEating(false)}
-              className={`h-full w-full object-contain transition-[opacity,transform] duration-200 ${isEating ? "scale-145 opacity-100" : "scale-100 opacity-0"}`}
+              onEnded={() => {
+                setIsReturningToIdle(true);
+                setTimeout(() => {
+                  setIsEating(false);
+                  setIsReturningToIdle(false);
+                }, 180);
+              }}
+              className={`h-full w-full object-contain transition-[opacity,transform] duration-200 ${isEating ? "scale-135 opacity-100" : "scale-100 opacity-0"}`}
             />
           </aside>
         </section>
