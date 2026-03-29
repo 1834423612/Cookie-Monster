@@ -3,6 +3,7 @@
 import {
   memo,
   startTransition,
+  type CSSProperties,
   useCallback,
   useDeferredValue,
   useEffect,
@@ -68,7 +69,55 @@ const filterScopeOptions = [
 const JAR_FRAME_MS = 220;
 const JAR_OPEN_HOLD_MS = 120;
 const JAR_REVEAL_MS = 700;
+const COOKIE_BURST_TOTAL_MS = 1200;
 const JAR_FRAME_SEQUENCE = [1, 2, 3, 4] as const;
+const COOKIE_BURST_FRAMES = ["/c1.png", "/c1.png", "/c1.png"] as const;
+type CookieBurstWaypoint = {
+  x: string;
+  y: string;
+  scale: number;
+  rotate: number;
+};
+
+const COOKIE_BURST_PATHS: CookieBurstWaypoint[][] = [
+  [
+    { x: "clamp(210px, 24vw, 420px)", y: "clamp(470px, 76vh, 760px)", scale: 0.95, rotate: -18 },
+    { x: "clamp(190px, 22vw, 380px)", y: "clamp(420px, 67vh, 660px)", scale: 1, rotate: -24 },
+    { x: "clamp(115px, 12vw, 220px)", y: "clamp(320px, 50vh, 500px)", scale: 0.99, rotate: -40 },
+    { x: "clamp(150px, 16vw, 280px)", y: "clamp(200px, 30vh, 300px)", scale: 0.9, rotate: -14 },
+    { x: "clamp(300px, 33vw, 560px)", y: "clamp(165px, 25vh, 255px)", scale: 0.82, rotate: -2 },
+    { x: "clamp(560px, 60vw, 980px)", y: "clamp(205px, 32vh, 330px)", scale: 0.6, rotate: 14 },
+    { x: "clamp(700px, 75vw, 1210px)", y: "clamp(250px, 40vh, 410px)", scale: 0.28, rotate: 24 },
+  ],
+  [
+    { x: "clamp(190px, 22vw, 390px)", y: "clamp(500px, 80vh, 790px)", scale: 0.95, rotate: -28 },
+    { x: "clamp(175px, 20vw, 360px)", y: "clamp(450px, 72vh, 690px)", scale: 1, rotate: -34 },
+    { x: "clamp(95px, 10vw, 190px)", y: "clamp(345px, 54vh, 530px)", scale: 0.99, rotate: -48 },
+    { x: "clamp(135px, 14vw, 250px)", y: "clamp(215px, 32vh, 315px)", scale: 0.88, rotate: -20 },
+    { x: "clamp(280px, 31vw, 530px)", y: "clamp(175px, 26vh, 270px)", scale: 0.8, rotate: -4 },
+    { x: "clamp(545px, 58vw, 960px)", y: "clamp(215px, 34vh, 340px)", scale: 0.58, rotate: 10 },
+    { x: "clamp(695px, 74vw, 1200px)", y: "clamp(255px, 41vh, 415px)", scale: 0.28, rotate: 20 },
+  ],
+  [
+    { x: "clamp(235px, 27vw, 455px)", y: "clamp(515px, 82vh, 810px)", scale: 0.95, rotate: -10 },
+    { x: "clamp(220px, 25vw, 420px)", y: "clamp(460px, 73vh, 705px)", scale: 1, rotate: -14 },
+    { x: "clamp(125px, 13vw, 235px)", y: "clamp(335px, 52vh, 515px)", scale: 0.99, rotate: -30 },
+    { x: "clamp(170px, 18vw, 300px)", y: "clamp(190px, 29vh, 290px)", scale: 0.9, rotate: -8 },
+    { x: "clamp(320px, 35vw, 585px)", y: "clamp(160px, 24vh, 245px)", scale: 0.83, rotate: 0 },
+    { x: "clamp(575px, 61vw, 1000px)", y: "clamp(205px, 32vh, 330px)", scale: 0.58, rotate: 16 },
+    { x: "clamp(710px, 76vw, 1220px)", y: "clamp(250px, 40vh, 410px)", scale: 0.28, rotate: 26 },
+  ],
+];
+
+function createCookieBurstPathStyle(path: CookieBurstWaypoint[]): CSSProperties {
+  return path.reduce((style, waypoint, index) => {
+    style[`--cookie-transform${index}` as keyof CSSProperties] =
+      `translate3d(${waypoint.x}, ${waypoint.y}, 0) scale(${waypoint.scale}) rotate(${waypoint.rotate}deg)`;
+    return style;
+  }, {} as CSSProperties);
+}
+
+const COOKIE_BURST_PATH_STYLES = COOKIE_BURST_PATHS.map(createCookieBurstPathStyle);
 const STATIC_ASSET_CACHE_NAME = "cookie-monster-static-assets";
 const STATIC_ASSET_MANIFEST_KEY = "cm-static-asset-manifest-v1";
 const STATIC_ASSET_MANIFEST = [
@@ -589,6 +638,7 @@ export default function HomePage() {
   const jarTimeoutIdsRef = useRef<number[]>([]);
   const popupOpenTimeoutRef = useRef<number | null>(null);
   const pendingPopupOpenRef = useRef(false);
+  const cookieBurstTimeoutRef = useRef<number | null>(null);
 
   const [jarPhase, setJarPhase] = useState<"idle" | 1 | 2 | 3 | 4 | "fading" | "done">("idle");
   const [expandedDomains, setExpandedDomains] = useState<Record<string, true>>({});
@@ -599,6 +649,9 @@ export default function HomePage() {
   const [message, setMessage] = useState<string | null>(null);
   const [isEating, setIsEating] = useState(false);
   const [isReturningToIdle, setIsReturningToIdle] = useState(false);
+  const [cookieBurstId, setCookieBurstId] = useState(0);
+  const [showCookieBurst, setShowCookieBurst] = useState(false);
+  const [isTagGuideCollapsed, setIsTagGuideCollapsed] = useState(true);
   const [isCookieListExpanded, setIsCookieListExpanded] = useState(false);
   const [isGuideCollapsed, setIsGuideCollapsed] = useState(true);
 
@@ -631,6 +684,19 @@ export default function HomePage() {
       );
     }
   }, [clearPopupOpenTimer]);
+
+  const startCookieBurst = useCallback(() => {
+    if (cookieBurstTimeoutRef.current) {
+      window.clearTimeout(cookieBurstTimeoutRef.current);
+    }
+
+    setShowCookieBurst(true);
+    setCookieBurstId((current) => current + 1);
+    cookieBurstTimeoutRef.current = window.setTimeout(() => {
+      setShowCookieBurst(false);
+      cookieBurstTimeoutRef.current = null;
+    }, COOKIE_BURST_TOTAL_MS);
+  }, []);
 
   const handleJarClick = useCallback(() => {
     if (jarPhase !== "idle") return;
@@ -739,6 +805,15 @@ export default function HomePage() {
 
   useEffect(() => clearJarTimers, [clearJarTimers]);
   useEffect(() => clearPopupOpenTimer, [clearPopupOpenTimer]);
+
+  useEffect(
+    () => () => {
+      if (cookieBurstTimeoutRef.current) {
+        window.clearTimeout(cookieBurstTimeoutRef.current);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     if (!isCookieListExpanded) {
@@ -1021,6 +1096,8 @@ export default function HomePage() {
       return;
     }
 
+    startCookieBurst();
+
     const pending = await requestCookieFeed({
       description:
         `Only the ${selectedKeys.length} checked cookies from the website will be reviewed in the extension.`,
@@ -1077,12 +1154,38 @@ export default function HomePage() {
     <div className="flex h-screen flex-col overflow-hidden bg-[radial-gradient(circle_at_top_left,#f6ecd8,#efe6d7_45%,#ece7df)] text-[#2d261a]">
       <main className="mx-auto flex min-h-0 w-full max-w-auto flex-1 flex-col px-4 py-6 md:px-8 md:py-10">
         <section
-          className={`grid min-h-0 flex-1 gap-4 transition-[grid-template-columns] duration-500 ease-in-out ${
+          className={`relative grid min-h-0 flex-1 gap-4 transition-[grid-template-columns] duration-500 ease-in-out ${
             isEating
-              ? "md:grid-cols-[minmax(0,1.55fr)_minmax(0,1.45fr)]"
+              ? "md:grid-cols-[minmax(0,1.50fr)_minmax(0,1.50fr)]"
               : "md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]"
           }`}
         >
+          <div
+            className="pointer-events-none absolute inset-0 z-30"
+            data-cookie-burst-id={cookieBurstId}
+            aria-hidden="true"
+          >
+            {COOKIE_BURST_FRAMES.map((cookieSrc, index) => (
+              <img
+                key={`${cookieSrc}-${index}`}
+                src={cookieSrc}
+                alt=""
+                className={`absolute w-12 object-contain ${
+                  showCookieBurst
+                    ? index === 0
+                      ? "animate-cookie-to-mouth-1"
+                      : index === 1
+                        ? "animate-cookie-to-mouth-2"
+                        : "animate-cookie-to-mouth-3"
+                    : ""
+                }`}
+                style={{
+                  ...COOKIE_BURST_PATH_STYLES[index],
+                  opacity: 0,
+                }}
+              />
+            ))}
+          </div>
           {jarPhase !== "fading" && jarPhase !== "done" ? (
             jarPhase === "idle" ? (
               <button
