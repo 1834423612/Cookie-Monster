@@ -158,26 +158,20 @@ export default function HomePage() {
               className="rounded-3xl border border-[#d7c7af] bg-[#fff8ea] p-8 text-center transition hover:-translate-y-0.5 hover:shadow-xl"
             >
               <div className="mx-auto mb-3 h-44 w-44 rounded-3xl border border-[#dbc8ad] bg-white text-8xl leading-44 shadow-inner">🫙</div>
-              <strong className="text-xl">Open cookie list</strong>
-              <p className="mt-2 text-sm text-[#6f6453]">Placeholder art for jar and monster can be replaced with final assets.</p>
             </button>
           ) : (
             <section className="flex min-h-0 flex-col p-4">
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <h2 className="text-lg font-semibold">Domain cookie inventory (local)</h2>
-              </div>
-
               <div className="mb-3 grid gap-2 md:grid-cols-[1fr_auto_auto]">
                 <input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="Filter by domain, cookie name, or category"
-                  className="h-10 rounded-xl border border-[#ddcfba] bg-white px-3 text-sm"
+                  className="h-10 rounded-xl border border-[#ddcfba] bg-[#ddcfba] px-3 text-sm"
                 />
                 <select
                   value={preset}
                   onChange={(event) => setPreset(event.target.value as CleanupPresetId | "all")}
-                  className="h-10 rounded-xl border border-[#ddcfba] bg-white px-3 text-sm"
+                  className="h-10 rounded-xl border border-[#ddcfba] bg-[#ddcfba] px-3 text-sm"
                 >
                   <option value="all">All groups</option>
                   {presetFilters.map((filter) => (
@@ -191,7 +185,7 @@ export default function HomePage() {
                     extensionStatus.refresh();
                     inventory.refresh();
                   }}
-                  className="h-10 rounded-xl border border-[#ddcfba] bg-white px-3 text-sm hover:bg-[#faf6f0]"
+                  className="h-10 rounded-xl border border-[#ddcfba] bg-[#ddcfba] px-3 text-sm hover:bg-[#faf6f0]"
                 >
                   Refresh
                 </button>
@@ -199,7 +193,7 @@ export default function HomePage() {
 
               {inventory.isLoading && !extensionStatus.isUsingMockData && (
                 <div className="flex items-center gap-2 p-3 text-sm text-[#6f6453]">
-                  <Icon icon="mdi:loading" className="h-4 w-4 animate-spin" /> Loading local cookie inventory...
+                  <Icon icon="mdi:loading" className="h-4 w-4 animate-spin" />  Baking cookies...
                 </div>
               )}
 
@@ -210,13 +204,19 @@ export default function HomePage() {
               )}
 
               <div className="min-h-0 flex-1 overflow-auto pr-1">
-                <table className="w-full border-separate border-spacing-y-1 text-sm">
+                <table className="w-full table-fixed border-separate border-spacing-y-1 text-sm">
+                  <colgroup>
+                    <col className="w-[80%]" />
+                    <col className="w-[15%]" />
+                    <col className="w-[27%]" />
+                    <col className="w-8" />
+                  </colgroup>
                   <thead className="sticky top-0 z-10 bg-[#f6ecd8]">
-                    <tr className="border-b border-[#ddcfba] text-left text-xs font-semibold text-[#6f6453]">
-                      <th className="py-2 pl-2 pr-3">Domain / Cookie</th>
-                      <th className="py-2 px-3">Risk</th>
-                      <th className="py-2 px-3">Expiry</th>
-                      <th className="py-2 px-3 w-8"></th>
+                    <tr className="text-left text-xs font-semibold text-[#6f6453] [&>th:first-child]:rounded-l-xl [&>th:last-child]:rounded-r-xl">
+                      <th className="bg-[#e5d9c3] py-2 pl-2 pr-3">Domain / Cookie</th>
+                      <th className="bg-[#e5d9c3] py-2 px-3">Risk</th>
+                      <th className="bg-[#e5d9c3] py-2 px-3">Expiry</th>
+                      <th className="bg-[#e5d9c3] py-2 px-3 w-8"></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -227,9 +227,9 @@ export default function HomePage() {
                           onClick={() => setExpandedDomain((current) => (current === group.domain ? null : group.domain))}
                           className="cursor-pointer transition-colors hover:bg-[#cabb9a] [&>td:first-child]:rounded-l-xl [&>td:last-child]:rounded-r-xl"
                         >
-                          <td className="py-2.5 pl-2 pr-3">
-                            <p className="font-semibold">{group.domain}</p>
-                            <p className="text-xs text-[#6f6453]">{group.total} cookies · High risk {group.highRiskCount}</p>
+                          <td className="max-w-[45ch] truncate py-2.5 pl-2 pr-3">
+                            <p className="truncate font-semibold">{group.domain}</p>
+                            <p className="text-xs text-[#6f6453]">{group.total} cookies</p>
                           </td>
                           <td className="py-2.5 px-3">
                             {group.highRiskCount > 0 ? (
@@ -250,10 +250,10 @@ export default function HomePage() {
                             <tr
                               key={cookie.key}
                               onClick={() => toggleCookie(cookie.key)}
-                              className={`cursor-pointer transition-colors hover:bg-[#cabb9a] [&>td:first-child]:rounded-l-xl [&>td:last-child]:rounded-r-xl ${selected[cookie.key] ? "bg-[#e2d4be]" : ""}`}
+                              className={`cursor-pointer hover:bg-[#cabb9a] [&>td:first-child]:rounded-l-xl [&>td:last-child]:rounded-r-xl ${selected[cookie.key] ? "bg-[#e2d4be]" : ""}`}
                             >
-                              <td className="py-2 pl-8 pr-3">
-                                <div className="flex items-center gap-2">
+                              <td className="max-w-[45ch] py-2 pl-8 pr-3">
+                                <div className="flex items-center gap-2 truncate">
                                   <img
                                     src={cookie.risk === "high" ? "/c4.png" : cookie.risk === "medium" ? "/c3.png" : "/c2.png"}
                                     alt=""
@@ -289,19 +289,13 @@ export default function HomePage() {
                 )}
               </div>
 
-              <div className="mt-4 rounded-2xl border border-[#eadfce] bg-white p-4">
-                <div className="flex items-center justify-between text-sm">
-                  <span>Selected cookies</span>
-                  <strong>{selectedCount}</strong>
-                </div>
-                <button
-                  onClick={requestFeed}
-                  disabled={!canRequestFeed}
-                  className="mt-3 w-full rounded-xl bg-[#1d6ed8] px-3 py-2 text-sm font-semibold text-white enabled:hover:bg-[#185db7] disabled:cursor-not-allowed disabled:bg-slate-300"
-                >
-                  Create local cleanup request (extension confirmation required)
-                </button>
-              </div>
+              <button
+                onClick={requestFeed}
+                disabled={selectedCount === 0 || !canRequestFeed}
+                className="mt-4 w-full rounded-xl bg-[#1d6ed8] px-3 py-2 text-sm font-semibold text-white enabled:hover:bg-[#185db7] disabled:cursor-not-allowed disabled:bg-slate-300"
+              >
+                Eat {selectedCount} selected cookies
+              </button>
             </section>
           )}
 
