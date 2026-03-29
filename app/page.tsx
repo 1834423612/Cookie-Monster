@@ -39,6 +39,11 @@ const filterScopeOptions = [
   { id: "all", label: "All cookies" },
 ] as const;
 
+const JAR_ASSET_PATHS = ["/jar1.svg", "/jar2.svg", "/jar3.svg", "/jar4.svg"] as const;
+const JAR_FRAME_MS = 220;
+const JAR_OPEN_HOLD_MS = 120;
+const JAR_REVEAL_MS = 700;
+
 type FilterScope = (typeof filterScopeOptions)[number]["id"];
 
 interface FilteredDomainGroup extends CookieDomainGroup {
@@ -476,12 +481,11 @@ export default function HomePage() {
 
   const handleJarClick = useCallback(() => {
     if (jarPhase !== "idle") return;
-    setJarPhase(1);
-    setTimeout(() => setJarPhase(2), 500);
-    setTimeout(() => setJarPhase(3), 1000);
-    setTimeout(() => setJarPhase(4), 1500);
-    setTimeout(() => setJarPhase("fading"), 2000);
-    setTimeout(() => setJarPhase("done"), 3000);
+    setJarPhase(2);
+    setTimeout(() => setJarPhase(3), JAR_FRAME_MS);
+    setTimeout(() => setJarPhase(4), JAR_FRAME_MS * 2);
+    setTimeout(() => setJarPhase("fading"), JAR_FRAME_MS * 2 + JAR_OPEN_HOLD_MS);
+    setTimeout(() => setJarPhase("done"), JAR_FRAME_MS * 2 + JAR_OPEN_HOLD_MS + JAR_REVEAL_MS);
   }, [jarPhase]);
 
   const deferredQuery = useDeferredValue(query);
@@ -506,6 +510,13 @@ export default function HomePage() {
       setExpandedDomain(null);
     }
   }, [expandedDomain, filteredGroups]);
+
+  useEffect(() => {
+    for (const path of JAR_ASSET_PATHS) {
+      const image = new window.Image();
+      image.src = path;
+    }
+  }, []);
 
   useEffect(() => {
     if (!isCookieListExpanded) {
@@ -699,25 +710,59 @@ export default function HomePage() {
     <div className="flex h-screen flex-col overflow-hidden bg-[radial-gradient(circle_at_top_left,#f6ecd8,#efe6d7_45%,#ece7df)] text-[#2d261a]">
       <main className="mx-auto flex min-h-0 w-full max-w-auto flex-1 flex-col px-4 py-6 md:px-8 md:py-10">
         <section className="grid min-h-0 flex-1 gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-          {jarPhase === "idle" ? (
-            <button
-              onClick={handleJarClick}
-              className="flex items-center justify-center transition hover:-translate-y-0.5"
-            >
-              <img
-                src="/jar1.svg"
-                alt="Cookie jar"
-                className="h-135 w-135 animate-jar-idle-shake"
-              />
-            </button>
-          ) : jarPhase !== "fading" && jarPhase !== "done" ? (
-            <div className="flex items-center justify-center">
-              <img
-                src={`/jar${jarPhase}.svg`}
-                alt="Cookie jar"
-                className="h-135 w-135"
-              />
-            </div>
+          {jarPhase !== "fading" && jarPhase !== "done" ? (
+            jarPhase === "idle" ? (
+              <button
+                onClick={handleJarClick}
+                className="flex items-center justify-center transition hover:-translate-y-0.5"
+              >
+                <div className="relative h-135 w-135">
+                  {[1, 2, 3, 4].map((frame) => {
+                    const isVisible =
+                      (frame === 1 && (jarPhase === "idle" || jarPhase === 1)) ||
+                      (frame === 2 && jarPhase === 2) ||
+                      (frame === 3 && jarPhase === 3) ||
+                      (frame === 4 && jarPhase === 4);
+
+                    return (
+                      <img
+                        key={frame}
+                        src={`/jar${frame}.svg`}
+                        alt="Cookie jar"
+                        aria-hidden={!isVisible}
+                        className={`absolute inset-0 h-135 w-135 transition-opacity duration-75 ${
+                          isVisible ? "opacity-100" : "opacity-0"
+                        } ${frame === 1 && jarPhase === "idle" ? "animate-jar-idle-shake" : ""}`}
+                      />
+                    );
+                  })}
+                </div>
+              </button>
+            ) : (
+              <div className="flex items-center justify-center">
+                <div className="relative h-135 w-135">
+                  {[1, 2, 3, 4].map((frame) => {
+                    const isVisible =
+                      (frame === 1 && jarPhase === 1) ||
+                      (frame === 2 && jarPhase === 2) ||
+                      (frame === 3 && jarPhase === 3) ||
+                      (frame === 4 && jarPhase === 4);
+
+                    return (
+                      <img
+                        key={frame}
+                        src={`/jar${frame}.svg`}
+                        alt="Cookie jar"
+                        aria-hidden={!isVisible}
+                        className={`absolute inset-0 h-135 w-135 transition-opacity duration-75 ${
+                          isVisible ? "opacity-100" : "opacity-0"
+                        }`}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            )
           ) : (
             <div className="relative flex min-h-0 min-w-0 flex-col">
               {jarPhase === "fading" && (
@@ -730,7 +775,7 @@ export default function HomePage() {
                 </div>
               )}
               <section
-                className="flex min-h-0 min-w-0 flex-1 flex-col p-4 transition-opacity duration-1000"
+                className="flex min-h-0 min-w-0 flex-1 flex-col p-4 transition-opacity duration-700"
                 style={{ opacity: jarPhase === "done" ? 1 : 0 }}
               >
               <div className="mb-4 rounded-[1.35rem] border border-[#e3d7c5] bg-white/75 p-4 shadow-[0_10px_28px_rgba(88,62,31,0.06)]">
@@ -1001,9 +1046,12 @@ export default function HomePage() {
           )}
 
           <aside
-            className="relative min-h-0 min-w-0 overflow-hidden transition-transform duration-1000 ease-in-out"
+            className="relative min-h-0 min-w-0 overflow-hidden transition-transform duration-700 ease-out"
             style={{
-              transform: jarPhase === "fading" || jarPhase === "done" ? "translateX(0)" : "translateX(-40%)",
+              transform:
+                jarPhase === "fading" || jarPhase === "done"
+                  ? "translateX(0)"
+                  : "translateX(-40%)",
             }}
           >
             <video
