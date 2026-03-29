@@ -63,7 +63,7 @@ function EmptyStateMascot() {
       </div>
       
       {/* Question marks */}
-      <div className="absolute -bottom-1 right-0 text-2xl text-muted-foreground/50 animate-pulse">?</div>
+      <div className="absolute -bottom-1 right-0 text-2xl text-slate-400/50 animate-pulse">?</div>
     </div>
   );
 }
@@ -88,11 +88,11 @@ export function EmptyDashboardState({
       <div className="max-w-md text-center">
         <EmptyStateMascot />
 
-        <h2 className="text-2xl font-bold text-foreground mb-3">{title}</h2>
-        <p className="text-muted-foreground mb-4">{body}</p>
+        <h2 className="text-2xl font-bold text-slate-800 mb-3">{title}</h2>
+        <p className="text-slate-500 mb-4">{body}</p>
 
         {message ? (
-          <div className="mb-8 rounded-2xl border border-border bg-muted/60 px-4 py-3 text-sm text-muted-foreground">
+          <div className="mb-8 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
             {message}
           </div>
         ) : (
@@ -102,14 +102,14 @@ export function EmptyDashboardState({
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8">
           <button
             onClick={onOpenExtension}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-secondary text-primary-foreground px-6 py-3 rounded-xl font-medium hover:opacity-90 transition-opacity shadow-md"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-6 py-3 rounded-xl font-medium hover:from-blue-600 hover:to-cyan-600 transition-all shadow-md shadow-blue-500/20"
           >
             <Icon icon="mdi:puzzle" className="w-5 h-5" />
             {isExtensionInstalled ? "Open Extension" : "Get Extension"}
           </button>
           <button
             onClick={onImportClick}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-card border border-border text-foreground px-6 py-3 rounded-xl font-medium hover:bg-muted transition-colors"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-700 px-6 py-3 rounded-xl font-medium hover:bg-slate-50 transition-colors"
           >
             <Icon icon="mdi:file-upload" className="w-5 h-5" />
             Import Report
@@ -117,19 +117,19 @@ export function EmptyDashboardState({
         </div>
 
         {!isExtensionInstalled && (
-          <div className="border-t border-border pt-6">
-            <p className="text-xs text-muted-foreground mb-3">Development Mode</p>
+          <div className="border-t border-slate-200 pt-6">
+            <p className="text-xs text-slate-400 mb-3">Development Mode</p>
             <button
               onClick={onDevModeToggle}
-              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 transition-colors"
             >
               <div
                 className={`w-11 h-6 rounded-full transition-colors relative ${
-                  isDevMode ? "bg-primary" : "bg-muted border border-border"
+                  isDevMode ? "bg-blue-500" : "bg-slate-200"
                 }`}
               >
                 <div
-                  className={`absolute top-0.5 w-5 h-5 rounded-full bg-card shadow-md transition-all ${
+                  className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-all ${
                     isDevMode ? "left-5" : "left-0.5"
                   }`}
                 />

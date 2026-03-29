@@ -22,9 +22,9 @@ interface MonsterConsoleProps {
 }
 
 const riskClassNames: Record<string, string> = {
-  high: "bg-risk-high/10 text-risk-high border-risk-high/20",
-  medium: "bg-risk-medium/10 text-risk-medium border-risk-medium/20",
-  low: "bg-chart-3/10 text-chart-3 border-chart-3/20",
+  high: "bg-red-50 text-red-600 border-red-200",
+  medium: "bg-amber-50 text-amber-600 border-amber-200",
+  low: "bg-emerald-50 text-emerald-600 border-emerald-200",
 };
 
 export function MonsterConsole({
@@ -75,74 +75,74 @@ export function MonsterConsole({
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[2rem] border border-border bg-[linear-gradient(135deg,rgba(30,111,217,0.12),rgba(183,121,31,0.14),rgba(255,255,255,0.9))] p-6">
+      <section className="relative overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-blue-50/80 via-white to-cyan-50/60 p-6 shadow-sm">
         <div className="absolute right-6 top-6 hidden lg:block">
           <div className="relative h-40 w-40">
-            <div className="absolute inset-0 rounded-full bg-foreground shadow-[0_30px_80px_rgba(47,39,28,0.18)]" />
-            <div className="absolute left-7 top-10 h-4 w-4 rounded-full bg-background" />
-            <div className="absolute right-7 top-10 h-4 w-4 rounded-full bg-background" />
-            <div className="absolute left-6 right-6 top-20 h-12 rounded-b-[999px] rounded-t-[16px] bg-risk-high/90" />
-            <div className="absolute bottom-7 left-1/2 h-10 w-16 -translate-x-1/2 rounded-b-[999px] rounded-t-[12px] bg-background/90" />
+            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-400 to-cyan-500 shadow-xl shadow-blue-500/20" />
+            <div className="absolute left-7 top-10 h-4 w-4 rounded-full bg-white" />
+            <div className="absolute right-7 top-10 h-4 w-4 rounded-full bg-white" />
+            <div className="absolute left-6 right-6 top-20 h-12 rounded-b-[999px] rounded-t-[16px] bg-red-400" />
+            <div className="absolute bottom-7 left-1/2 h-10 w-16 -translate-x-1/2 rounded-b-[999px] rounded-t-[12px] bg-white" />
           </div>
         </div>
 
         <div className="max-w-3xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/70 px-4 py-2 text-sm text-foreground mb-4">
-            <Icon icon="mdi:cookie-open" className="h-4 w-4 text-primary" />
-            <span>Website Mission Control</span>
+          <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white px-4 py-2 text-sm text-slate-700 mb-4 shadow-sm">
+            <Icon icon="mdi:cookie-open" className="h-4 w-4 text-blue-500" />
+            <span className="font-medium">Website Mission Control</span>
           </div>
-          <h2 className="text-3xl font-bold text-foreground text-balance">
+          <h2 className="text-3xl font-bold text-slate-800 text-balance">
             Feed the monster from the website, let the extension handle the dangerous chewing.
           </h2>
-          <p className="mt-3 max-w-2xl text-muted-foreground">
+          <p className="mt-3 max-w-2xl text-slate-500">
             Pick a cleanup batch, inspect cookie-by-cookie details, protect trusted domains,
             and restore anything the monster ate by mistake. The website drives the flow;
             the extension only performs local cookie access and writes.
           </p>
 
           <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <div className="rounded-2xl border border-white/70 bg-white/75 p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <p className="text-xs uppercase tracking-wider text-slate-400 font-medium">
                 Domains
               </p>
-              <p className="mt-2 text-2xl font-bold text-foreground">
+              <p className="mt-2 text-2xl font-bold text-slate-800">
                 {management.domains.length.toLocaleString()}
               </p>
             </div>
-            <div className="rounded-2xl border border-white/70 bg-white/75 p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <p className="text-xs uppercase tracking-wider text-slate-400 font-medium">
                 Protected
               </p>
-              <p className="mt-2 text-2xl font-bold text-foreground">
+              <p className="mt-2 text-2xl font-bold text-slate-800">
                 {management.protectedDomains.length.toLocaleString()}
               </p>
             </div>
-            <div className="rounded-2xl border border-white/70 bg-white/75 p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <p className="text-xs uppercase tracking-wider text-slate-400 font-medium">
                 Recycle Bin
               </p>
-              <p className="mt-2 text-2xl font-bold text-foreground">
+              <p className="mt-2 text-2xl font-bold text-slate-800">
                 {management.recycleBin.length.toLocaleString()}
               </p>
             </div>
-            <div className="rounded-2xl border border-white/70 bg-white/75 p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <p className="text-xs uppercase tracking-wider text-slate-400 font-medium">
                 Pending
               </p>
-              <p className="mt-2 text-2xl font-bold text-foreground">
+              <p className="mt-2 text-2xl font-bold text-slate-800">
                 {management.pendingFeedRequest ? "1" : "0"}
               </p>
             </div>
           </div>
 
           {management.pendingFeedRequest && (
-            <div className="mt-6 rounded-2xl border border-white/70 bg-white/80 p-4">
+            <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-foreground">
+                  <p className="text-sm font-semibold text-slate-800">
                     Pending feed request: {management.pendingFeedRequest.label}
                   </p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-slate-500">
                     {management.pendingFeedRequest.cookieCount.toLocaleString()} cookies across{" "}
                     {management.pendingFeedRequest.domainCount.toLocaleString()} domains are waiting for extension confirmation.
                   </p>
@@ -151,7 +151,7 @@ export function MonsterConsole({
                   {management.pendingFeedRequest.sampleDomains.map((domain) => (
                     <span
                       key={domain}
-                      className="rounded-full border border-border bg-card px-2.5 py-1 text-[11px] text-muted-foreground"
+                      className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] text-slate-500"
                     >
                       {domain}
                     </span>
@@ -167,7 +167,7 @@ export function MonsterConsole({
                 <button
                   key={presetId}
                   onClick={() => onRequestFeed(presetId)}
-                  className="inline-flex items-center gap-2 rounded-full bg-foreground px-4 py-2 text-sm font-medium text-background hover:opacity-90 transition-opacity"
+                  className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 px-4 py-2 text-sm font-medium text-white hover:from-blue-600 hover:to-cyan-600 transition-all shadow-md shadow-blue-500/20"
                 >
                   <Icon icon="mdi:cookie-outline" className="h-4 w-4" />
                   Feed {presetId}
@@ -180,11 +180,11 @@ export function MonsterConsole({
 
       <section className="grid grid-cols-1 xl:grid-cols-[320px_minmax(0,1fr)] gap-6">
         <div className="space-y-4">
-          <div className="rounded-2xl border border-border bg-card p-4">
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex items-center justify-between gap-3 mb-4">
               <div>
-                <h3 className="font-semibold text-foreground">Domain Stash</h3>
-                <p className="text-sm text-muted-foreground">
+                <h3 className="font-semibold text-slate-800">Domain Stash</h3>
+                <p className="text-sm text-slate-500">
                   Pick a website to inspect its cookies and feed controls.
                 </p>
               </div>
@@ -192,13 +192,13 @@ export function MonsterConsole({
             <div className="relative mb-4">
               <Icon
                 icon="mdi:magnify"
-                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
               />
               <input
                 value={domainQuery}
                 onChange={(event) => setDomainQuery(event.target.value)}
                 placeholder="Search a domain"
-                className="w-full rounded-xl border border-border bg-background px-10 py-2.5 text-sm text-foreground outline-none ring-0"
+                className="w-full rounded-lg border border-slate-200 bg-white px-10 py-2.5 text-sm text-slate-700 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100 transition-all"
               />
             </div>
             <div className="space-y-2 max-h-[520px] overflow-auto pr-1">
@@ -212,22 +212,22 @@ export function MonsterConsole({
                       setSelectedKeys([]);
                       onSelectDomain(domain.domain);
                     }}
-                    className={`w-full rounded-2xl border px-4 py-3 text-left transition-colors ${
+                    className={`w-full rounded-xl border px-4 py-3 text-left transition-all ${
                       isSelected
-                        ? "border-primary bg-primary/10"
-                        : "border-border bg-background hover:bg-muted/60"
+                        ? "border-blue-300 bg-blue-50 shadow-sm"
+                        : "border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="font-medium text-foreground">{domain.domain}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className="font-medium text-slate-800">{domain.domain}</p>
+                        <p className="text-xs text-slate-500 mt-1">
                           {domain.cookieCount.toLocaleString()} cookies,{" "}
                           {domain.feedableCount.toLocaleString()} feedable
                         </p>
                       </div>
                       {domain.protected && (
-                        <span className="rounded-full border border-chart-3/20 bg-chart-3/10 px-2 py-0.5 text-[11px] font-medium text-chart-3">
+                        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-600">
                           Protected
                         </span>
                       )}
@@ -238,29 +238,29 @@ export function MonsterConsole({
             </div>
           </div>
 
-          <div className="rounded-2xl border border-border bg-card p-4">
-            <h3 className="font-semibold text-foreground mb-3">Recycle Bin History</h3>
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <h3 className="font-semibold text-slate-800 mb-3">Recycle Bin History</h3>
             <div className="space-y-3">
               {management.recycleBin.map((batch) => (
                 <div
                   key={batch.id}
-                  className="rounded-2xl border border-border bg-background/70 p-3"
+                  className="rounded-lg border border-slate-200 bg-slate-50 p-3"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-medium text-foreground">{batch.label}</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="font-medium text-slate-800">{batch.label}</p>
+                      <p className="text-xs text-slate-500">
                         {new Date(batch.createdAt).toLocaleString()}
                       </p>
                     </div>
                     <button
                       onClick={() => onRestoreBatch(batch.id)}
-                      className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-foreground hover:bg-muted/80 transition-colors"
+                      className="rounded-lg bg-white border border-slate-200 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors"
                     >
                       Restore
                     </button>
                   </div>
-                  <p className="mt-2 text-sm text-muted-foreground">
+                  <p className="mt-2 text-sm text-slate-500">
                     {batch.cookieCount.toLocaleString()} cookies from{" "}
                     {batch.domainCount.toLocaleString()} domains
                   </p>
@@ -268,7 +268,7 @@ export function MonsterConsole({
                     {batch.sampleDomains.map((domain) => (
                       <span
                         key={domain}
-                        className="rounded-full border border-border bg-card px-2 py-1 text-[11px] text-muted-foreground"
+                        className="rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px] text-slate-500"
                       >
                         {domain}
                       </span>
@@ -277,7 +277,7 @@ export function MonsterConsole({
                 </div>
               ))}
               {management.recycleBin.length === 0 && (
-                <div className="rounded-2xl border border-dashed border-border bg-background/70 p-4 text-sm text-muted-foreground">
+                <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
                   The monster hasn&apos;t eaten anything yet.
                 </div>
               )}
@@ -285,26 +285,26 @@ export function MonsterConsole({
           </div>
         </div>
 
-        <div className="rounded-2xl border border-border bg-card p-5">
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           {selectedDomainEntry ? (
             <>
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between mb-5">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-xl font-semibold text-foreground">
+                    <h3 className="text-xl font-semibold text-slate-800">
                       {selectedDomainEntry.domain}
                     </h3>
                     <span
-                      className={`rounded-full border px-2.5 py-1 text-xs font-medium ${
+                      className={`rounded-lg border px-2.5 py-1 text-xs font-medium ${
                         selectedDomainEntry.protected
-                          ? "border-chart-3/20 bg-chart-3/10 text-chart-3"
-                          : "border-border bg-muted text-muted-foreground"
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-600"
+                          : "border-slate-200 bg-slate-100 text-slate-500"
                       }`}
                     >
                       {selectedDomainEntry.protected ? "Protected" : "Vulnerable"}
                     </span>
                   </div>
-                  <p className="mt-2 text-sm text-muted-foreground">
+                  <p className="mt-2 text-sm text-slate-500">
                     {selectedDomainEntry.cookieCount.toLocaleString()} cookies total,{" "}
                     {selectedDomainEntry.feedableCount.toLocaleString()} currently feedable.
                   </p>
@@ -318,7 +318,7 @@ export function MonsterConsole({
                         !selectedDomainEntry.protected
                       )
                     }
-                    className="inline-flex items-center gap-2 rounded-xl bg-muted px-4 py-2 text-sm font-medium text-foreground hover:bg-muted/80 transition-colors"
+                    className="inline-flex items-center gap-2 rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 transition-colors"
                   >
                     <Icon
                       icon={
@@ -333,7 +333,7 @@ export function MonsterConsole({
                   <button
                     onClick={() => onDeleteDomain(selectedDomainEntry.domain)}
                     disabled={selectedDomainEntry.protected}
-                    className="inline-flex items-center gap-2 rounded-xl bg-risk-high text-white px-4 py-2 text-sm font-medium hover:bg-risk-high/90 transition-colors disabled:opacity-50"
+                    className="inline-flex items-center gap-2 rounded-lg bg-red-500 text-white px-4 py-2 text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50"
                   >
                     <Icon icon="mdi:cookie-remove-outline" className="h-4 w-4" />
                     Feed Entire Domain
@@ -342,27 +342,27 @@ export function MonsterConsole({
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
-                <div className="rounded-2xl bg-muted/50 p-4">
-                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                <div className="rounded-lg bg-red-50 border border-red-100 p-4">
+                  <p className="text-xs uppercase tracking-wider text-red-500 font-medium">
                     High Risk
                   </p>
-                  <p className="mt-2 text-2xl font-bold text-foreground">
+                  <p className="mt-2 text-2xl font-bold text-red-600">
                     {selectedDomainEntry.highRiskCount.toLocaleString()}
                   </p>
                 </div>
-                <div className="rounded-2xl bg-muted/50 p-4">
-                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                <div className="rounded-lg bg-blue-50 border border-blue-100 p-4">
+                  <p className="text-xs uppercase tracking-wider text-blue-500 font-medium">
                     Feedable
                   </p>
-                  <p className="mt-2 text-2xl font-bold text-foreground">
+                  <p className="mt-2 text-2xl font-bold text-blue-600">
                     {selectedDomainEntry.feedableCount.toLocaleString()}
                   </p>
                 </div>
-                <div className="rounded-2xl bg-muted/50 p-4">
-                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                <div className="rounded-lg bg-slate-50 border border-slate-200 p-4">
+                  <p className="text-xs uppercase tracking-wider text-slate-400 font-medium">
                     Sample Names
                   </p>
-                  <p className="mt-2 text-sm font-medium text-foreground">
+                  <p className="mt-2 text-sm font-medium text-slate-700">
                     {selectedDomainEntry.sampleCookieNames.join(", ") || "No sample names yet"}
                   </p>
                 </div>
@@ -370,8 +370,8 @@ export function MonsterConsole({
 
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
-                  <h4 className="font-semibold text-foreground">Cookie Contents</h4>
-                  <p className="text-sm text-muted-foreground">
+                  <h4 className="font-semibold text-slate-800">Cookie Contents</h4>
+                  <p className="text-sm text-slate-500">
                     Key, value, risk, reasons, and flags for the selected website.
                   </p>
                 </div>
@@ -385,14 +385,14 @@ export function MonsterConsole({
 
                       setSelectedKeys(domainCookies.map((cookie) => cookie.key));
                     }}
-                    className="rounded-xl bg-muted px-4 py-2 text-sm font-medium text-foreground hover:bg-muted/80 transition-colors"
+                    className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 transition-colors"
                   >
                     {allVisibleSelected ? "Clear Picks" : "Select All"}
                   </button>
                   <button
                     onClick={() => onDeleteCookies(selectedKeys)}
                     disabled={selectedKeys.length === 0}
-                    className="rounded-xl bg-foreground px-4 py-2 text-sm font-medium text-background hover:opacity-90 transition-opacity disabled:opacity-50"
+                    className="rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 px-4 py-2 text-sm font-medium text-white hover:from-blue-600 hover:to-cyan-600 transition-all disabled:opacity-50 shadow-md shadow-blue-500/20"
                   >
                     Feed Selected ({selectedKeys.length})
                   </button>
@@ -400,26 +400,26 @@ export function MonsterConsole({
               </div>
 
               {isDomainLoading ? (
-                <div className="rounded-2xl border border-border bg-background/70 p-10 text-center text-muted-foreground">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-10 text-center text-slate-500">
                   Loading cookie details...
                 </div>
               ) : domainCookies.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-border bg-background/70 p-10 text-center text-muted-foreground">
+                <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-slate-500">
                   No cookies are currently available for this domain.
                 </div>
               ) : (
-                <div className="overflow-hidden rounded-2xl border border-border">
+                <div className="overflow-hidden rounded-xl border border-slate-200">
                   <div className="max-h-[620px] overflow-auto">
-                    <table className="min-w-full divide-y divide-border text-sm">
-                      <thead className="sticky top-0 bg-background z-10">
-                        <tr className="text-left text-muted-foreground">
-                          <th className="px-4 py-3 font-medium">Pick</th>
-                          <th className="px-4 py-3 font-medium">Cookie</th>
-                          <th className="px-4 py-3 font-medium">Key / Value</th>
-                          <th className="px-4 py-3 font-medium">Signals</th>
+                    <table className="min-w-full divide-y divide-slate-200 text-sm">
+                      <thead className="sticky top-0 bg-slate-50 z-10">
+                        <tr className="text-left text-slate-500">
+                          <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wider">Pick</th>
+                          <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wider">Cookie</th>
+                          <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wider">Key / Value</th>
+                          <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wider">Signals</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-border bg-card">
+                      <tbody className="divide-y divide-slate-100 bg-white">
                         {domainCookies.map((cookie) => {
                           const checked = selectedKeySet.has(cookie.key);
 

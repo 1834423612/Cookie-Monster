@@ -18,9 +18,9 @@ interface RiskChartProps {
 }
 
 const COLORS = {
-  high: "oklch(0.55 0.2 25)",
-  medium: "oklch(0.7 0.15 70)",
-  low: "oklch(0.6 0.15 145)",
+  high: "#EF4444",
+  medium: "#F59E0B",
+  low: "#10B981",
 };
 
 export function RiskChart({ data }: RiskChartProps) {
@@ -33,8 +33,8 @@ export function RiskChart({ data }: RiskChartProps) {
   const total = data.high + data.medium + data.low;
 
   return (
-    <div className="bg-card rounded-2xl border border-border p-5">
-      <h3 className="text-lg font-semibold text-foreground mb-4">
+    <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+      <h3 className="text-lg font-semibold text-slate-800 mb-4">
         Risk Distribution
       </h3>
       <div className="h-64">
@@ -59,17 +59,18 @@ export function RiskChart({ data }: RiskChartProps) {
                 "Cookies",
               ]}
               contentStyle={{
-                backgroundColor: "oklch(0.995 0.001 90)",
-                border: "1px solid oklch(0.88 0.02 70)",
-                borderRadius: "0.75rem",
+                backgroundColor: "#FFFFFF",
+                border: "1px solid #E2E8F0",
+                borderRadius: "0.5rem",
                 padding: "0.75rem",
+                boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
               }}
             />
             <Legend
               verticalAlign="bottom"
               height={36}
               formatter={(value) => (
-                <span className="text-sm text-foreground">{value}</span>
+                <span className="text-sm text-slate-700">{value}</span>
               )}
             />
           </PieChart>

@@ -20,14 +20,14 @@ export function StatCard({
   value,
   subtitle,
   icon,
-  iconColor = "text-primary",
+  iconColor = "text-blue-500",
   trend,
   className,
 }: StatCardProps) {
   return (
     <div
       className={cn(
-        "bg-card rounded-2xl border border-border p-5 transition-shadow hover:shadow-md",
+        "bg-white rounded-xl border border-slate-200 p-5 transition-all hover:shadow-md shadow-sm",
         className
       )}
     >
@@ -35,13 +35,13 @@ export function StatCard({
         <div
           className={cn(
             "w-11 h-11 rounded-xl flex items-center justify-center",
-            iconColor.includes("primary") && "bg-primary/10",
-            iconColor.includes("risk-high") && "bg-risk-high/10",
-            iconColor.includes("risk-medium") && "bg-risk-medium/10",
-            iconColor.includes("risk-low") && "bg-risk-low/10",
-            iconColor.includes("chart-3") && "bg-chart-3/10",
-            iconColor.includes("chart-1") && "bg-chart-1/10",
-            iconColor.includes("secondary") && "bg-secondary/10"
+            iconColor.includes("primary") && "bg-blue-100",
+            iconColor.includes("risk-high") && "bg-red-100",
+            iconColor.includes("risk-medium") && "bg-amber-100",
+            iconColor.includes("risk-low") && "bg-emerald-100",
+            iconColor.includes("chart-3") && "bg-emerald-100",
+            iconColor.includes("chart-1") && "bg-blue-100",
+            iconColor.includes("secondary") && "bg-amber-100"
           )}
         >
           <Icon icon={icon} className={cn("w-5 h-5", iconColor)} />
@@ -49,10 +49,10 @@ export function StatCard({
         {trend && (
           <div
             className={cn(
-              "flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full",
+              "flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-lg",
               trend.positive
-                ? "bg-chart-3/10 text-chart-3"
-                : "bg-risk-high/10 text-risk-high"
+                ? "bg-emerald-100 text-emerald-600"
+                : "bg-red-100 text-red-600"
             )}
           >
             <Icon
@@ -63,12 +63,12 @@ export function StatCard({
           </div>
         )}
       </div>
-      <p className="text-3xl font-bold text-foreground mb-1">
+      <p className="text-3xl font-bold text-slate-800 mb-1">
         {typeof value === "number" ? value.toLocaleString() : value}
       </p>
-      <p className="text-sm text-muted-foreground">{title}</p>
+      <p className="text-sm text-slate-600">{title}</p>
       {subtitle && (
-        <p className="text-xs text-muted-foreground/70 mt-1">{subtitle}</p>
+        <p className="text-xs text-slate-400 mt-1">{subtitle}</p>
       )}
     </div>
   );

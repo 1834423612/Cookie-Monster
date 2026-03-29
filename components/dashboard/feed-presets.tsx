@@ -18,16 +18,16 @@ export function FeedPresets({
   disabled,
 }: FeedPresetsProps) {
   return (
-    <div className="bg-card rounded-2xl border border-border p-5">
+    <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between mb-5">
         <div>
-          <h3 className="text-lg font-semibold text-foreground">Monster Feed Queue</h3>
-          <p className="text-sm text-muted-foreground">
+          <h3 className="text-lg font-semibold text-slate-800">Monster Feed Queue</h3>
+          <p className="text-sm text-slate-500">
             {cleanup.totalCandidates.toLocaleString()} cookies currently look safe enough
             to route through extension-controlled cleanup presets.
           </p>
         </div>
-        <div className="text-sm text-muted-foreground">
+        <div className="text-sm text-slate-500">
           Preset batches ask the extension for confirmation. Domain and cookie-level actions can run directly from the website console.
         </div>
       </div>
@@ -36,20 +36,20 @@ export function FeedPresets({
         {cleanup.presets.map((preset) => (
           <div
             key={preset.id}
-            className="rounded-2xl border border-border bg-muted/40 p-4 flex flex-col gap-4"
+            className="rounded-xl border border-slate-200 bg-slate-50 p-4 flex flex-col gap-4"
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h4 className="font-semibold text-foreground">{preset.label}</h4>
-                <p className="text-sm text-muted-foreground mt-1">
+                <h4 className="font-semibold text-slate-800">{preset.label}</h4>
+                <p className="text-sm text-slate-500 mt-1">
                   {preset.description}
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-xl font-bold text-foreground">
+                <p className="text-xl font-bold text-slate-800">
                   {preset.cookieCount.toLocaleString()}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-slate-500">
                   {preset.domainCount.toLocaleString()} domains
                 </p>
               </div>
@@ -59,7 +59,7 @@ export function FeedPresets({
               {preset.sampleDomains.map((domain) => (
                 <span
                   key={domain}
-                  className="text-xs px-2.5 py-1 rounded-full bg-background text-muted-foreground border border-border"
+                  className="text-xs px-2.5 py-1 rounded-lg bg-white text-slate-500 border border-slate-200"
                 >
                   {domain}
                 </span>
@@ -69,7 +69,7 @@ export function FeedPresets({
             <button
               onClick={() => onRequestFeed?.(preset.id)}
               disabled={disabled || !onRequestFeed}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary text-primary-foreground px-4 py-2.5 text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-4 py-2.5 text-sm font-medium hover:from-blue-600 hover:to-cyan-600 transition-all shadow-md shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Icon icon="mdi:cookie-outline" className="w-4 h-4" />
               Request Feed
@@ -79,8 +79,8 @@ export function FeedPresets({
       </div>
 
       {cleanup.recommendations.length > 0 && (
-        <div className="rounded-2xl border border-border bg-background/70 p-4">
-          <h4 className="font-semibold text-foreground mb-3">Recommended Order</h4>
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <h4 className="font-semibold text-slate-800 mb-3">Recommended Order</h4>
           <div className="space-y-3">
             {cleanup.recommendations.map((recommendation) => (
               <div
@@ -88,16 +88,16 @@ export function FeedPresets({
                 className="flex items-start justify-between gap-3"
               >
                 <div>
-                  <p className="font-medium text-foreground">{recommendation.title}</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="font-medium text-slate-700">{recommendation.title}</p>
+                  <p className="text-sm text-slate-500">
                     {recommendation.description}
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold text-foreground">
+                  <p className="font-semibold text-slate-800">
                     {recommendation.cookieCount.toLocaleString()}
                   </p>
-                  <p className="text-xs text-muted-foreground">{recommendation.presetId}</p>
+                  <p className="text-xs text-slate-500">{recommendation.presetId}</p>
                 </div>
               </div>
             ))}

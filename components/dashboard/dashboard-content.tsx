@@ -57,32 +57,32 @@ export function DashboardContent({
   return (
     <div className="space-y-6">
       {/* Header bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-card rounded-2xl border border-border p-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-            <Icon icon="mdi:cookie-open" className="w-5 h-5 text-primary" />
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center">
+            <Icon icon="mdi:cookie-open" className="w-5 h-5 text-blue-500" />
           </div>
           <div>
-            <h2 className="font-semibold text-foreground">Monster Feeding Report</h2>
-            <p className="text-sm text-muted-foreground">
+            <h2 className="font-semibold text-slate-800">Monster Feeding Report</h2>
+            <p className="text-sm text-slate-500">
               Website-side control shell with extension-powered local cookie execution.
               Updated {generatedDate.toLocaleDateString()} at {generatedDate.toLocaleTimeString()}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs bg-muted text-muted-foreground px-3 py-1 rounded-full font-medium">
+          <span className="text-xs bg-slate-100 text-slate-500 px-3 py-1 rounded-full font-medium">
             {source === "extension" ? "Live extension summary" : "Imported report"}
           </span>
           {isDevMode && (
-            <span className="text-xs bg-risk-medium/10 text-risk-medium px-3 py-1 rounded-full font-medium">
+            <span className="text-xs bg-amber-100 text-amber-600 px-3 py-1 rounded-full font-medium">
               Demo Mode
             </span>
           )}
           {onClearReport && (
             <button
               onClick={onClearReport}
-              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg hover:bg-muted transition-colors"
+              className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
             >
               <Icon icon="mdi:close" className="w-4 h-4" />
               Clear
@@ -91,7 +91,7 @@ export function DashboardContent({
           {onOpenExtension && (
             <button
               onClick={onOpenExtension}
-              className="inline-flex items-center gap-2 text-sm bg-muted text-foreground px-4 py-2 rounded-lg hover:bg-muted/80 transition-colors"
+              className="inline-flex items-center gap-2 text-sm bg-slate-100 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-200 transition-colors"
             >
               <Icon icon="mdi:puzzle" className="w-4 h-4" />
               Open Extension
@@ -99,7 +99,7 @@ export function DashboardContent({
           )}
           <button
             onClick={onExport}
-            className="inline-flex items-center gap-2 text-sm bg-muted text-foreground px-4 py-2 rounded-lg hover:bg-muted/80 transition-colors"
+            className="inline-flex items-center gap-2 text-sm bg-slate-100 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-200 transition-colors"
           >
             <Icon icon="mdi:download" className="w-4 h-4" />
             Export
@@ -182,31 +182,31 @@ export function DashboardContent({
         )}
 
       {/* Expiry overview */}
-      <div className="bg-card rounded-2xl border border-border p-5">
-        <h3 className="text-lg font-semibold text-foreground mb-4">
+      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+        <h3 className="text-lg font-semibold text-slate-800 mb-4">
           Expiry Overview
         </h3>
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
           {[
-            { label: "Expired", value: report.expiry.expired, color: "text-risk-high" },
-            { label: "24 Hours", value: report.expiry.expiringWithin24h, color: "text-risk-medium" },
-            { label: "This Week", value: report.expiry.expiringWithinWeek, color: "text-risk-medium" },
-            { label: "This Month", value: report.expiry.expiringWithinMonth, color: "text-muted-foreground" },
-            { label: "Long-lived", value: report.expiry.longLived, color: "text-chart-3" },
+            { label: "Expired", value: report.expiry.expired, color: "text-red-600", bg: "bg-red-50 border-red-100" },
+            { label: "24 Hours", value: report.expiry.expiringWithin24h, color: "text-amber-600", bg: "bg-amber-50 border-amber-100" },
+            { label: "This Week", value: report.expiry.expiringWithinWeek, color: "text-amber-500", bg: "bg-amber-50/50 border-amber-100" },
+            { label: "This Month", value: report.expiry.expiringWithinMonth, color: "text-slate-600", bg: "bg-slate-50 border-slate-200" },
+            { label: "Long-lived", value: report.expiry.longLived, color: "text-emerald-600", bg: "bg-emerald-50 border-emerald-100" },
           ].map((item) => (
-            <div key={item.label} className="text-center p-4 rounded-xl bg-muted/50">
+            <div key={item.label} className={`text-center p-4 rounded-xl border ${item.bg}`}>
               <p className={`text-2xl font-bold ${item.color}`}>
                 {item.value.toLocaleString()}
               </p>
-              <p className="text-sm text-muted-foreground mt-1">{item.label}</p>
+              <p className="text-sm text-slate-500 mt-1">{item.label}</p>
             </div>
           ))}
         </div>
       </div>
 
       {/* Privacy footer */}
-      <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-4">
-        <Icon icon="mdi:shield-check" className="w-5 h-5 text-chart-3" />
+      <div className="flex items-center justify-center gap-2 text-sm text-slate-500 py-4">
+        <Icon icon="mdi:shield-check" className="w-5 h-5 text-emerald-500" />
         <span>
           All data shown above stays local to the browser. Raw cookie details only move from the extension to this page through local extension messaging.
         </span>

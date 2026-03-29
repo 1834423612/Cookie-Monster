@@ -21,11 +21,11 @@ interface CategoryChartProps {
 }
 
 const COLORS = {
-  essential: "oklch(0.6 0.15 145)",
-  functional: "oklch(0.55 0.18 240)",
-  analytics: "oklch(0.7 0.15 70)",
-  advertising: "oklch(0.55 0.2 25)",
-  unknown: "oklch(0.5 0.05 240)",
+  essential: "#10B981",
+  functional: "#3B82F6",
+  analytics: "#F59E0B",
+  advertising: "#EF4444",
+  unknown: "#64748B",
 };
 
 export function CategoryChart({ data }: CategoryChartProps) {
@@ -38,8 +38,8 @@ export function CategoryChart({ data }: CategoryChartProps) {
   ];
 
   return (
-    <div className="bg-card rounded-2xl border border-border p-5">
-      <h3 className="text-lg font-semibold text-foreground mb-4">
+    <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+      <h3 className="text-lg font-semibold text-slate-800 mb-4">
         Cookie Categories
       </h3>
       <div className="h-64">
@@ -47,29 +47,30 @@ export function CategoryChart({ data }: CategoryChartProps) {
           <BarChart data={chartData} layout="vertical">
             <CartesianGrid
               strokeDasharray="3 3"
-              stroke="oklch(0.88 0.02 70)"
+              stroke="#E2E8F0"
               horizontal={true}
               vertical={false}
             />
             <XAxis
               type="number"
-              tick={{ fill: "oklch(0.45 0.02 50)", fontSize: 12 }}
-              axisLine={{ stroke: "oklch(0.88 0.02 70)" }}
+              tick={{ fill: "#64748B", fontSize: 12 }}
+              axisLine={{ stroke: "#E2E8F0" }}
             />
             <YAxis
               type="category"
               dataKey="name"
-              tick={{ fill: "oklch(0.45 0.02 50)", fontSize: 12 }}
-              axisLine={{ stroke: "oklch(0.88 0.02 70)" }}
+              tick={{ fill: "#64748B", fontSize: 12 }}
+              axisLine={{ stroke: "#E2E8F0" }}
               width={80}
             />
             <Tooltip
               formatter={(value: number) => [value.toLocaleString(), "Cookies"]}
               contentStyle={{
-                backgroundColor: "oklch(0.995 0.001 90)",
-                border: "1px solid oklch(0.88 0.02 70)",
-                borderRadius: "0.75rem",
+                backgroundColor: "#FFFFFF",
+                border: "1px solid #E2E8F0",
+                borderRadius: "0.5rem",
                 padding: "0.75rem",
+                boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
               }}
             />
             <Bar dataKey="value" radius={[0, 4, 4, 0]} />
