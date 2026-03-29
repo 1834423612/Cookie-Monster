@@ -46,10 +46,10 @@ export default function DashboardPage() {
         riskLevel: domain.highRiskCount > 0 ? "high" as const : 
                    domain.feedableCount > domain.cookieCount / 2 ? "medium" as const : "low" as const,
         cookies: cookieManagement.domainCookies
-          .filter((c) => c.domain === domain.domain || cookieManagement.selectedDomain === domain.domain)
+          .filter((c) => c.domain === domain.domain)
           .map((cookie) => ({
             name: cookie.name,
-            value: cookie.value || "***",
+            size: cookie.size,
             risk: cookie.risk,
             httpOnly: cookie.httpOnly,
             secure: cookie.secure,
@@ -119,7 +119,7 @@ export default function DashboardPage() {
     }
   };
 
-  const handleCookieDelete = async (domain: string, cookieName: string) => {
+  const handleCookieQueue = async (domain: string, cookieName: string) => {
     if (isImportedReport) return;
     
     setActionMessage(null);
@@ -132,11 +132,24 @@ export default function DashboardPage() {
     
     if (cookie) {
       try {
-        await cookieManagement.deleteCookies([cookie.key]);
+        const pending = await cookieManagement.queueCookieFeed([cookie.key], {
+          label: `Cookie review: ${cookieName}`,
+          description: `The extension will review the selected ${domain} cookie locally before cleanup.`,
+        });
+
+        if (!pending) {
+          setActionError("Could not create a pending cookie review request.");
+          return;
+        }
+
         await extensionStatus.refresh();
-        setActionMessage(`Cookie "${cookieName}" was fed to the monster.`);
+        setActionMessage(
+          `Cookie "${cookieName}" was queued. Confirm "${pending.label}" inside the extension to finish cleanup.`
+        );
       } catch (error) {
-        setActionError(error instanceof Error ? error.message : "Could not delete cookie.");
+        setActionError(
+          error instanceof Error ? error.message : "Could not create a pending cookie review request."
+        );
       }
     }
   };
@@ -285,7 +298,7 @@ export default function DashboardPage() {
           <CookieDomainList
             domains={domainListData}
             onDomainSelect={!isImportedReport ? handleDomainSelect : undefined}
-            onCookieDelete={!isImportedReport ? handleCookieDelete : undefined}
+            onCookieQueue={!isImportedReport ? handleCookieQueue : undefined}
             isLoading={cookieManagement.isDomainLoading}
           />
         ) : (
@@ -304,7 +317,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-8 mt-6 border-t border-border">
             <Icon icon="mdi:shield-check" className="w-5 h-5 text-chart-3" />
             <span>
-              All data stays local. Cookie details only travel through extension messaging.
+              All data stays local. The website only receives cookie metadata through extension messaging, while raw values stay inside the extension.
             </span>
           </div>
         )}

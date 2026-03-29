@@ -41,8 +41,6 @@ export type MessageType =
   | "GET_COOKIE_MANAGEMENT_STATE"
   | "GET_DOMAIN_COOKIES"
   | "SET_DOMAIN_PROTECTION"
-  | "DELETE_DOMAIN_COOKIES"
-  | "DELETE_COOKIE_KEYS"
   | "RESTORE_CLEANUP_BATCH"
   | "OPEN_EXTENSION_DASHBOARD"
   | "EXPORT_REPORT"
@@ -467,36 +465,6 @@ export async function setDomainProtection(
 ): Promise<CookieManagementState | null> {
   const response = await sendMessageToExtension({
     type: "SET_DOMAIN_PROTECTION",
-    payload: request as unknown as Record<string, unknown>,
-  });
-
-  if (response.success && isCookieManagementStateData(response.data)) {
-    return response.data as CookieManagementState;
-  }
-
-  return null;
-}
-
-export async function deleteDomainCookies(
-  request: DomainDeleteRequest
-): Promise<CookieManagementState | null> {
-  const response = await sendMessageToExtension({
-    type: "DELETE_DOMAIN_COOKIES",
-    payload: request as unknown as Record<string, unknown>,
-  });
-
-  if (response.success && isCookieManagementStateData(response.data)) {
-    return response.data as CookieManagementState;
-  }
-
-  return null;
-}
-
-export async function deleteCookieKeys(
-  request: CookieDeleteRequest
-): Promise<CookieManagementState | null> {
-  const response = await sendMessageToExtension({
-    type: "DELETE_COOKIE_KEYS",
     payload: request as unknown as Record<string, unknown>,
   });
 

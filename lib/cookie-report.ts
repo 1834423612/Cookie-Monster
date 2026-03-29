@@ -64,7 +64,6 @@ export interface PendingFeedRequestSummary {
 export interface CookieDomainCookie {
   key: string;
   name: string;
-  value: string;
   domain: string;
   path: string;
   storeId: string;
@@ -248,6 +247,36 @@ function isCleanupInsights(value: unknown): value is CleanupInsights {
   );
 }
 
+function sanitizeCleanupInsights(cleanup: CleanupInsights): CleanupInsights {
+  return {
+    totalCandidates: cleanup.totalCandidates,
+    presets: cleanup.presets.map((preset) => ({
+      id: preset.id,
+      label: preset.label,
+      description: preset.description,
+      cookieCount: preset.cookieCount,
+      domainCount: preset.domainCount,
+      sampleDomains: [...preset.sampleDomains],
+    })),
+    recommendations: cleanup.recommendations.map((recommendation) => ({
+      id: recommendation.id,
+      title: recommendation.title,
+      description: recommendation.description,
+      presetId: recommendation.presetId,
+      cookieCount: recommendation.cookieCount,
+      tone: recommendation.tone,
+    })),
+    topFeedDomains: cleanup.topFeedDomains.map((domain) => ({
+      domain: domain.domain,
+      cookieCount: domain.cookieCount,
+      highRiskCount: domain.highRiskCount,
+      analyticsCount: domain.analyticsCount,
+      advertisingCount: domain.advertisingCount,
+      samplePresetIds: [...domain.samplePresetIds],
+    })),
+  };
+}
+
 export function parseReportFile(jsonString: string): CookieSummaryReport | null {
   try {
     const data = JSON.parse(jsonString) as Record<string, unknown>;
@@ -312,7 +341,56 @@ export function parseReportFile(jsonString: string): CookieSummaryReport | null 
       return null;
     }
 
-    return data as unknown as CookieSummaryReport;
+    const cleanup =
+      typeof data.cleanup === "undefined"
+        ? undefined
+        : sanitizeCleanupInsights(data.cleanup as CleanupInsights);
+
+    return {
+      generatedAt: data.generatedAt,
+      totals: {
+        cookies: (data.totals as Record<string, number>).cookies,
+        domains: (data.totals as Record<string, number>).domains,
+        stores: (data.totals as Record<string, number>).stores,
+      },
+      risk: {
+        high: (data.risk as Record<string, number>).high,
+        medium: (data.risk as Record<string, number>).medium,
+        low: (data.risk as Record<string, number>).low,
+      },
+      flags: {
+        secure: (data.flags as Record<string, number>).secure,
+        httpOnly: (data.flags as Record<string, number>).httpOnly,
+        sameSiteStrict: (data.flags as Record<string, number>).sameSiteStrict,
+        sameSiteLax: (data.flags as Record<string, number>).sameSiteLax,
+        sameSiteNone: (data.flags as Record<string, number>).sameSiteNone,
+        session: (data.flags as Record<string, number>).session,
+        persistent: (data.flags as Record<string, number>).persistent,
+      },
+      expiry: {
+        expired: (data.expiry as Record<string, number>).expired,
+        expiringWithin24h: (data.expiry as Record<string, number>).expiringWithin24h,
+        expiringWithinWeek: (data.expiry as Record<string, number>).expiringWithinWeek,
+        expiringWithinMonth: (data.expiry as Record<string, number>).expiringWithinMonth,
+        longLived: (data.expiry as Record<string, number>).longLived,
+      },
+      topDomains: data.topDomains.map((entry) => {
+        const candidate = entry as Record<string, unknown>;
+        return {
+          domain: candidate.domain as string,
+          count: candidate.count as number,
+          riskLevel: candidate.riskLevel as "high" | "medium" | "low",
+        };
+      }),
+      categories: {
+        essential: (data.categories as Record<string, number>).essential,
+        functional: (data.categories as Record<string, number>).functional,
+        analytics: (data.categories as Record<string, number>).analytics,
+        advertising: (data.categories as Record<string, number>).advertising,
+        unknown: (data.categories as Record<string, number>).unknown,
+      },
+      ...(cleanup ? { cleanup } : {}),
+    };
   } catch {
     return null;
   }
@@ -459,7 +537,6 @@ const MOCK_DOMAIN_COOKIES: Record<string, CookieDomainCookie[]> = {
     {
       key: "0::.google.com::/::SID",
       name: "SID",
-      value: "google-session-token-demo",
       domain: "google.com",
       path: "/",
       storeId: "0",
@@ -477,7 +554,6 @@ const MOCK_DOMAIN_COOKIES: Record<string, CookieDomainCookie[]> = {
     {
       key: "0::.google.com::/::NID",
       name: "NID",
-      value: "ad-personalization-demo",
       domain: "google.com",
       path: "/",
       storeId: "0",
@@ -497,7 +573,6 @@ const MOCK_DOMAIN_COOKIES: Record<string, CookieDomainCookie[]> = {
     {
       key: "0::.facebook.com::/::fr",
       name: "fr",
-      value: "facebook-ad-cookie-demo",
       domain: "facebook.com",
       path: "/",
       storeId: "0",
@@ -515,7 +590,6 @@ const MOCK_DOMAIN_COOKIES: Record<string, CookieDomainCookie[]> = {
     {
       key: "0::.facebook.com::/::presence",
       name: "presence",
-      value: "chat-state-demo",
       domain: "facebook.com",
       path: "/",
       storeId: "0",
@@ -535,7 +609,6 @@ const MOCK_DOMAIN_COOKIES: Record<string, CookieDomainCookie[]> = {
     {
       key: "0::.reddit.com::/::loid",
       name: "loid",
-      value: "reddit-analytics-demo",
       domain: "reddit.com",
       path: "/",
       storeId: "0",

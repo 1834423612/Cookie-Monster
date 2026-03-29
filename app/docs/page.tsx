@@ -61,7 +61,7 @@ const sections = [
       {
         question: "What data is shared with the website?",
         answer:
-          "Summary views use sanitized counts, domain statistics, risk distributions, and security flag counts. When you open an on-page inspection view, any detailed cookie fields shown there are still transferred only inside the local browser bridge and are never uploaded to Cookie Monster servers.",
+          "Summary views use sanitized counts, domain statistics, risk distributions, and security flag counts. When you open an on-page inspection view, the website can receive cookie metadata such as names, keys, flags, and value size through the local browser bridge, but raw cookie values stay inside the extension and are never uploaded to Cookie Monster servers.",
       },
       {
         question: "Can I use the dashboard without the extension?",
@@ -110,12 +110,12 @@ const sections = [
       {
         question: "What ships in this MVP?",
         answer:
-          "The repo now includes a Chrome MV3 extension with a side panel, full dashboard page, local cookie scan, high-risk cleanup, restore-from-recycle-bin, report export, backup export, and a summary-only website bridge.",
+          "The repo now includes a Chrome MV3 extension with a side panel, full dashboard page, local cookie scan, high-risk cleanup, restore-from-recycle-bin, report export, backup export, and a local website bridge that exposes summary data plus redacted cookie metadata.",
       },
       {
         question: "What comes next?",
         answer:
-          "The next sensible step is polishing the heuristics and UI, then deciding whether Firefox or Edge should get dedicated packaging. The sensitive-data boundary stays the same: destructive actions remain extension-only.",
+          "The next sensible step is polishing the heuristics and UI, then deciding whether Firefox or Edge should get dedicated packaging. The sensitive-data boundary stays the same: raw cookie values stay extension-only, and website cleanup requests must be confirmed through the extension.",
       },
     ],
   },

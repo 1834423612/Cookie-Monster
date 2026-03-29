@@ -44,7 +44,8 @@ The website can:
 - ping the extension
 - fetch the latest sanitized summary report
 - fetch feed/cleanup preview data
-- request a cookie feed preset
+- fetch redacted cookie metadata for local inspection
+- request a cookie feed preset or selected-cookie review
 
 The website cannot directly delete cookies. A website request creates a pending feed request that must be confirmed locally inside the extension dashboard.
 

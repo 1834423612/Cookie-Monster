@@ -85,6 +85,10 @@ function getOriginFromSender(sender) {
   }
 }
 
+function isExtensionUiSender(sender) {
+  return typeof sender?.url === "string" && sender.url.startsWith(chrome.runtime.getURL(""));
+}
+
 function isAllowedExternalSender(sender) {
   const origin = getOriginFromSender(sender);
   if (!origin) {
@@ -115,6 +119,37 @@ function isCleanupPresetId(value) {
 
 function cookieHost(domain = "") {
   return domain.startsWith(".") ? domain.slice(1) : domain;
+}
+
+function normalizePartitionKey(partitionKey) {
+  if (!partitionKey || typeof partitionKey !== "object") {
+    return null;
+  }
+
+  const normalized = {};
+
+  if (typeof partitionKey.topLevelSite === "string" && partitionKey.topLevelSite) {
+    normalized.topLevelSite = partitionKey.topLevelSite;
+  }
+
+  if (typeof partitionKey.hasCrossSiteAncestor === "boolean") {
+    normalized.hasCrossSiteAncestor = partitionKey.hasCrossSiteAncestor;
+  }
+
+  return Object.keys(normalized).length ? normalized : null;
+}
+
+function serializePartitionKey(partitionKey) {
+  const normalized = normalizePartitionKey(partitionKey);
+
+  if (!normalized) {
+    return "unpartitioned";
+  }
+
+  return JSON.stringify([
+    normalized.topLevelSite || "",
+    normalized.hasCrossSiteAncestor === true ? 1 : 0,
+  ]);
 }
 
 function getCookieUrl(cookie) {
@@ -214,7 +249,13 @@ async function getProtectedDomains() {
 }
 
 function createCookieKey(cookie) {
-  return [cookie.storeId || "default", cookie.domain, cookie.path, cookie.name].join("::");
+  return [
+    cookie.storeId || "default",
+    cookie.domain,
+    cookie.path,
+    cookie.name,
+    serializePartitionKey(cookie.partitionKey),
+  ].join("::");
 }
 
 function analyzeCookie(cookie, protectedDomainSet) {
@@ -689,6 +730,7 @@ function createBackupCookie(cookie) {
     httpOnly: cookie.httpOnly,
     name: cookie.name,
     path: cookie.path,
+    partitionKey: normalizePartitionKey(cookie.partitionKey),
     sameSite: cookie.sameSite,
     secure: cookie.secure,
     session: cookie.session,
@@ -799,11 +841,18 @@ function buildPlanFromMode(analyzedCookies, mode) {
 
 async function removeCookie(cookie) {
   try {
-    const result = await chrome.cookies.remove({
+    const details = {
       name: cookie.name,
       storeId: cookie.storeId,
       url: getCookieUrl(cookie),
-    });
+    };
+    const partitionKey = normalizePartitionKey(cookie.partitionKey);
+
+    if (partitionKey) {
+      details.partitionKey = partitionKey;
+    }
+
+    const result = await chrome.cookies.remove(details);
 
     return Boolean(result);
   } catch {
@@ -822,6 +871,11 @@ async function restoreCookie(cookie) {
     url: getCookieUrl(cookie),
     value: cookie.value,
   };
+  const partitionKey = normalizePartitionKey(cookie.partitionKey);
+
+  if (partitionKey) {
+    details.partitionKey = partitionKey;
+  }
 
   if (!cookie.hostOnly && cookie.domain) {
     details.domain = cookie.domain;
@@ -1275,9 +1329,8 @@ async function getDomainCookies(domain) {
     .map((item) => ({
       key: item.key,
       name: item.cookie.name,
-      value: item.cookie.value,
       domain: item.domain,
-      path: item.cookie.path,
+      path: item.cookie.path || "/",
       storeId: item.cookie.storeId || "default",
       size: item.cookie.value?.length || 0,
       category: item.category,
@@ -1355,7 +1408,7 @@ async function getUiState() {
   };
 }
 
-async function handleInternalMessage(message) {
+async function handleInternalMessage(message, sender) {
   switch (message?.type) {
     case "PING":
       return success(message.type, {
@@ -1427,6 +1480,13 @@ async function handleInternalMessage(message) {
       );
     }
     case "DELETE_DOMAIN_COOKIES": {
+      if (!isExtensionUiSender(sender)) {
+        return failure(
+          message.type,
+          "Website pages must create a pending feed request instead of deleting a domain directly."
+        );
+      }
+
       const domain = getDomainFromPayload(message.payload);
       if (!domain) {
         return failure(message.type, "A domain is required.");
@@ -1436,6 +1496,13 @@ async function handleInternalMessage(message) {
       return success(message.type, await getCookieManagementState());
     }
     case "DELETE_COOKIE_KEYS": {
+      if (!isExtensionUiSender(sender)) {
+        return failure(
+          message.type,
+          "Website pages must create a pending feed request instead of deleting cookies directly."
+        );
+      }
+
       const keys = getKeysFromPayload(message.payload);
       if (!keys) {
         return failure(message.type, "At least one cookie key is required.");
@@ -1588,22 +1655,16 @@ async function handleExternalMessage(message) {
       return success(message.type, await getCookieManagementState());
     }
     case "DELETE_DOMAIN_COOKIES": {
-      const domain = getDomainFromPayload(message.payload);
-      if (!domain) {
-        return failure(message.type, "A domain is required.");
-      }
-
-      await executeDeletionPlan({ type: "domain", domain }, "website");
-      return success(message.type, await getCookieManagementState());
+      return failure(
+        message.type,
+        "Website callers cannot delete a domain directly. Create a pending feed request instead."
+      );
     }
     case "DELETE_COOKIE_KEYS": {
-      const keys = getKeysFromPayload(message.payload);
-      if (!keys) {
-        return failure(message.type, "At least one cookie key is required.");
-      }
-
-      await executeDeletionPlan({ type: "keys", keys }, "website");
-      return success(message.type, await getCookieManagementState());
+      return failure(
+        message.type,
+        "Website callers cannot delete cookies directly. Create a pending feed request instead."
+      );
     }
     case "RESTORE_CLEANUP_BATCH": {
       const batchId =
@@ -1674,8 +1735,8 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
   broadcastWebsiteUpdate({ changedKeys }).catch(() => undefined);
 });
 
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  handleInternalMessage(message)
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  handleInternalMessage(message, sender)
     .then(sendResponse)
     .catch((error) => {
       sendResponse(

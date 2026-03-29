@@ -662,13 +662,12 @@ export default function HomePage() {
     });
 
     if (pending) {
+      setTimeout(() => setIsEating(true), 1000);
       setMessage(
         `${pending.label} created. The extension will confirm exactly ${pending.cookieCount} cookies before deletion.`
       );
       return;
     }
-
-    setTimeout(() => setIsEating(true), 1000);
 
     setMessage("The extension could not create a cleanup request from this selection.");
   };
@@ -920,7 +919,7 @@ export default function HomePage() {
               loop
               muted
               playsInline
-              className={`absolute inset-0 h-full w-full object-contain transition-opacity duration-[200ms] ${isEating ? "opacity-0" : "opacity-100"}`}
+              className={`absolute inset-0 h-full w-full object-contain transition-opacity duration-200 ${isEating ? "opacity-0" : "opacity-100"}`}
             />
             <video
               key={isEating ? "eating" : "idle"}
@@ -929,7 +928,7 @@ export default function HomePage() {
               muted
               playsInline
               onEnded={() => setIsEating(false)}
-              className={`h-full w-full object-contain transition-[opacity,transform] duration-[200ms] ${isEating ? "scale-145 opacity-100" : "scale-100 opacity-0"}`}
+              className={`h-full w-full object-contain transition-[opacity,transform] duration-200 ${isEating ? "scale-145 opacity-100" : "scale-100 opacity-0"}`}
             />
           </aside>
         </section>
