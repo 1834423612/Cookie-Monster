@@ -1000,7 +1000,12 @@ export default function HomePage() {
             </div>
           )}
 
-          <aside className="relative min-h-0 min-w-0 overflow-hidden">
+          <aside
+            className="relative min-h-0 min-w-0 overflow-hidden transition-transform duration-1000 ease-in-out"
+            style={{
+              transform: jarPhase === "fading" || jarPhase === "done" ? "translateX(0)" : "translateX(-40%)",
+            }}
+          >
             <video
               src="/cm_idle.mp4"
               autoPlay
