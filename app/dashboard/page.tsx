@@ -50,11 +50,13 @@ export default function DashboardPage() {
           .map((cookie) => ({
             name: cookie.name,
             value: cookie.value || "***",
-            risk: cookie.riskLevel as "high" | "medium" | "low",
-            httpOnly: cookie.flags.includes("httpOnly"),
-            secure: cookie.flags.includes("secure"),
-            sameSite: cookie.flags.find(f => f.startsWith("sameSite"))?.replace("sameSite", "") || "None",
-            expires: cookie.expiresIn,
+            risk: cookie.risk,
+            httpOnly: cookie.httpOnly,
+            secure: cookie.secure,
+            sameSite: cookie.sameSite || "None",
+            expires: cookie.expirationDate
+              ? new Date(cookie.expirationDate * 1000).toLocaleDateString()
+              : "Session",
           })),
       }));
     }

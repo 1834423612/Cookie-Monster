@@ -96,7 +96,10 @@ export interface CookieDomainGroup {
 }
 
 export interface CookieFeedRequest {
-  presetId: CleanupPresetId;
+  presetId?: CleanupPresetId;
+  keys?: string[];
+  label?: string;
+  description?: string;
 }
 
 export interface DomainProtectionRequest {
