@@ -149,15 +149,15 @@ export default function HomePage() {
   };
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-[radial-gradient(circle_at_top_left,_#f6ecd8,_#efe6d7_45%,_#ece7df)] text-[#2d261a]">
-      <main className="mx-auto flex min-h-0 w-full max-w-7xl flex-1 flex-col px-4 py-6 md:px-8 md:py-10">
+    <div className="flex h-screen flex-col overflow-hidden bg-[radial-gradient(circle_at_top_left,#f6ecd8,#efe6d7_45%,#ece7df)] text-[#2d261a]">
+      <main className="mx-auto flex min-h-0 w-full max-w-auto flex-1 flex-col px-4 py-6 md:px-8 md:py-10">
         <section className="grid min-h-0 flex-1 gap-4 md:grid-cols-[2fr_1fr]">
           {!isJarOpened ? (
             <button
               onClick={() => setIsJarOpened(true)}
               className="rounded-3xl border border-[#d7c7af] bg-[#fff8ea] p-8 text-center transition hover:-translate-y-0.5 hover:shadow-xl"
             >
-              <div className="mx-auto mb-3 h-44 w-44 rounded-3xl border border-[#dbc8ad] bg-white text-8xl leading-[11rem] shadow-inner">🫙</div>
+              <div className="mx-auto mb-3 h-44 w-44 rounded-3xl border border-[#dbc8ad] bg-white text-8xl leading-44 shadow-inner">🫙</div>
               <strong className="text-xl">Open cookie list</strong>
               <p className="mt-2 text-sm text-[#6f6453]">Placeholder art for jar and monster can be replaced with final assets.</p>
             </button>

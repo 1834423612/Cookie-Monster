@@ -4,52 +4,50 @@
   --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
 
-  /* Cookie Monster Theme - Fresh, playful, cookie-inspired */
-  --color-background: oklch(0.985 0.002 90);
-  --color-foreground: oklch(0.25 0.02 50);
+  /* Fresh, Clean Theme - Light and modern */
+  --color-background: #FAFBFD;
+  --color-foreground: #1a1a2e;
   
-  --color-card: oklch(0.995 0.001 90);
-  --color-card-foreground: oklch(0.25 0.02 50);
+  /* Pure white cards */
+  --color-card: #FFFFFF;
+  --color-card-foreground: #1a1a2e;
   
-  --color-popover: oklch(0.995 0.001 90);
-  --color-popover-foreground: oklch(0.25 0.02 50);
+  --color-popover: #FFFFFF;
+  --color-popover-foreground: #1a1a2e;
   
-  /* Primary - Cookie Monster Blue */
-  --color-primary: oklch(0.55 0.18 240);
-  --color-primary-foreground: oklch(0.98 0.01 90);
+  /* Primary - Fresh Cookie Blue */
+  --color-primary: #4F8EF7;
+  --color-primary-foreground: #FFFFFF;
   
-  /* Secondary - Warm Cookie Brown */
-  --color-secondary: oklch(0.65 0.08 60);
-  --color-secondary-foreground: oklch(0.25 0.02 50);
+  /* Secondary - Warm Golden */
+  --color-secondary: #FFB347;
+  --color-secondary-foreground: #1a1a2e;
   
-  /* Muted - Soft Cream */
-  --color-muted: oklch(0.94 0.015 85);
-  --color-muted-foreground: oklch(0.45 0.02 50);
+  /* Muted - Very light gray */
+  --color-muted: #F4F5F7;
+  --color-muted-foreground: #6B7280;
   
-  /* Accent - Chocolate Chip */
-  --color-accent: oklch(0.45 0.08 55);
-  --color-accent-foreground: oklch(0.98 0.01 90);
+  /* Accent - Soft blue tint */
+  --color-accent: #EBF3FF;
+  --color-accent-foreground: #4F8EF7;
   
-  --color-destructive: oklch(0.55 0.2 25);
-  --color-destructive-foreground: oklch(0.98 0.01 90);
+  /* Cookie Monster Blue - for fun accents */
+  --color-monster: #4FACFE;
+  --color-monster-foreground: #FFFFFF;
   
-  --color-border: oklch(0.88 0.02 70);
-  --color-input: oklch(0.88 0.02 70);
-  --color-ring: oklch(0.55 0.18 240);
+  --color-destructive: #EF4444;
+  --color-destructive-foreground: #FFFFFF;
   
-  /* Chart colors */
-  --color-chart-1: oklch(0.55 0.18 240);
-  --color-chart-2: oklch(0.65 0.12 60);
-  --color-chart-3: oklch(0.6 0.15 145);
-  --color-chart-4: oklch(0.7 0.14 30);
-  --color-chart-5: oklch(0.5 0.12 280);
+  --color-border: #E8EAED;
+  --color-input: #E8EAED;
+  --color-ring: #4F8EF7;
   
-  /* Risk level colors */
-  --color-risk-high: oklch(0.55 0.2 25);
-  --color-risk-medium: oklch(0.7 0.15 70);
-  --color-risk-low: oklch(0.6 0.15 145);
+  /* Risk level colors - vibrant and clear */
+  --color-risk-high: #EF4444;
+  --color-risk-medium: #F59E0B;
+  --color-risk-low: #10B981;
   
-  --radius: 0.75rem;
+  --radius: 0.5rem;
 }
 
 @layer base {
@@ -59,9 +57,6 @@
   
   body {
     @apply bg-background text-foreground;
-    background-image:
-      radial-gradient(circle at top, color-mix(in oklch, var(--color-primary) 10%, transparent), transparent 30%),
-      linear-gradient(180deg, color-mix(in oklch, var(--color-background) 94%, white) 0%, var(--color-background) 100%);
   }
 }
 
@@ -73,4 +68,119 @@
   .text-pretty {
     text-wrap: pretty;
   }
+}
+
+/* Smooth scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D1D5DB;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9CA3AF;
+}
+
+/* Cookie Monster mascot animations */
+@keyframes monster-bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes monster-wave {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(15deg);
+  }
+  75% {
+    transform: rotate(-10deg);
+  }
+}
+
+@keyframes cookie-float {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-6px) rotate(5deg);
+  }
+}
+
+@keyframes crumb-fall {
+  0% {
+    opacity: 1;
+    transform: translateY(0) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(40px) rotate(180deg);
+  }
+}
+
+@keyframes float-gentle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.animate-monster-bounce {
+  animation: monster-bounce 2s ease-in-out infinite;
+}
+
+.animate-monster-wave {
+  animation: monster-wave 1.5s ease-in-out infinite;
+}
+
+.animate-cookie-float {
+  animation: cookie-float 3s ease-in-out infinite;
+}
+
+.animate-crumb-fall {
+  animation: crumb-fall 1.5s ease-out infinite;
+}
+
+.animate-float-gentle {
+  animation: float-gentle 2.5s ease-in-out infinite;
+}
+
+/* Row hover effect */
+.cookie-row {
+  transition: background-color 0.15s ease;
+}
+
+.cookie-row:hover {
+  background-color: #F9FAFB;
+}
+
+/* Expand animation */
+@keyframes expand-in {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 500px;
+  }
+}
+
+.animate-expand {
+  animation: expand-in 0.25s ease-out forwards;
 }
