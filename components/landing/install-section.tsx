@@ -98,7 +98,7 @@ export function InstallSection() {
               <p className="text-sm text-muted-foreground">
                 Cookie Monster never uploads raw cookie values to any server. The
                 extension owns scanning, cleanup, restore, and backups; the website
-                only handles imported or bridged summary data.
+                only handles imported reports plus bridged summary and metadata views.
               </p>
             </div>
             <a

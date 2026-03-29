@@ -92,12 +92,12 @@ export function MonsterConsole({
             <span>Website Mission Control</span>
           </div>
           <h2 className="text-3xl font-bold text-foreground text-balance">
-            Feed the monster from the website, let the extension handle the dangerous chewing.
+            Queue cleanup from the website, let the extension confirm the dangerous chewing.
           </h2>
           <p className="mt-3 max-w-2xl text-muted-foreground">
-            Pick a cleanup batch, inspect cookie-by-cookie details, protect trusted domains,
+            Pick a cleanup batch, inspect cookie metadata, protect trusted domains,
             and restore anything the monster ate by mistake. The website drives the flow;
-            the extension only performs local cookie access and writes.
+            the extension keeps raw values and final cleanup execution local.
           </p>
 
           <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -335,8 +335,8 @@ export function MonsterConsole({
                     disabled={selectedDomainEntry.protected}
                     className="inline-flex items-center gap-2 rounded-xl bg-risk-high text-white px-4 py-2 text-sm font-medium hover:bg-risk-high/90 transition-colors disabled:opacity-50"
                   >
-                    <Icon icon="mdi:cookie-remove-outline" className="h-4 w-4" />
-                    Feed Entire Domain
+                    <Icon icon="mdi:clock-outline" className="h-4 w-4" />
+                    Queue Entire Domain
                   </button>
                 </div>
               </div>
@@ -370,9 +370,9 @@ export function MonsterConsole({
 
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
-                  <h4 className="font-semibold text-foreground">Cookie Contents</h4>
+                  <h4 className="font-semibold text-foreground">Cookie Metadata</h4>
                   <p className="text-sm text-muted-foreground">
-                    Key, value, risk, reasons, and flags for the selected website.
+                    Key, local size, risk, reasons, and flags for the selected website.
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -394,7 +394,7 @@ export function MonsterConsole({
                     disabled={selectedKeys.length === 0}
                     className="rounded-xl bg-foreground px-4 py-2 text-sm font-medium text-background hover:opacity-90 transition-opacity disabled:opacity-50"
                   >
-                    Feed Selected ({selectedKeys.length})
+                    Queue Selected ({selectedKeys.length})
                   </button>
                 </div>
               </div>
@@ -415,7 +415,7 @@ export function MonsterConsole({
                         <tr className="text-left text-muted-foreground">
                           <th className="px-4 py-3 font-medium">Pick</th>
                           <th className="px-4 py-3 font-medium">Cookie</th>
-                          <th className="px-4 py-3 font-medium">Key / Value</th>
+                          <th className="px-4 py-3 font-medium">Key / Local Value State</th>
                           <th className="px-4 py-3 font-medium">Signals</th>
                         </tr>
                       </thead>
@@ -467,7 +467,7 @@ export function MonsterConsole({
                                     {cookie.key}
                                   </code>
                                   <code className="block break-all rounded-xl bg-background px-3 py-2 text-xs text-muted-foreground">
-                                    {cookie.value}
+                                    Value hidden from the website • {cookie.size} chars stored locally
                                   </code>
                                 </div>
                               </td>
@@ -517,7 +517,7 @@ export function MonsterConsole({
             </>
           ) : (
             <div className="rounded-2xl border border-dashed border-border bg-background/70 p-12 text-center text-muted-foreground">
-              Select a domain from the left to inspect raw cookie details and monster actions.
+              Select a domain from the left to inspect local cookie metadata and queue actions.
             </div>
           )}
         </div>

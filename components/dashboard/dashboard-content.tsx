@@ -208,7 +208,7 @@ export function DashboardContent({
       <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-4">
         <Icon icon="mdi:shield-check" className="w-5 h-5 text-chart-3" />
         <span>
-          All data shown above stays local to the browser. Raw cookie details only move from the extension to this page through local extension messaging.
+          All data shown above stays local to the browser. The website only receives cookie metadata needed for local control, while raw values stay inside the extension.
         </span>
       </div>
     </div>

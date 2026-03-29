@@ -14,7 +14,7 @@ interface DomainData {
 
 interface CookieItem {
   name: string;
-  value: string;
+  size: number;
   risk: "high" | "medium" | "low";
   httpOnly: boolean;
   secure: boolean;
@@ -25,7 +25,7 @@ interface CookieItem {
 interface CookieDomainListProps {
   domains: DomainData[];
   onDomainSelect?: (domain: string) => void;
-  onCookieDelete?: (domain: string, cookieName: string) => void;
+  onCookieQueue?: (domain: string, cookieName: string) => void;
   isLoading?: boolean;
 }
 
@@ -60,12 +60,12 @@ const riskConfig = {
 // Domain row component - ClickUp style
 function DomainRow({ 
   domain, 
-  onCookieDelete,
+  onCookieQueue,
   expanded,
   onToggle 
 }: { 
   domain: DomainData; 
-  onCookieDelete?: (cookieName: string) => void;
+  onCookieQueue?: (cookieName: string) => void;
   expanded: boolean;
   onToggle: () => void;
 }) {
@@ -159,7 +159,7 @@ function DomainRow({
                     />
                   </div>
                   
-                  {/* Cookie name and value */}
+                  {/* Cookie name and local-only value notice */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-sm text-[#1F2937] truncate">
@@ -180,7 +180,7 @@ function DomainRow({
                       </div>
                     </div>
                     <p className="text-xs text-[#9CA3AF] truncate mt-0.5">
-                      {cookie.value.length > 40 ? cookie.value.slice(0, 40) + "..." : cookie.value}
+                      Value stays inside the extension • {cookie.size} chars stored locally
                     </p>
                   </div>
                   
@@ -202,18 +202,19 @@ function DomainRow({
                     cookie.risk === "low" && "bg-[#10B981]"
                   )} />
                   
-                  {/* Delete action */}
-                  {onCookieDelete && (
+                  {/* Queue action */}
+                  {onCookieQueue && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        onCookieDelete(cookie.name);
+                        onCookieQueue(cookie.name);
                       }}
-                      className="p-1.5 rounded-md hover:bg-[#FEF2F2] transition-colors group shrink-0"
+                      className="p-1.5 rounded-md hover:bg-[#EBF5FF] transition-colors group shrink-0"
+                      title="Queue this cookie for extension confirmation"
                     >
                       <Icon 
-                        icon="mdi:trash-can-outline" 
-                        className="w-4 h-4 text-[#9CA3AF] group-hover:text-[#EF4444]" 
+                        icon="mdi:clock-outline" 
+                        className="w-4 h-4 text-[#9CA3AF] group-hover:text-[#3B82F6]" 
                       />
                     </button>
                   )}
@@ -336,7 +337,7 @@ function CookieMonsterMascot() {
 export function CookieDomainList({ 
   domains, 
   onDomainSelect, 
-  onCookieDelete,
+  onCookieQueue,
   isLoading 
 }: CookieDomainListProps) {
   const [expandedDomain, setExpandedDomain] = useState<string | null>(null);
@@ -449,7 +450,7 @@ export function CookieDomainList({
                 domain={domain}
                 expanded={expandedDomain === domain.domain}
                 onToggle={() => handleToggle(domain.domain)}
-                onCookieDelete={onCookieDelete ? (name) => onCookieDelete(domain.domain, name) : undefined}
+                onCookieQueue={onCookieQueue ? (name) => onCookieQueue(domain.domain, name) : undefined}
               />
             ))
           )}
