@@ -28,12 +28,7 @@
   "content_scripts": [
     {
       "matches": [
-        "http://localhost/*",
-        "http://127.0.0.1/*",
-        "https://127.0.0.1/*",
-        "https://localhost/*",
-        "https://cookie-monster-git-cookie-monster-kjchs-projects.vercel.app/*",
-        "https://cookie-monster.makesome.cool/*"
+        "<all_urls>"
       ],
       "js": [
         "page-bridge.js"
@@ -42,15 +37,5 @@
     }
   ],
   "options_page": "dashboard.html",
-  "externally_connectable": {
-    "matches": [
-      "http://localhost/*",
-      "http://127.0.0.1/*",
-      "https://127.0.0.1/*",
-      "https://localhost/*",
-      "https://cookie-monster-git-cookie-monster-kjchs-projects.vercel.app/*",
-      "https://cookie-monster.makesome.cool/*"
-    ]
-  },
   "minimum_chrome_version": "116"
 }

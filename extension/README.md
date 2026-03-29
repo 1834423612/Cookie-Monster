@@ -67,9 +67,7 @@ When a preset is confirmed:
 ## Companion website bridge
 
 - Stable extension ID baked into the manifest: `fkgahfgnfpnmnkbamedpjkeciljakheb`
-- Allowed dev origin: `http://localhost/*`
-- Allowed production placeholders:
-  - `https://cookie-monster-git-cookie-monster-kjchs-projects.vercel.app/*`
-  - `https://cookie-monster.makesome.cool/*`
+- Website communication now runs through a local page/content-script bridge inside the browser
+- The companion site no longer depends on `externally_connectable` origin allowlists
 
 If you change the manifest `key`, the extension ID will also change and the website bridge should be updated through `NEXT_PUBLIC_EXTENSION_ID`.

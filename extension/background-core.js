@@ -6,18 +6,9 @@ const STORAGE_KEYS = {
 };
 
 const EXTERNAL_ALLOWED_HOSTS = new Set([
-  "cookie-monster-git-cookie-monster-kjchs-projects.vercel.app/*",
-  "cookie-monster.makesome.cool/*",
+  "cookie-monster-git-cookie-monster-kjchs-projects.vercel.app",
+  "cookie-monster.makesome.cool",
 ]);
-
-const SYNC_BROADCAST_MATCHES = [
-  "http://localhost/*",
-  "http://127.0.0.1/*",
-  "https://127.0.0.1/*",
-  "https://localhost/*",
-  "https://cookie-monster-git-cookie-monster-kjchs-projects.vercel.app/*",
-  "https://cookie-monster.makesome.cool/*",
-];
 
 const KEYWORDS = {
   essential: ["session", "auth", "csrf", "xsrf", "sid", "token", "login", "__host-", "__secure-"],
@@ -1171,13 +1162,16 @@ async function updateActionBadge() {
 }
 
 async function broadcastWebsiteUpdate(detail = {}) {
-  const tabs = await chrome.tabs.query({
-    url: SYNC_BROADCAST_MATCHES,
-  });
+  const tabs = await chrome.tabs.query({});
 
   await Promise.allSettled(
     tabs
-      .filter((tab) => typeof tab.id === "number")
+      .filter(
+        (tab) =>
+          typeof tab.id === "number" &&
+          typeof tab.url === "string" &&
+          (tab.url.startsWith("http://") || tab.url.startsWith("https://"))
+      )
       .map((tab) =>
         chrome.tabs.sendMessage(tab.id, {
           detail: {
@@ -1194,9 +1188,44 @@ async function clearPendingFeedRequest() {
   await writeLocal({ [STORAGE_KEYS.pendingFeedRequest]: null });
 }
 
-async function createPendingFeedRequest(presetId) {
+function getPendingFeedModeFromPayload(payload) {
+  const keys = getKeysFromPayload(payload);
+  if (keys) {
+    return {
+      type: "keys",
+      keys,
+    };
+  }
+
+  const presetId = getPresetIdFromPayload(payload);
+  if (presetId) {
+    return {
+      type: "preset",
+      presetId,
+    };
+  }
+
+  return null;
+}
+
+function getOptionalPayloadText(payload, key, fallback) {
+  const value = payload?.[key];
+  if (typeof value === "string" && value.trim()) {
+    return value.trim();
+  }
+
+  return fallback;
+}
+
+async function createPendingFeedRequest(payload) {
   const { analyzedCookies } = await getRawAndAnalyzedCookies();
-  const plan = buildPlanFromMode(analyzedCookies, { type: "preset", presetId });
+  const mode = getPendingFeedModeFromPayload(payload);
+
+  if (!mode) {
+    return null;
+  }
+
+  const plan = buildPlanFromMode(analyzedCookies, mode);
 
   if (!plan.cookieCount) {
     return null;
@@ -1205,14 +1234,18 @@ async function createPendingFeedRequest(presetId) {
   const request = {
     cookieCount: plan.cookieCount,
     createdAt: new Date().toISOString(),
-    description: plan.description,
+    description: getOptionalPayloadText(payload, "description", plan.description),
     domainCount: plan.domainCount,
-    label: plan.label,
-    presetId,
+    label: getOptionalPayloadText(payload, "label", plan.label),
+    presetId: mode.type === "preset" ? mode.presetId : null,
     requestId: `feed-request-${Date.now()}`,
     sampleDomains: plan.sampleDomains,
     source: "website",
   };
+
+  if (mode.type === "keys") {
+    request.keys = mode.keys;
+  }
 
   await writeLocal({ [STORAGE_KEYS.pendingFeedRequest]: request });
   return request;
@@ -1324,6 +1357,16 @@ async function getUiState() {
 
 async function handleInternalMessage(message) {
   switch (message?.type) {
+    case "PING":
+      return success(message.type, {
+        extensionId: chrome.runtime.id,
+      });
+    case "GET_SUMMARY_REPORT":
+      return success(message.type, await getLatestReport({ refreshIfMissing: true }));
+    case "GET_FEED_PREVIEW": {
+      const report = await getLatestReport({ refreshIfMissing: true });
+      return success(message.type, report?.cleanup || null);
+    }
     case "GET_STATE":
       return success(message.type, await getUiState());
     case "GET_PENDING_FEED_REQUEST_DETAILS": {
@@ -1401,6 +1444,18 @@ async function handleInternalMessage(message) {
       await executeDeletionPlan({ type: "keys", keys }, "website");
       return success(message.type, await getCookieManagementState());
     }
+    case "REQUEST_COOKIE_FEED": {
+      const pendingFeedRequest = await createPendingFeedRequest(message.payload);
+      if (!pendingFeedRequest) {
+        return failure(
+          message.type,
+          "No cleanup-ready cookies matched that local website request."
+        );
+      }
+
+      await openDashboardPage();
+      return success(message.type, pendingFeedRequest);
+    }
     case "RESTORE_CLEANUP_BATCH": {
       const batchId =
         message?.payload && typeof message.payload.batchId === "string"
@@ -1443,14 +1498,12 @@ async function handleInternalMessage(message) {
       );
     case "CONFIRM_PENDING_FEED_REQUEST": {
       const pendingFeedRequest = await readLocal(STORAGE_KEYS.pendingFeedRequest, null);
-      if (!pendingFeedRequest || !isCleanupPresetId(pendingFeedRequest.presetId)) {
+      const mode = getPendingFeedModeFromPayload(pendingFeedRequest);
+      if (!pendingFeedRequest || !mode) {
         return failure(message.type, "There is no pending website feed request to confirm.");
       }
 
-      const result = await executeDeletionPlan(
-        { type: "preset", presetId: pendingFeedRequest.presetId },
-        "website"
-      );
+      const result = await executeDeletionPlan(mode, "website");
       await clearPendingFeedRequest();
       return success(message.type, {
         ...result,
@@ -1466,6 +1519,10 @@ async function handleInternalMessage(message) {
       return success(message.type, {
         report: await exportLatestReport(),
       });
+    case "GET_EXTENSION_VERSION":
+      return success(message.type, {
+        version: chrome.runtime.getManifest().version,
+      });
     case "EXPORT_BACKUP": {
       const batch = await exportLatestBackup();
       if (!batch) {
@@ -1475,6 +1532,9 @@ async function handleInternalMessage(message) {
       return success(message.type, { batch });
     }
     case "OPEN_DASHBOARD":
+      await openDashboardPage();
+      return success(message.type, null);
+    case "OPEN_EXTENSION_DASHBOARD":
       await openDashboardPage();
       return success(message.type, null);
     case "OPEN_SIDE_PANEL":
@@ -1558,14 +1618,12 @@ async function handleExternalMessage(message) {
       return success(message.type, await getCookieManagementState());
     }
     case "REQUEST_COOKIE_FEED": {
-      const presetId = getPresetIdFromPayload(message.payload);
-      if (!presetId) {
-        return failure(message.type, "A valid cleanup preset is required.");
-      }
-
-      const pendingFeedRequest = await createPendingFeedRequest(presetId);
+      const pendingFeedRequest = await createPendingFeedRequest(message.payload);
       if (!pendingFeedRequest) {
-        return failure(message.type, "No cookies match that cleanup preset right now.");
+        return failure(
+          message.type,
+          "No cleanup-ready cookies matched that local website request."
+        );
       }
 
       await openDashboardPage();
