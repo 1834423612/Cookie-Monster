@@ -1,0 +1,229 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
+
+  /* Fresh, Clean Theme - Light and modern */
+  --color-background: #FAFBFD;
+  --color-foreground: #1a1a2e;
+  
+  /* Pure white cards */
+  --color-card: #FFFFFF;
+  --color-card-foreground: #1a1a2e;
+  
+  --color-popover: #FFFFFF;
+  --color-popover-foreground: #1a1a2e;
+  
+  /* Primary - Fresh Cookie Blue */
+  --color-primary: #4F8EF7;
+  --color-primary-foreground: #FFFFFF;
+  
+  /* Secondary - Warm Golden */
+  --color-secondary: #FFB347;
+  --color-secondary-foreground: #1a1a2e;
+  
+  /* Muted - Very light gray */
+  --color-muted: #F4F5F7;
+  --color-muted-foreground: #6B7280;
+  
+  /* Accent - Soft blue tint */
+  --color-accent: #EBF3FF;
+  --color-accent-foreground: #4F8EF7;
+  
+  /* Cookie Monster Blue - for fun accents */
+  --color-monster: #4FACFE;
+  --color-monster-foreground: #FFFFFF;
+  
+  --color-destructive: #EF4444;
+  --color-destructive-foreground: #FFFFFF;
+  
+  --color-border: #E8EAED;
+  --color-input: #E8EAED;
+  --color-ring: #4F8EF7;
+  
+  /* Risk level colors - vibrant and clear */
+  --color-risk-high: #EF4444;
+  --color-risk-medium: #F59E0B;
+  --color-risk-low: #10B981;
+  
+  --radius: 0.5rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    scrollbar-gutter: stable;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  .text-pretty {
+    text-wrap: pretty;
+  }
+}
+
+/* Smooth scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D1D5DB;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9CA3AF;
+}
+
+/* Cookie Monster mascot animations */
+@keyframes monster-bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes monster-wave {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(15deg);
+  }
+  75% {
+    transform: rotate(-10deg);
+  }
+}
+
+@keyframes cookie-float {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-6px) rotate(5deg);
+  }
+}
+
+@keyframes crumb-fall {
+  0% {
+    opacity: 1;
+    transform: translateY(0) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(40px) rotate(180deg);
+  }
+}
+
+@keyframes jar-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes jar-idle-shake {
+  0%, 86%, 100% {
+    transform: rotate(0deg);
+  }
+  88% {
+    transform: rotate(-2deg);
+  }
+  90% {
+    transform: rotate(2deg);
+  }
+  92% {
+    transform: rotate(-2.5deg);
+  }
+  94% {
+    transform: rotate(2.5deg);
+  }
+  96% {
+    transform: rotate(-1.5deg);
+  }
+  98% {
+    transform: rotate(1.5deg);
+  }
+}
+
+@keyframes float-gentle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.animate-monster-bounce {
+  animation: monster-bounce 2s ease-in-out infinite;
+}
+
+.animate-monster-wave {
+  animation: monster-wave 1.5s ease-in-out infinite;
+}
+
+.animate-cookie-float {
+  animation: cookie-float 3s ease-in-out infinite;
+}
+
+.animate-jar-fade-out {
+  animation: jar-fade-out 1s ease-out forwards;
+}
+
+.animate-jar-idle-shake {
+  animation: jar-idle-shake 3s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+
+.animate-crumb-fall {
+  animation: crumb-fall 1.5s ease-out infinite;
+}
+
+.animate-float-gentle {
+  animation: float-gentle 2.5s ease-in-out infinite;
+}
+
+/* Row hover effect */
+.cookie-row {
+  transition: background-color 0.15s ease;
+}
+
+.cookie-row:hover {
+  background-color: #F9FAFB;
+}
+
+/* Expand animation */
+@keyframes expand-in {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 500px;
+  }
+}
+
+.animate-expand {
+  animation: expand-in 0.25s ease-out forwards;
+}
