@@ -2,6 +2,13 @@
 
 2026 KHE Project
 
+## Team
+
+- Jiacheng Kuang (Kevin): Lead developer and primary product implementation
+- Leo Wang: Motion design and animation implementation
+- Tony Zheng: Character art, cookie visuals, and supporting image assets
+- Aron: Project research, learning
+
 ## Inspiration
 
 Browser cookies are a privacy minefield. While some are essential for keeping you logged in, others quietly track your behavior across the web. Most built-in browser tools offer a nuclear option: clear everything and log yourself out of every website, or clear nothing and let the trackers thrive. We wanted to build a fun, visual, and intelligent tool that could automatically distinguish the "good" cookies from the "bad" ones, giving users their privacy back without breaking their browsing experience. Plus, who better to eat your unwanted cookies than a Cookie Monster?
