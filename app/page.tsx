@@ -471,6 +471,7 @@ export default function HomePage() {
   const [filterScope, setFilterScope] = useState<FilterScope>("cleanup");
   const [selectedLookup, setSelectedLookup] = useState<Record<string, true>>({});
   const [message, setMessage] = useState<string | null>(null);
+  const [isEating, setIsEating] = useState(false);
 
   const deferredQuery = useDeferredValue(query);
 
@@ -654,6 +655,7 @@ export default function HomePage() {
       setMessage(
         `${pending.label} created. The extension will confirm exactly ${pending.cookieCount} cookies before deletion.`
       );
+      setTimeout(() => setIsEating(true), 1000);
       return;
     }
 
@@ -882,11 +884,13 @@ export default function HomePage() {
 
           <aside className="min-h-0 overflow-hidden">
             <video
-              src="/cm_idle.mp4"
+              key={isEating ? "eat" : "idle"}
+              src={isEating ? "/cm_eat.mp4" : "/cm_idle.mp4"}
               autoPlay
-              loop
+              loop={!isEating}
               muted
               playsInline
+              onEnded={() => setIsEating(false)}
               className="h-full w-full object-contain"
             />
           </aside>
