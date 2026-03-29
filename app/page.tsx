@@ -31,18 +31,46 @@ const presetFilters: Array<{ id: CleanupPresetId; label: string }> = [
 ];
 
 const filterScopeOptions = [
-  { id: "cleanup", label: "Cleanup ready" },
-  { id: "high", label: "High risk" },
-  { id: "watch", label: "Watch" },
-  { id: "keep", label: "Keep" },
-  { id: "selected", label: "Selected" },
-  { id: "all", label: "All cookies" },
+  {
+    id: "cleanup",
+    label: "Review first",
+    description: "Cleanup-ready cookies matched by the current search and rule set.",
+  },
+  {
+    id: "high",
+    label: "High risk",
+    description: "The highest-risk cookies in the current view.",
+  },
+  {
+    id: "watch",
+    label: "Needs review",
+    description: "Probably removable, but worth checking before cleanup.",
+  },
+  {
+    id: "keep",
+    label: "Keep on site",
+    description: "Likely sign-in or core site state you probably want to keep.",
+  },
+  {
+    id: "selected",
+    label: "Selected",
+    description: "Only the cookies you have checked for review.",
+  },
+  {
+    id: "all",
+    label: "Everything",
+    description: "All cookies that match the current search and cleanup rule.",
+  },
 ] as const;
 
 type FilterScope = (typeof filterScopeOptions)[number]["id"];
 
 interface FilteredDomainGroup extends CookieDomainGroup {
   cleanupCandidateCount: number;
+}
+
+function getFilterScopeMeta(scope: FilterScope) {
+  return filterScopeOptions.find((option) => option.id === scope) || filterScopeOptions[0];
 }
 
 function formatExpiry(expirationDate: number | null) {
@@ -297,12 +325,15 @@ const CookieRow = memo(function CookieRow({ cookie, isSelected, onToggle }: Cook
             onToggle(cookie.key);
           }}
           className={`flex h-5 w-5 items-center justify-center rounded transition ${
-            isSelected ? "text-[#d74d42]" : "text-[#ccbca4] hover:text-[#a69377]"
+            isSelected ? "text-[#1d6ed8]" : "text-[#ccbca4] hover:text-[#a69377]"
           }`}
           aria-pressed={isSelected}
           aria-label={isSelected ? `Unselect ${cookie.name}` : `Select ${cookie.name}`}
         >
-          <Icon icon={isSelected ? "mdi:flag" : "mdi:flag-outline"} className="h-4 w-4" />
+          <Icon
+            icon={isSelected ? "mdi:checkbox-marked-circle" : "mdi:checkbox-blank-circle-outline"}
+            className="h-4 w-4"
+          />
         </button>
         <img src={getCookieArt(cookie.risk)} alt="" className="h-5 w-5 shrink-0" />
         <div className="min-w-0">
@@ -310,7 +341,7 @@ const CookieRow = memo(function CookieRow({ cookie, isSelected, onToggle }: Cook
             <span className="truncate text-[13px] font-medium text-[#342c22]">{cookie.name}</span>
           </div>
           <p className="mt-0.5 truncate text-[10px] text-[#8a7b66]">
-            {cookie.category} • {getSameSiteLabel(cookie.sameSite)} • {getCookieGuidance(cookie)}
+            {cookie.category} - {getSameSiteLabel(cookie.sameSite)} - {getCookieGuidance(cookie)}
           </p>
         </div>
       </div>
@@ -397,7 +428,7 @@ const DomainGroupRow = memo(
                 )}
                 {selectedCount > 0 && (
                   <span className="rounded-full bg-[#e8f2ff] px-2 py-0.5 text-[#3569b8]">
-                    {selectedCount} flagged
+                    {selectedCount} selected
                   </span>
                 )}
               </div>
@@ -464,15 +495,15 @@ export default function HomePage() {
   const inventory = useCookieInventory(extensionStatus.isInstalled && !extensionStatus.isUsingMockData);
 
   const [jarPhase, setJarPhase] = useState<"idle" | 1 | 2 | 3 | 4 | "fading" | "done">("idle");
-  const [expandedDomain, setExpandedDomain] = useState<string | null>(null);
+  const [expandedDomains, setExpandedDomains] = useState<Record<string, true>>({});
   const [query, setQuery] = useState("");
   const [preset, setPreset] = useState<CleanupPresetId | "all">("all");
   const [filterScope, setFilterScope] = useState<FilterScope>("cleanup");
   const [selectedLookup, setSelectedLookup] = useState<Record<string, true>>({});
   const [message, setMessage] = useState<string | null>(null);
   const [isEating, setIsEating] = useState(false);
-  const [isTagGuideCollapsed, setIsTagGuideCollapsed] = useState(true);
   const [isCookieListExpanded, setIsCookieListExpanded] = useState(false);
+  const [isGuideCollapsed, setIsGuideCollapsed] = useState(true);
 
   const handleJarClick = useCallback(() => {
     if (jarPhase !== "idle") return;
@@ -494,18 +525,33 @@ export default function HomePage() {
     return inventory.groups;
   }, [extensionStatus.isUsingMockData, extensionStatus.report, inventory.groups]);
 
-  const selectedFilterLookup = filterScope === "selected" ? selectedLookup : EMPTY_SELECTION;
+  const baseFilteredGroups = useMemo(
+    () => applyFilters(sourceGroups, deferredQuery, preset, "all", EMPTY_SELECTION),
+    [sourceGroups, deferredQuery, preset]
+  );
 
   const filteredGroups = useMemo(
-    () => applyFilters(sourceGroups, deferredQuery, preset, filterScope, selectedFilterLookup),
-    [sourceGroups, deferredQuery, preset, filterScope, selectedFilterLookup]
+    () => applyFilters(sourceGroups, deferredQuery, preset, filterScope, selectedLookup),
+    [sourceGroups, deferredQuery, preset, filterScope, selectedLookup]
   );
 
   useEffect(() => {
-    if (expandedDomain && !filteredGroups.some((group) => group.domain === expandedDomain)) {
-      setExpandedDomain(null);
-    }
-  }, [expandedDomain, filteredGroups]);
+    setExpandedDomains((current) => {
+      let changed = false;
+      const visibleDomains = new Set(filteredGroups.map((group) => group.domain));
+      const next: Record<string, true> = {};
+
+      for (const domain of Object.keys(current)) {
+        if (visibleDomains.has(domain)) {
+          next[domain] = true;
+        } else {
+          changed = true;
+        }
+      }
+
+      return changed ? next : current;
+    });
+  }, [filteredGroups]);
 
   useEffect(() => {
     if (!isCookieListExpanded) {
@@ -542,6 +588,20 @@ export default function HomePage() {
 
   const selectedKeys = useMemo(() => Object.keys(selectedLookup), [selectedLookup]);
   const selectedCount = selectedKeys.length;
+
+  const selectionInCurrentSearchCount = useMemo(() => {
+    let total = 0;
+
+    for (const group of baseFilteredGroups) {
+      for (const cookie of group.items) {
+        if (selectedLookup[cookie.key]) {
+          total += 1;
+        }
+      }
+    }
+
+    return total;
+  }, [baseFilteredGroups, selectedLookup]);
 
   const selectedCountByDomain = useMemo(() => {
     const next: Record<string, number> = {};
@@ -589,8 +649,48 @@ export default function HomePage() {
     return total;
   }, [selectedLookup, visibleSelectableKeys]);
 
+  const hiddenSelectedCount = Math.max(0, selectedCount - selectionInCurrentSearchCount);
+
+  const scopeCounts = useMemo(() => {
+    const counts: Record<FilterScope, number> = {
+      cleanup: 0,
+      high: 0,
+      watch: 0,
+      keep: 0,
+      selected: selectedCount,
+      all: 0,
+    };
+
+    for (const group of baseFilteredGroups) {
+      counts.all += group.total;
+
+      for (const cookie of group.items) {
+        if (isCleanupCandidate(cookie)) {
+          counts.cleanup += 1;
+        }
+
+        if (cookie.risk === "high") {
+          counts.high += 1;
+        }
+
+        if (cookie.risk === "medium") {
+          counts.watch += 1;
+        }
+
+        if (cookie.recommendedKeep) {
+          counts.keep += 1;
+        }
+      }
+    }
+
+    return counts;
+  }, [baseFilteredGroups, selectedCount]);
+
+  const activeScope = getFilterScopeMeta(filterScope);
+
   const toggleCookie = useCallback((key: string) => {
     startTransition(() => {
+      setMessage(null);
       setSelectedLookup((current) => {
         if (current[key]) {
           const next = { ...current };
@@ -607,7 +707,18 @@ export default function HomePage() {
   }, []);
 
   const toggleExpandedDomain = useCallback((domain: string) => {
-    setExpandedDomain((current) => (current === domain ? null : domain));
+    setExpandedDomains((current) => {
+      if (current[domain]) {
+        const next = { ...current };
+        delete next[domain];
+        return next;
+      }
+
+      return {
+        ...current,
+        [domain]: true,
+      };
+    });
   }, []);
 
   const selectVisible = useCallback(() => {
@@ -616,6 +727,7 @@ export default function HomePage() {
     }
 
     startTransition(() => {
+      setMessage(null);
       setSelectedLookup((current) => {
         let changed = false;
         const next = { ...current };
@@ -629,8 +741,20 @@ export default function HomePage() {
 
         return changed ? next : current;
       });
+      setFilterScope("selected");
+      setExpandedDomains((current) => {
+        const next = { ...current };
+
+        for (const group of filteredGroups) {
+          if (group.items.some((cookie) => isCleanupCandidate(cookie))) {
+            next[group.domain] = true;
+          }
+        }
+
+        return next;
+      });
     });
-  }, [visibleSelectableKeys]);
+  }, [filteredGroups, visibleSelectableKeys]);
 
   const clearVisible = useCallback(() => {
     if (!visibleSelectableKeys.length) {
@@ -638,6 +762,7 @@ export default function HomePage() {
     }
 
     startTransition(() => {
+      setMessage(null);
       setSelectedLookup((current) => {
         let changed = false;
         const next = { ...current };
@@ -655,7 +780,39 @@ export default function HomePage() {
   }, [visibleSelectableKeys]);
 
   const clearSelection = useCallback(() => {
+    setMessage(null);
     setSelectedLookup({});
+  }, []);
+
+  const showSelected = useCallback(() => {
+    if (!selectedCount) {
+      return;
+    }
+
+    startTransition(() => {
+      setQuery("");
+      setPreset("all");
+      setFilterScope("selected");
+      setExpandedDomains((current) => {
+        const next = { ...current };
+
+        for (const key of selectedKeys) {
+          const domain = keyToDomain.get(key);
+          if (domain) {
+            next[domain] = true;
+          }
+        }
+
+        return next;
+      });
+    });
+  }, [keyToDomain, selectedCount, selectedKeys]);
+
+  const handleReturnToJar = useCallback(() => {
+    setIsCookieListExpanded(false);
+    setIsEating(false);
+    setMessage(null);
+    setJarPhase("idle");
   }, []);
 
   const canRequestFeed = extensionStatus.isInstalled && !extensionStatus.isUsingMockData;
@@ -666,21 +823,16 @@ export default function HomePage() {
       return;
     }
 
-    const targetKeys = selectedCount > 0 ? selectedKeys : visibleSelectableKeys;
-
-    if (!targetKeys.length) {
-      setMessage("No cleanup-ready cookies match the current filter. Try a broader view or flag items manually.");
+    if (!selectedCount) {
+      setMessage("Select the cookies you want first. Nothing will be queued until items are checked.");
       return;
     }
 
     const pending = await requestCookieFeed({
       description:
-        selectedCount > 0
-          ? `Only the ${targetKeys.length} cookies flagged on the website will be reviewed in the extension.`
-          : `Cleanup-ready cookies matching the current website filters will be reviewed in the extension.`,
-      keys: targetKeys,
-      label: selectedCount > 0 ? "Website selection" : "Filtered cleanup request",
-      presetId: preset === "all" ? undefined : preset,
+        `Only the ${selectedKeys.length} checked cookies from the website will be reviewed in the extension.`,
+      keys: selectedKeys,
+      label: "Website selection",
     });
 
     if (pending) {
@@ -693,6 +845,32 @@ export default function HomePage() {
 
     setMessage("The extension could not create a cleanup request from this selection.");
   };
+
+  useEffect(() => {
+    if (filterScope === "selected" && !selectedCount) {
+      setFilterScope("cleanup");
+    }
+  }, [filterScope, selectedCount]);
+
+  useEffect(() => {
+    if (filterScope !== "selected") {
+      return;
+    }
+
+    setExpandedDomains((current) => {
+      const next = { ...current };
+      let changed = false;
+
+      for (const group of filteredGroups) {
+        if (!next[group.domain]) {
+          next[group.domain] = true;
+          changed = true;
+        }
+      }
+
+      return changed ? next : current;
+    });
+  }, [filterScope, filteredGroups]);
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-[radial-gradient(circle_at_top_left,#f6ecd8,#efe6d7_45%,#ece7df)] text-[#2d261a]">
@@ -732,15 +910,24 @@ export default function HomePage() {
                 className="flex min-h-0 min-w-0 flex-1 flex-col p-4 transition-opacity duration-1000"
                 style={{ opacity: jarPhase === "done" ? 1 : 0 }}
               >
-              <div className="mb-4 rounded-[1.35rem] border border-[#e3d7c5] bg-white/75 p-4 shadow-[0_10px_28px_rgba(88,62,31,0.06)]">
-                <div className="grid gap-2 lg:grid-cols-[minmax(0,1.2fr)_180px_auto]">
-                  <label className="flex items-center gap-2 rounded-xl border border-[#ddcfba] bg-white px-3 text-sm text-[#4f4537] focus-within:border-[#ccb693] focus-within:ring-2 focus-within:ring-[#e8ddcb]">
+              <div className="mb-2 rounded-[1.2rem] border border-[#e3d7c5] bg-white/78 p-3 shadow-[0_8px_22px_rgba(88,62,31,0.05)]">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleReturnToJar}
+                    className="inline-flex h-9 items-center gap-2 rounded-xl border border-[#ddcfba] bg-white px-3 text-xs font-semibold text-[#6c5b44] transition hover:bg-[#f7f0e5]"
+                  >
+                    <Icon icon="mdi:arrow-left" className="h-4 w-4" />
+                    Back
+                  </button>
+
+                  <label className="flex h-9 min-w-55 flex-1 items-center gap-2 rounded-xl border border-[#ddcfba] bg-white px-3 text-sm text-[#4f4537] focus-within:border-[#ccb693] focus-within:ring-2 focus-within:ring-[#e8ddcb]">
                     <Icon icon="mdi:magnify" className="h-4 w-4 text-[#8a7b66]" />
                     <input
                       value={query}
                       onChange={(event) => setQuery(event.target.value)}
                       placeholder="Search domain, cookie, category, or reason"
-                      className="h-10 w-full bg-transparent outline-none"
+                      className="w-full bg-transparent outline-none"
                     />
                   </label>
 
@@ -749,9 +936,9 @@ export default function HomePage() {
                     onChange={(event) =>
                       startTransition(() => setPreset(event.target.value as CleanupPresetId | "all"))
                     }
-                    className="h-10 rounded-xl border border-[#ddcfba] bg-white px-3 text-sm text-[#4f4537] outline-none"
+                    className="h-9 rounded-xl border border-[#ddcfba] bg-white px-3 text-sm text-[#4f4537] outline-none"
                   >
-                    <option value="all">All cleanup rules</option>
+                    <option value="all">All rules</option>
                     {presetFilters.map((filter) => (
                       <option key={filter.id} value={filter.id}>
                         {filter.label}
@@ -764,107 +951,96 @@ export default function HomePage() {
                       extensionStatus.refresh();
                       inventory.refresh();
                     }}
-                    className="h-10 rounded-xl border border-[#ddcfba] bg-white px-3 text-sm text-[#5e5548] transition hover:bg-[#faf6f0]"
+                    className="h-9 rounded-xl border border-[#ddcfba] bg-white px-3 text-xs font-semibold text-[#5e5548] transition hover:bg-[#faf6f0]"
                   >
                     Refresh
                   </button>
                 </div>
 
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className="mt-2 flex flex-wrap gap-2">
                   {filterScopeOptions.map((option) => {
                     const isActive = filterScope === option.id;
+                    const count = option.id === "selected" ? selectedCount : scopeCounts[option.id];
 
                     return (
                       <button
                         key={option.id}
                         type="button"
                         onClick={() => startTransition(() => setFilterScope(option.id))}
-                        className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                        className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
                           isActive
                             ? "border-[#c9b18e] bg-[#f0e2cf] text-[#4a3d2d]"
                             : "border-[#e0d4c2] bg-white text-[#7b6d5a] hover:bg-[#faf4eb]"
                         }`}
                       >
-                        {option.label}
+                        <span>{option.label}</span>
+                        <span className="rounded-full bg-white/80 px-1.5 py-0.5 text-[10px]">
+                          {count.toLocaleString()}
+                        </span>
                       </button>
                     );
                   })}
                 </div>
 
-                <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                  <p className="text-xs text-[#7b6d5a]">
-                    Showing {visibleCookieCount.toLocaleString()} cookies across{" "}
-                    {filteredGroups.length.toLocaleString()} domains, with{" "}
-                    {visibleSelectableKeys.length.toLocaleString()} cleanup-ready items in view.
-                  </p>
+                <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-[#7b6d5a]">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span>{activeScope.label}</span>
+                    <span>·</span>
+                    <span>{visibleCookieCount.toLocaleString()} cookies</span>
+                    <span>·</span>
+                    <span>{filteredGroups.length.toLocaleString()} domains</span>
+                    <span>·</span>
+                    <span>{selectedCount.toLocaleString()} selected</span>
+                    {hiddenSelectedCount > 0 && (
+                      <>
+                        <span>·</span>
+                        <span>{hiddenSelectedCount.toLocaleString()} hidden by current search</span>
+                      </>
+                    )}
+                  </div>
 
                   <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
                       onClick={selectVisible}
                       disabled={!visibleSelectableKeys.length}
-                      className="rounded-xl border border-[#d8ccb8] bg-[#fff8ee] px-3 py-2 text-xs font-semibold text-[#6c5b44] transition hover:bg-[#f6ead8] disabled:cursor-not-allowed disabled:opacity-50"
+                      className="rounded-xl border border-[#d8ccb8] bg-[#fff8ee] px-3 py-1.5 text-xs font-semibold text-[#6c5b44] transition hover:bg-[#f6ead8] disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      Flag all
+                      Select visible
                     </button>
                     <button
                       type="button"
                       onClick={clearVisible}
                       disabled={!visibleSelectedCount}
-                      className="rounded-xl border border-[#d8ccb8] bg-white px-3 py-2 text-xs font-semibold text-[#6c5b44] transition hover:bg-[#f7f0e5] disabled:cursor-not-allowed disabled:opacity-50"
+                      className="rounded-xl border border-[#d8ccb8] bg-white px-3 py-1.5 text-xs font-semibold text-[#6c5b44] transition hover:bg-[#f7f0e5] disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      Unflag all
+                      Clear visible
+                    </button>
+                    <button
+                      type="button"
+                      onClick={showSelected}
+                      disabled={!selectedCount}
+                      className="rounded-xl border border-[#c7daf5] bg-[#eef5ff] px-3 py-1.5 text-xs font-semibold text-[#3569b8] transition hover:bg-[#e3efff] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Show selected
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsGuideCollapsed((current) => !current)}
+                      className="rounded-xl border border-[#ddcfba] bg-white px-3 py-1.5 text-xs font-semibold text-[#6c5b44] transition hover:bg-[#f7f0e5]"
+                      aria-expanded={!isGuideCollapsed}
+                    >
+                      {isGuideCollapsed ? "Guide" : "Hide guide"}
                     </button>
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setIsTagGuideCollapsed((current) => !current)}
-                  className="mt-2 flex w-full items-center justify-between rounded-xl border border-[#ddcfba] bg-[#fcf8f1] px-3 py-1.5 text-left transition hover:bg-[#f8f1e5]"
-                  aria-expanded={!isTagGuideCollapsed}
-                >
-                  <div className="flex min-w-0 items-center gap-2">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#6f6453]">
-                      Tag guide
-                    </span>
-                    <span className="truncate text-[11px] text-[#8a7b66]">
-                      {isTagGuideCollapsed
-                        ? "Show High risk, Watch, and Keep"
-                        : "Hide High risk, Watch, and Keep"}
-                    </span>
-                  </div>
-                  <Icon
-                    icon={isTagGuideCollapsed ? "mdi:chevron-down" : "mdi:chevron-up"}
-                    className="h-4 w-4 shrink-0 text-[#8a7b66]"
-                  />
-                </button>
-
-                {!isTagGuideCollapsed && (
-                  <div className="mt-2 grid gap-2 md:grid-cols-3">
-                    <div className="rounded-2xl border border-[#f0d2cd] bg-[#fff7f6] px-3 py-2">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#bb5448]">
-                        High Risk
-                      </p>
-                      <p className="mt-1 text-xs text-[#8e544a]">
-                        Likely trackers or unsafe cross-site crumbs. Usually the best first cleanup.
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border border-[#eadcb1] bg-[#fffaf0] px-3 py-2">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#a07a1f]">
-                        Watch
-                      </p>
-                      <p className="mt-1 text-xs text-[#8a6d24]">
-                        Probably non-essential, but worth a quick review before clearing in bulk.
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border border-[#cce3cf] bg-[#f7fcf8] px-3 py-2">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#2f7a4d]">
-                        Keep
-                      </p>
-                      <p className="mt-1 text-xs text-[#456b54]">
-                        Likely sign-in or core site state. Leave these unless you are troubleshooting.
-                      </p>
+                {!isGuideCollapsed && (
+                  <div className="mt-2 rounded-xl border border-[#eadfce] bg-[#fcf8f1] px-3 py-2 text-xs text-[#7b6d5a]">
+                    <div className="flex flex-wrap gap-x-4 gap-y-1">
+                      <span><strong className="text-[#bb5448]">High risk</strong>: start here</span>
+                      <span><strong className="text-[#a07a1f]">Needs review</strong>: check before clearing</span>
+                      <span><strong className="text-[#2f7a4d]">Keep on site</strong>: likely sign-in or core state</span>
                     </div>
                   </div>
                 )}
@@ -935,7 +1111,7 @@ export default function HomePage() {
                       <DomainGroupRow
                         key={group.domain}
                         group={group}
-                        isExpanded={expandedDomain === group.domain}
+                        isExpanded={Boolean(expandedDomains[group.domain])}
                         onToggleExpanded={toggleExpandedDomain}
                         onToggleCookie={toggleCookie}
                         selectedCount={selectedCountByDomain[group.domain] || 0}
@@ -947,53 +1123,47 @@ export default function HomePage() {
                   {filteredGroups.length === 0 && (
                     <div className="m-4 rounded-2xl border border-dashed border-[#ddcfba] p-6 text-center text-sm text-[#6f6453]">
                       {filterScope === "selected"
-                        ? "No flagged cookies yet. Flag rows from any other filter to build an exact cleanup batch."
+                        ? "No selected cookies yet. Check rows from any other view to build an exact cleanup batch."
                         : "No cookies match the current filter. Try broadening the search or switching to All cookies."}
                     </div>
                   )}
                 </div>
               </div>
 
-              <div className="mt-4 rounded-[1.25rem] border border-[#eadfce] bg-white/90 p-4 shadow-[0_8px_24px_rgba(88,62,31,0.06)]">
-                <div className="flex flex-wrap items-center gap-2 text-sm">
-                  <span className="font-medium text-[#6f6453]">Selected cookies</span>
-                  <span className="rounded-full bg-[#f3ede4] px-2.5 py-1 text-xs font-semibold text-[#3b3329]">
-                    {selectedCount.toLocaleString()}
-                  </span>
-                  <span className="rounded-full bg-white px-2.5 py-1 text-xs text-[#8a7b66]">
-                    Visible cleanup-ready {visibleSelectableKeys.length.toLocaleString()}
-                  </span>
-                  <span className="rounded-full bg-[#e8f2ff] px-2.5 py-1 text-xs font-medium text-[#3569b8]">
-                    {selectedCount > 0 ? "Send exact flagged cookies" : "Send current filtered cleanup list"}
-                  </span>
+              <div className="mt-2 rounded-2xl border border-[#eadfce] bg-white/88 px-3 py-2 shadow-[0_6px_18px_rgba(88,62,31,0.05)]">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-[#7b6d5a]">
+                    <span className="rounded-full bg-[#f3ede4] px-2 py-0.5 font-semibold text-[#3b3329]">
+                      {selectedCount.toLocaleString()} selected
+                    </span>
+                    {visibleSelectedCount > 0 && (
+                      <span className="rounded-full bg-white px-2 py-0.5">
+                        {visibleSelectedCount.toLocaleString()} visible
+                      </span>
+                    )}
+                    <span>{selectedCount > 0 ? "Only checked cookies will be queued." : "Select cookies in the list to queue a review."}</span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={requestFeed}
+                      disabled={!canRequestFeed || selectedCount === 0}
+                      className="rounded-xl bg-[#1d6ed8] px-3 py-1.5 text-xs font-semibold text-white transition enabled:hover:bg-[#185db7] disabled:cursor-not-allowed disabled:bg-slate-300"
+                    >
+                      {selectedCount > 0 ? `Queue ${selectedCount.toLocaleString()}` : "Queue selected"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={clearSelection}
+                      disabled={selectedCount === 0}
+                      className="rounded-xl border border-[#ddcfba] bg-[#faf6f0] px-3 py-1.5 text-xs font-medium text-[#6f6453] transition hover:bg-[#f4eddf] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Clear
+                    </button>
+                  </div>
                 </div>
 
-                <p className="mt-2 text-xs text-[#8a7b66]">
-                  Click a flag or any cookie row to mark it. Flagged cookies are sent exactly as-is to the extension.
-                  If nothing is flagged, the extension receives the current filtered cleanup-ready cookies instead.
-                </p>
-
-                {message && <p className="mt-2 text-xs text-[#7b6d5a]">{message}</p>}
-
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button
-                    onClick={requestFeed}
-                    disabled={!canRequestFeed}
-                    className="rounded-xl bg-[#1d6ed8] px-4 py-2.5 text-sm font-semibold text-white transition enabled:hover:bg-[#185db7] disabled:cursor-not-allowed disabled:bg-slate-300"
-                  >
-                    {selectedCount > 0
-                      ? `Send ${selectedCount.toLocaleString()} selected cookies`
-                      : `Send ${visibleSelectableKeys.length.toLocaleString()} filtered cookies`}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={clearSelection}
-                    disabled={selectedCount === 0}
-                    className="rounded-xl border border-[#ddcfba] bg-[#faf6f0] px-4 py-2 text-xs font-medium text-[#6f6453] transition hover:bg-[#f4eddf] disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Clear all flags
-                  </button>
-                </div>
+                {message && <p className="mt-1 text-[11px] text-[#7b6d5a]">{message}</p>}
               </div>
             </section>
             </div>
