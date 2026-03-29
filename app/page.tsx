@@ -60,15 +60,15 @@ function getStatusBadge(risk: string, recommendedKeep: boolean) {
   if (risk === "medium") {
     return {
       label: "WATCH",
-      className: "border-[#e3d8c9] bg-[#fbf8f3] text-[#8f7c66]",
-      accentClass: "bg-[#baa17f]",
+      className: "border-[#eadcb1] bg-[#fffaf0] text-[#a07a1f]",
+      accentClass: "bg-[#e0bf58]",
     };
   }
 
   return {
     label: "NORMAL",
-    className: "border-[#e5dccf] bg-white text-[#6f6453]",
-    accentClass: "bg-[#c8b79e]",
+    className: "border-[#cce3cf] bg-[#f7fcf8] text-[#2f7a4d]",
+    accentClass: "bg-[#4ca46b]",
   };
 }
 
@@ -292,6 +292,8 @@ export default function HomePage() {
                     const groupRisk = getGroupRisk(group);
                     const groupStatus = getStatusBadge(groupRisk, false);
 
+                    const selectedInGroup = group.items.filter((cookie) => selected[cookie.key]).length;
+
                     return (
                       <div key={group.domain} className="border-b border-[#eee4d6] last:border-b-0">
                         <button
@@ -326,6 +328,11 @@ export default function HomePage() {
                                     {group.recommendedKeepCount} protected
                                   </span>
                                 )}
+                                {selectedInGroup > 0 && (
+                                  <span className="rounded-full bg-[#e8f2ff] px-2 py-0.5 text-[#3569b8]">
+                                    {selectedInGroup} selected
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -340,8 +347,13 @@ export default function HomePage() {
                           </span>
                         </button>
 
-                        {isExpanded && (
-                          <div className="ml-9 border-l border-[#eadfce] bg-[#fbf7f1]/85">
+                        <div
+                          className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${
+                            isExpanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                          }`}
+                        >
+                          <div className="overflow-hidden">
+                            <div className="ml-9 border-l border-[#eadfce] bg-[#fbf7f1]/85">
                             {group.items.map((cookie) => {
                               const status = getStatusBadge(cookie.risk, cookie.recommendedKeep);
                               const expiry = getRelativeTime(cookie.expirationDate);
@@ -393,10 +405,14 @@ export default function HomePage() {
                                         <span className="truncate text-[13px] font-medium text-[#342c22]">
                                           {cookie.name}
                                         </span>
+                                        {cookie.recommendedKeep && (
+                                          <span className="rounded-full bg-[#edf8f0] px-1.5 py-0.5 text-[10px] font-medium text-[#2d7a52]">
+                                            keep
+                                          </span>
+                                        )}
                                       </div>
                                       <p className="mt-0.5 truncate text-[10px] text-[#8a7b66]">
                                         {cookie.category}
-                                        {cookie.recommendedKeep ? " / keep" : ""}
                                         {cookie.sameSite ? ` / ${cookie.sameSite}` : ""}
                                       </p>
                                     </div>
@@ -421,7 +437,8 @@ export default function HomePage() {
                               );
                             })}
                           </div>
-                        )}
+                          </div>
+                        </div>
                       </div>
                     );
                   })}
@@ -441,6 +458,9 @@ export default function HomePage() {
                       <span className="font-medium text-[#6f6453]">Selected cookies</span>
                       <span className="rounded-full bg-[#f3ede4] px-2.5 py-1 text-xs font-semibold text-[#3b3329]">
                         {selectedCount}
+                      </span>
+                      <span className="rounded-full bg-white px-2.5 py-1 text-xs text-[#8a7b66]">
+                        {Object.values(selected).some(Boolean) ? "manual selection" : "current filter"}
                       </span>
                       {selectedPresetHint && (
                         <span className="rounded-full bg-[#e8f2ff] px-2.5 py-1 text-xs font-medium text-[#3569b8]">
