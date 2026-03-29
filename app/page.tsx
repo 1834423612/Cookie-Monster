@@ -162,7 +162,7 @@ export default function HomePage() {
               <p className="mt-2 text-sm text-[#6f6453]">Placeholder art for jar and monster can be replaced with final assets.</p>
             </button>
           ) : (
-            <section className="flex min-h-0 flex-col rounded-3xl border border-[#d7c7af] bg-white/95 p-4 shadow-[0_14px_36px_rgba(70,54,26,0.08)]">
+            <section className="flex min-h-0 flex-col p-4">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <h2 className="text-lg font-semibold">Domain cookie inventory (local)</h2>
               </div>
@@ -209,49 +209,78 @@ export default function HomePage() {
                 </div>
               )}
 
-              <div className="min-h-0 flex-1 space-y-3 overflow-auto pr-1">
-                {filteredGroups.map((group) => (
-                  <article key={group.domain} className="rounded-2xl border border-[#ecdcc9] bg-[#fffdf9]">
-                    <button
-                      onClick={() => setExpandedDomain((current) => (current === group.domain ? null : group.domain))}
-                      className="flex w-full items-center justify-between px-4 py-3 text-left"
-                    >
-                      <div>
-                        <p className="font-semibold">{group.domain}</p>
-                        <p className="text-xs text-[#6f6453]">
-                          {group.total} cookies · High risk {group.highRiskCount} · Protected {group.recommendedKeepCount}
-                        </p>
-                      </div>
-                      <Icon icon={expandedDomain === group.domain ? "mdi:chevron-up" : "mdi:chevron-down"} className="h-5 w-5 text-[#6f6453]" />
-                    </button>
-
-                    {expandedDomain === group.domain && (
-                      <div className="space-y-2 border-t border-[#f1e5d6] px-3 py-3">
-                        {group.items.map((cookie) => (
-                          <label key={cookie.key} className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#f1e5d6] bg-white p-3">
-                            <input type="checkbox" checked={Boolean(selected[cookie.key])} onChange={() => toggleCookie(cookie.key)} className="mt-1" />
-                            <div className="min-w-0 flex-1 text-sm">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <strong>{cookie.name}</strong>
-                                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs">{cookie.category}</span>
+              <div className="min-h-0 flex-1 overflow-auto pr-1">
+                <table className="w-full border-separate border-spacing-y-1 text-sm">
+                  <thead className="sticky top-0 z-10 bg-[#f6ecd8]">
+                    <tr className="border-b border-[#ddcfba] text-left text-xs font-semibold text-[#6f6453]">
+                      <th className="py-2 pl-2 pr-3">Domain / Cookie</th>
+                      <th className="py-2 px-3">Risk</th>
+                      <th className="py-2 px-3">Expiry</th>
+                      <th className="py-2 px-3 w-8"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredGroups.map((group) => (
+                      <>
+                        <tr
+                          key={group.domain}
+                          onClick={() => setExpandedDomain((current) => (current === group.domain ? null : group.domain))}
+                          className="cursor-pointer transition-colors hover:bg-[#cabb9a] [&>td:first-child]:rounded-l-xl [&>td:last-child]:rounded-r-xl"
+                        >
+                          <td className="py-2.5 pl-2 pr-3">
+                            <p className="font-semibold">{group.domain}</p>
+                            <p className="text-xs text-[#6f6453]">{group.total} cookies · High risk {group.highRiskCount}</p>
+                          </td>
+                          <td className="py-2.5 px-3">
+                            {group.highRiskCount > 0 ? (
+                              <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs text-rose-700">high</span>
+                            ) : group.items.filter((c) => c.risk === "medium").length > group.total / 2 ? (
+                              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-700">medium</span>
+                            ) : (
+                              <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">low</span>
+                            )}
+                          </td>
+                          <td className="py-2.5 px-3 text-xs text-[#6f6453]">—</td>
+                          <td className="py-2.5 px-3">
+                            <Icon icon={expandedDomain === group.domain ? "mdi:chevron-up" : "mdi:chevron-down"} className="h-4 w-4 text-[#6f6453]" />
+                          </td>
+                        </tr>
+                        {expandedDomain === group.domain &&
+                          group.items.map((cookie) => (
+                            <tr
+                              key={cookie.key}
+                              onClick={() => toggleCookie(cookie.key)}
+                              className={`cursor-pointer transition-colors hover:bg-[#cabb9a] [&>td:first-child]:rounded-l-xl [&>td:last-child]:rounded-r-xl ${selected[cookie.key] ? "bg-[#e2d4be]" : ""}`}
+                            >
+                              <td className="py-2 pl-8 pr-3">
+                                <div className="flex items-center gap-2">
+                                  <img
+                                    src={cookie.risk === "high" ? "/c4.png" : cookie.risk === "medium" ? "/c3.png" : "/c2.png"}
+                                    alt=""
+                                    className="h-5 w-5 flex-shrink-0"
+                                  />
+                                  <span>
+                                    <strong>{cookie.name}</strong>
+                                    <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-xs">{cookie.category}</span>
+                                    {cookie.recommendedKeep && (
+                                      <span className="ml-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">keep</span>
+                                    )}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="py-2 px-3">
                                 <span className={`rounded-full px-2 py-0.5 text-xs ${cookie.risk === "high" ? "bg-rose-100 text-rose-700" : cookie.risk === "medium" ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>
                                   {cookie.risk}
                                 </span>
-                                {cookie.recommendedKeep && (
-                                  <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">Protected (recommended keep)</span>
-                                )}
-                              </div>
-                              <p className="mt-1 text-xs text-[#6f6453]">Path: {cookie.path} · Expiry: {formatExpiry(cookie.expirationDate)}</p>
-                              {cookie.reasons.length > 0 && (
-                                <p className="mt-1 text-xs text-[#8a7b66]">Signals: {cookie.reasons.join("; ")}</p>
-                              )}
-                            </div>
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                  </article>
-                ))}
+                              </td>
+                              <td className="py-2 px-3 text-xs text-[#6f6453]">{formatExpiry(cookie.expirationDate)}</td>
+                              <td></td>
+                            </tr>
+                          ))}
+                      </>
+                    ))}
+                  </tbody>
+                </table>
 
                 {filteredGroups.length === 0 && (
                   <div className="rounded-2xl border border-dashed border-[#ddcfba] p-6 text-center text-sm text-[#6f6453]">
@@ -277,9 +306,12 @@ export default function HomePage() {
           )}
 
           <aside className="min-h-0 overflow-hidden">
-            <img
-              src="/cookiemonster_tp.png"
-              alt="Cookie Monster"
+            <video
+              src="/cm_idle.mp4"
+              autoPlay
+              loop
+              muted
+              playsInline
               className="h-full w-full object-contain"
             />
           </aside>
