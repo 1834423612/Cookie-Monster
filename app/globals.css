@@ -174,6 +174,26 @@
   }
 }
 
+@keyframes cookie-burst {
+  0% {
+    opacity: 0;
+    transform: var(--cookie-transform-start);
+    animation-timing-function: cubic-bezier(0.2, 0.72, 0.24, 1);
+  }
+  10% {
+    opacity: 1;
+  }
+  56% {
+    opacity: 1;
+    transform: var(--cookie-transform-pop);
+    animation-timing-function: cubic-bezier(0.22, 0.78, 0.2, 1);
+  }
+  100% {
+    opacity: 0;
+    transform: var(--cookie-transform-end);
+  }
+}
+
 .animate-monster-bounce {
   animation: monster-bounce 2s ease-in-out infinite;
 }
@@ -184,6 +204,11 @@
 
 .animate-cookie-float {
   animation: cookie-float 3s ease-in-out infinite;
+}
+
+.animate-cookie-burst {
+  animation: cookie-burst 1.8s both;
+  will-change: opacity, transform;
 }
 
 .animate-jar-fade-out {
