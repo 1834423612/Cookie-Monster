@@ -380,7 +380,6 @@ const DomainGroupRow = memo(
             <div className="min-w-0">
               <p className="truncate font-semibold text-[#342c22]">{group.domain}</p>
               <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-[#8a7b66]">
-                <span className="rounded-full bg-white/80 px-2 py-0.5">{group.total} visible</span>
                 {group.cleanupCandidateCount > 0 && (
                   <span className="rounded-full bg-[#fff7ec] px-2 py-0.5 text-[#9b7120]">
                     {group.cleanupCandidateCount} cleanup ready
@@ -472,6 +471,8 @@ export default function HomePage() {
   const [selectedLookup, setSelectedLookup] = useState<Record<string, true>>({});
   const [message, setMessage] = useState<string | null>(null);
   const [isEating, setIsEating] = useState(false);
+  const [isTagGuideCollapsed, setIsTagGuideCollapsed] = useState(true);
+  const [isCookieListExpanded, setIsCookieListExpanded] = useState(false);
 
   const handleJarClick = useCallback(() => {
     if (jarPhase !== "idle") return;
@@ -505,6 +506,27 @@ export default function HomePage() {
       setExpandedDomain(null);
     }
   }, [expandedDomain, filteredGroups]);
+
+  useEffect(() => {
+    if (!isCookieListExpanded) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsCookieListExpanded(false);
+      }
+    };
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isCookieListExpanded]);
 
   const keyToDomain = useMemo(() => {
     const next = new Map<string, string>();
@@ -675,7 +697,7 @@ export default function HomePage() {
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-[radial-gradient(circle_at_top_left,#f6ecd8,#efe6d7_45%,#ece7df)] text-[#2d261a]">
       <main className="mx-auto flex min-h-0 w-full max-w-auto flex-1 flex-col px-4 py-6 md:px-8 md:py-10">
-        <section className="grid min-h-0 flex-1 gap-4 md:grid-cols-[2fr_1fr]">
+        <section className="grid min-h-0 flex-1 gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
           {jarPhase === "idle" ? (
             <button
               onClick={handleJarClick}
@@ -696,7 +718,7 @@ export default function HomePage() {
               />
             </div>
           ) : (
-            <div className="relative flex min-h-0 flex-col">
+            <div className="relative flex min-h-0 min-w-0 flex-col">
               {jarPhase === "fading" && (
                 <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
                   <img
@@ -707,7 +729,7 @@ export default function HomePage() {
                 </div>
               )}
               <section
-                className="flex min-h-0 flex-1 flex-col p-4 transition-opacity duration-1000"
+                className="flex min-h-0 min-w-0 flex-1 flex-col p-4 transition-opacity duration-1000"
                 style={{ opacity: jarPhase === "done" ? 1 : 0 }}
               >
               <div className="mb-4 rounded-[1.35rem] border border-[#e3d7c5] bg-white/75 p-4 shadow-[0_10px_28px_rgba(88,62,31,0.06)]">
@@ -783,7 +805,7 @@ export default function HomePage() {
                       disabled={!visibleSelectableKeys.length}
                       className="rounded-xl border border-[#d8ccb8] bg-[#fff8ee] px-3 py-2 text-xs font-semibold text-[#6c5b44] transition hover:bg-[#f6ead8] disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      Flag visible
+                      Flag all
                     </button>
                     <button
                       type="button"
@@ -791,37 +813,61 @@ export default function HomePage() {
                       disabled={!visibleSelectedCount}
                       className="rounded-xl border border-[#d8ccb8] bg-white px-3 py-2 text-xs font-semibold text-[#6c5b44] transition hover:bg-[#f7f0e5] disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      Unflag visible
+                      Unflag all
                     </button>
                   </div>
                 </div>
 
-                <div className="mt-3 grid gap-2 md:grid-cols-3">
-                  <div className="rounded-2xl border border-[#f0d2cd] bg-[#fff7f6] px-3 py-2">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#bb5448]">
-                      High Risk
-                    </p>
-                    <p className="mt-1 text-xs text-[#8e544a]">
-                      Likely trackers or unsafe cross-site crumbs. Usually the best first cleanup.
-                    </p>
+                <button
+                  type="button"
+                  onClick={() => setIsTagGuideCollapsed((current) => !current)}
+                  className="mt-2 flex w-full items-center justify-between rounded-xl border border-[#ddcfba] bg-[#fcf8f1] px-3 py-1.5 text-left transition hover:bg-[#f8f1e5]"
+                  aria-expanded={!isTagGuideCollapsed}
+                >
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#6f6453]">
+                      Tag guide
+                    </span>
+                    <span className="truncate text-[11px] text-[#8a7b66]">
+                      {isTagGuideCollapsed
+                        ? "Show High risk, Watch, and Keep"
+                        : "Hide High risk, Watch, and Keep"}
+                    </span>
                   </div>
-                  <div className="rounded-2xl border border-[#eadcb1] bg-[#fffaf0] px-3 py-2">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#a07a1f]">
-                      Watch
-                    </p>
-                    <p className="mt-1 text-xs text-[#8a6d24]">
-                      Probably non-essential, but worth a quick review before clearing in bulk.
-                    </p>
+                  <Icon
+                    icon={isTagGuideCollapsed ? "mdi:chevron-down" : "mdi:chevron-up"}
+                    className="h-4 w-4 shrink-0 text-[#8a7b66]"
+                  />
+                </button>
+
+                {!isTagGuideCollapsed && (
+                  <div className="mt-2 grid gap-2 md:grid-cols-3">
+                    <div className="rounded-2xl border border-[#f0d2cd] bg-[#fff7f6] px-3 py-2">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#bb5448]">
+                        High Risk
+                      </p>
+                      <p className="mt-1 text-xs text-[#8e544a]">
+                        Likely trackers or unsafe cross-site crumbs. Usually the best first cleanup.
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-[#eadcb1] bg-[#fffaf0] px-3 py-2">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#a07a1f]">
+                        Watch
+                      </p>
+                      <p className="mt-1 text-xs text-[#8a6d24]">
+                        Probably non-essential, but worth a quick review before clearing in bulk.
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-[#cce3cf] bg-[#f7fcf8] px-3 py-2">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#2f7a4d]">
+                        Keep
+                      </p>
+                      <p className="mt-1 text-xs text-[#456b54]">
+                        Likely sign-in or core site state. Leave these unless you are troubleshooting.
+                      </p>
+                    </div>
                   </div>
-                  <div className="rounded-2xl border border-[#cce3cf] bg-[#f7fcf8] px-3 py-2">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#2f7a4d]">
-                      Keep
-                    </p>
-                    <p className="mt-1 text-xs text-[#456b54]">
-                      Likely sign-in or core site state. Leave these unless you are troubleshooting.
-                    </p>
-                  </div>
-                </div>
+                )}
               </div>
 
               {inventory.isLoading && !extensionStatus.isUsingMockData && (
@@ -836,35 +882,76 @@ export default function HomePage() {
                 </div>
               )}
 
-              <div className="min-h-0 flex-1 overflow-auto rounded-[1.35rem] border border-[#e3d7c5] bg-white/60 pr-1">
-                <div className="sticky top-0 z-10 hidden grid-cols-[minmax(0,1.7fr)_82px_110px_140px] gap-2 border-b border-[#e7dccd] bg-[#f5ede1]/95 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a7b66] backdrop-blur md:grid">
-                  <span className="pl-16.5">Domain</span>
-                  <span className="text-center">Cookies</span>
-                  <span className="text-center">Expiry</span>
-                  <span>Status</span>
-                </div>
+              {isCookieListExpanded && (
+                <button
+                  type="button"
+                  aria-label="Close expanded cookie list"
+                  onClick={() => setIsCookieListExpanded(false)}
+                  className="fixed inset-0 z-40 bg-[#2d261a]/38 backdrop-blur-[2px]"
+                />
+              )}
 
-                <div>
-                  {filteredGroups.map((group) => (
-                    <DomainGroupRow
-                      key={group.domain}
-                      group={group}
-                      isExpanded={expandedDomain === group.domain}
-                      onToggleExpanded={toggleExpandedDomain}
-                      onToggleCookie={toggleCookie}
-                      selectedCount={selectedCountByDomain[group.domain] || 0}
-                      selectedLookup={selectedLookup}
-                    />
-                  ))}
-                </div>
-
-                {filteredGroups.length === 0 && (
-                  <div className="m-4 rounded-2xl border border-dashed border-[#ddcfba] p-6 text-center text-sm text-[#6f6453]">
-                    {filterScope === "selected"
-                      ? "No flagged cookies yet. Flag rows from any other filter to build an exact cleanup batch."
-                      : "No cookies match the current filter. Try broadening the search or switching to All cookies."}
+              <div
+                className={`flex min-h-0 flex-1 flex-col overflow-hidden rounded-[1.35rem] border border-[#e3d7c5] bg-white/60 ${
+                  isCookieListExpanded
+                    ? "fixed inset-4 z-50 max-h-[calc(100vh-2rem)] bg-white/95 shadow-[0_24px_80px_rgba(45,38,26,0.22)] md:inset-6 md:max-h-[calc(100vh-3rem)]"
+                    : ""
+                }`}
+                role={isCookieListExpanded ? "dialog" : undefined}
+                aria-modal={isCookieListExpanded || undefined}
+                aria-label="Cookie inventory"
+              >
+                <div className="flex items-center justify-between gap-3 border-b border-[#e7dccd] bg-[#fcf7ef]/95 px-4 py-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-[#4a3d2d]">Cookie inventory</p>
+                    <p className="truncate text-xs text-[#8a7b66]">
+                      {visibleCookieCount.toLocaleString()} cookies across {filteredGroups.length.toLocaleString()} domains
+                    </p>
                   </div>
-                )}
+                  <button
+                    type="button"
+                    onClick={() => setIsCookieListExpanded((current) => !current)}
+                    className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-[#ddcfba] bg-white px-3 py-2 text-xs font-semibold text-[#6c5b44] transition hover:bg-[#f7f0e5]"
+                    aria-pressed={isCookieListExpanded}
+                  >
+                    <Icon
+                      icon={isCookieListExpanded ? "mdi:fullscreen-exit" : "mdi:fullscreen"}
+                      className="h-4 w-4"
+                    />
+                    {isCookieListExpanded ? "Exit full screen" : "Full screen"}
+                  </button>
+                </div>
+
+                <div className="min-h-0 flex-1 overflow-auto pr-1">
+                  <div className="sticky top-0 z-10 hidden grid-cols-[minmax(0,1.7fr)_82px_110px_140px] gap-2 border-b border-[#e7dccd] bg-[#f5ede1]/95 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a7b66] backdrop-blur md:grid">
+                    <span className="pl-16.5">Domain</span>
+                    <span className="text-center">Cookies</span>
+                    <span className="text-center">Expiry</span>
+                    <span>Status</span>
+                  </div>
+
+                  <div>
+                    {filteredGroups.map((group) => (
+                      <DomainGroupRow
+                        key={group.domain}
+                        group={group}
+                        isExpanded={expandedDomain === group.domain}
+                        onToggleExpanded={toggleExpandedDomain}
+                        onToggleCookie={toggleCookie}
+                        selectedCount={selectedCountByDomain[group.domain] || 0}
+                        selectedLookup={selectedLookup}
+                      />
+                    ))}
+                  </div>
+
+                  {filteredGroups.length === 0 && (
+                    <div className="m-4 rounded-2xl border border-dashed border-[#ddcfba] p-6 text-center text-sm text-[#6f6453]">
+                      {filterScope === "selected"
+                        ? "No flagged cookies yet. Flag rows from any other filter to build an exact cleanup batch."
+                        : "No cookies match the current filter. Try broadening the search or switching to All cookies."}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="mt-4 rounded-[1.25rem] border border-[#eadfce] bg-white/90 p-4 shadow-[0_8px_24px_rgba(88,62,31,0.06)]">
@@ -912,7 +999,12 @@ export default function HomePage() {
             </div>
           )}
 
-          <aside className="relative min-h-0 overflow-hidden">
+          <aside
+            className="relative min-h-0 min-w-0 overflow-hidden transition-transform duration-1000 ease-in-out"
+            style={{
+              transform: jarPhase === "fading" || jarPhase === "done" ? "translateX(0)" : "translateX(-40%)",
+            }}
+          >
             <video
               src="/cm_idle.mp4"
               autoPlay
