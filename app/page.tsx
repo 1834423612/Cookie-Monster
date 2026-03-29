@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   memo,
@@ -12,6 +12,7 @@ import {
 } from "react";
 import { Icon } from "@iconify/react";
 import {
+  openExtensionPopup,
   requestCookieFeed,
   type CleanupPresetId,
   type CookieDomainGroup,
@@ -586,6 +587,8 @@ export default function HomePage() {
   const extensionStatus = useExtensionStatus();
   const inventory = useCookieInventory(extensionStatus.isInstalled && !extensionStatus.isUsingMockData);
   const jarTimeoutIdsRef = useRef<number[]>([]);
+  const popupOpenTimeoutRef = useRef<number | null>(null);
+  const pendingPopupOpenRef = useRef(false);
 
   const [jarPhase, setJarPhase] = useState<"idle" | 1 | 2 | 3 | 4 | "fading" | "done">("idle");
   const [expandedDomains, setExpandedDomains] = useState<Record<string, true>>({});
@@ -596,7 +599,6 @@ export default function HomePage() {
   const [message, setMessage] = useState<string | null>(null);
   const [isEating, setIsEating] = useState(false);
   const [isReturningToIdle, setIsReturningToIdle] = useState(false);
-  const [isTagGuideCollapsed, setIsTagGuideCollapsed] = useState(true);
   const [isCookieListExpanded, setIsCookieListExpanded] = useState(false);
   const [isGuideCollapsed, setIsGuideCollapsed] = useState(true);
 
@@ -606,6 +608,29 @@ export default function HomePage() {
     }
     jarTimeoutIdsRef.current = [];
   }, []);
+
+  const clearPopupOpenTimer = useCallback(() => {
+    if (popupOpenTimeoutRef.current !== null) {
+      window.clearTimeout(popupOpenTimeoutRef.current);
+      popupOpenTimeoutRef.current = null;
+    }
+  }, []);
+
+  const openPopupAfterAnimation = useCallback(async () => {
+    clearPopupOpenTimer();
+
+    if (!pendingPopupOpenRef.current) {
+      return;
+    }
+
+    pendingPopupOpenRef.current = false;
+    const opened = await openExtensionPopup();
+    if (!opened) {
+      setMessage(
+        "The request was sent, but the extension popup could not be opened automatically. Open the extension to approve it."
+      );
+    }
+  }, [clearPopupOpenTimer]);
 
   const handleJarClick = useCallback(() => {
     if (jarPhase !== "idle") return;
@@ -713,6 +738,7 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => clearJarTimers, [clearJarTimers]);
+  useEffect(() => clearPopupOpenTimer, [clearPopupOpenTimer]);
 
   useEffect(() => {
     if (!isCookieListExpanded) {
@@ -973,11 +999,14 @@ export default function HomePage() {
 
   const handleReturnToJar = useCallback(() => {
     clearJarTimers();
+    clearPopupOpenTimer();
+    pendingPopupOpenRef.current = false;
     setIsCookieListExpanded(false);
     setIsEating(false);
+    setIsReturningToIdle(false);
     setMessage(null);
     setJarPhase("idle");
-  }, [clearJarTimers]);
+  }, [clearJarTimers, clearPopupOpenTimer]);
 
   const canRequestFeed = extensionStatus.isInstalled && !extensionStatus.isUsingMockData;
 
@@ -1000,16 +1029,21 @@ export default function HomePage() {
     });
 
     if (pending) {
+      pendingPopupOpenRef.current = true;
+      clearPopupOpenTimer();
+      window.setTimeout(() => {
+        setIsReturningToIdle(false);
+        setIsEating(true);
+      }, 180);
+      popupOpenTimeoutRef.current = window.setTimeout(() => {
+        openPopupAfterAnimation().catch(() => undefined);
+      }, 3200);
       setMessage(
-        `${pending.cookieCount} cookies were sent to the extension. Open the extension to approve the request before cleanup.`
+        `${pending.cookieCount} cookies were sent. Watch the animation, then approve the request in the extension popup.`
       );
       return;
     }
 
-    setTimeout(() => {
-      setIsReturningToIdle(false);
-      setIsEating(true);
-    }, 1000);
     setMessage("The extension could not create a cleanup request from this selection.");
   };
 
@@ -1340,7 +1374,7 @@ export default function HomePage() {
                 </div>
               </div>
 
-              <div className="mt-2 rounded-2xl border border-[#eadfce] bg-white/88 px-3 py-2 shadow-[0_6px_18px_rgba(88,62,31,0.05)]">
+              <div className="mt-2 shrink-0 rounded-2xl border border-[#eadfce] bg-white/88 px-3 py-2 shadow-[0_6px_18px_rgba(88,62,31,0.05)]">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-2 text-xs text-[#7b6d5a]">
                     <span className="rounded-full bg-[#f3ede4] px-2 py-0.5 font-semibold text-[#3b3329]">
@@ -1380,42 +1414,54 @@ export default function HomePage() {
           )}
 
           <aside
-            className="relative min-h-0 min-w-0 overflow-hidden transition-transform duration-700 ease-out"
+            className="relative min-h-0 min-w-0 overflow-visible transition-transform duration-700 ease-out"
             style={{
               transform:
                 jarPhase === "fading" || jarPhase === "done"
                   ? "translateX(0)"
-                  : "translateX(-40%)",
+                  : "translateX(-18%)",
             }}
           >
-            <video
-              src="/cm_idle.mp4"
-              autoPlay
-              loop
-              muted
-              playsInline
-              className={`absolute inset-0 h-full w-full object-contain transition-opacity duration-200 ${
-                isEating && !isReturningToIdle ? "opacity-0" : "opacity-100"
-              }`}
-            />
-            <video
-              key={isEating ? "eating" : "idle"}
-              src="/cm_eat2.mp4"
-              autoPlay={isEating}
-              muted
-              playsInline
-              onEnded={() => {
-                setIsReturningToIdle(true);
-                setTimeout(() => {
-                  setIsEating(false);
-                  setIsReturningToIdle(false);
-                }, 180);
-              }}
-              className={`h-full w-full object-contain transition-[opacity,transform] duration-200 ${isEating ? "scale-135 opacity-100" : "scale-100 opacity-0"}`}
-            />
+            <div className="flex h-full w-full items-center justify-center overflow-visible px-2 py-4 md:px-4 lg:px-8">
+              <div className="relative flex h-full w-full items-center justify-center overflow-visible">
+                <video
+                  src="/cm_idle.mp4"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  preload="auto"
+                  className={`absolute inset-0 m-auto h-auto max-h-[78vh] w-full max-w-140 object-contain transition-opacity duration-200 ${
+                    isEating && !isReturningToIdle ? "opacity-0" : "opacity-100"
+                  }`}
+                  style={{ willChange: "opacity" }}
+                />
+                <video
+                  key={isEating ? "eating" : "idle"}
+                  src="/cm_eat2.mp4"
+                  autoPlay={isEating}
+                  muted
+                  playsInline
+                  preload="auto"
+                  onEnded={() => {
+                    setIsReturningToIdle(true);
+                    window.setTimeout(() => {
+                      setIsEating(false);
+                      setIsReturningToIdle(false);
+                      openPopupAfterAnimation().catch(() => undefined);
+                    }, 180);
+                  }}
+                  className={`m-auto h-auto max-h-[84vh] w-full max-w-155 object-contain transition-[opacity,transform] duration-300 ${
+                    isEating ? "scale-[1.08] opacity-100 md:scale-[1.12]" : "scale-100 opacity-0"
+                  }`}
+                  style={{ willChange: "opacity, transform" }}
+                />
+              </div>
+            </div>
           </aside>
         </section>
       </main>
     </div>
   );
 }
+

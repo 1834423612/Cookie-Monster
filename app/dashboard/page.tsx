@@ -10,7 +10,7 @@ import { CookieDomainList } from "@/components/dashboard/cookie-domain-list";
 import { EmptyDashboardState } from "@/components/dashboard/empty-dashboard-state";
 import { ImportModal } from "@/components/dashboard/import-modal";
 import {
-  openExtensionDashboard,
+  openExtensionPopup,
   requestExportReport,
 } from "@/lib/extension-bridge";
 import { downloadReportJson } from "@/lib/cookie-report";
@@ -80,10 +80,10 @@ export default function DashboardPage() {
     setActionMessage(null);
     setActionError(null);
 
-    const success = await openExtensionDashboard();
+    const success = await openExtensionPopup();
 
     if (success) {
-      setActionMessage("The extension dashboard was opened in a new tab.");
+      setActionMessage("The extension popup was opened. Approve or manage actions there.");
       return;
     }
 
@@ -161,7 +161,7 @@ export default function DashboardPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Link href="/" className="flex items-center gap-2.5 group">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center transition-transform group-hover:scale-105 shadow-md">
+              <div className="w-10 h-10 rounded-xl bg-linear-to-br from-primary to-secondary flex items-center justify-center transition-transform group-hover:scale-105 shadow-md">
                 <Icon icon="mdi:cookie" className="w-5 h-5 text-primary-foreground" />
               </div>
               <span className="font-bold text-lg text-foreground">
@@ -234,7 +234,7 @@ export default function DashboardPage() {
         {activeReport && (
           <div className="mb-6 flex flex-wrap items-center justify-between gap-4 bg-card rounded-2xl border border-border p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-linear-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
                 <Icon icon="mdi:cookie-clock" className="w-5 h-5 text-primary" />
               </div>
               <div>
@@ -286,7 +286,7 @@ export default function DashboardPage() {
         {/* Main content area */}
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center mb-4">
+            <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-primary/20 to-secondary/20 flex items-center justify-center mb-4">
               <Icon
                 icon="mdi:loading"
                 className="w-8 h-8 text-primary animate-spin"

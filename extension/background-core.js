@@ -1174,6 +1174,28 @@ async function openDashboardPage() {
   await chrome.tabs.create({ url: chrome.runtime.getURL("dashboard.html") });
 }
 
+async function openPopupWindow() {
+  const popupUrl = chrome.runtime.getURL("popup.html");
+  const existingTabs = await chrome.tabs.query({ url: popupUrl });
+  const existingTab = existingTabs.find(
+    (tab) => typeof tab.id === "number" && typeof tab.windowId === "number"
+  );
+
+  if (existingTab && typeof existingTab.id === "number" && typeof existingTab.windowId === "number") {
+    await chrome.windows.update(existingTab.windowId, { focused: true });
+    await chrome.tabs.update(existingTab.id, { active: true });
+    return;
+  }
+
+  await chrome.windows.create({
+    url: popupUrl,
+    type: "popup",
+    focused: true,
+    width: 420,
+    height: 760,
+  });
+}
+
 async function syncActionClickBehavior() {
   if (!chrome.sidePanel?.setPanelBehavior) {
     return;
@@ -1520,7 +1542,6 @@ async function handleInternalMessage(message, sender) {
         );
       }
 
-      await openDashboardPage();
       return success(message.type, pendingFeedRequest);
     }
     case "RESTORE_CLEANUP_BATCH": {
@@ -1603,6 +1624,9 @@ async function handleInternalMessage(message, sender) {
       return success(message.type, null);
     case "OPEN_EXTENSION_DASHBOARD":
       await openDashboardPage();
+      return success(message.type, null);
+    case "OPEN_EXTENSION_POPUP":
+      await openPopupWindow();
       return success(message.type, null);
     case "OPEN_SIDE_PANEL":
       await openSidePanelForCurrentWindow();
@@ -1687,11 +1711,13 @@ async function handleExternalMessage(message) {
         );
       }
 
-      await openDashboardPage();
       return success(message.type, pendingFeedRequest);
     }
     case "OPEN_EXTENSION_DASHBOARD":
       await openDashboardPage();
+      return success(message.type, null);
+    case "OPEN_EXTENSION_POPUP":
+      await openPopupWindow();
       return success(message.type, null);
     case "EXPORT_REPORT":
       await exportLatestReport();

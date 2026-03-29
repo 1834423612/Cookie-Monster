@@ -8,7 +8,6 @@
   </head>
   <body class="view-dashboard">
     <div class="popup-container">
-      <!-- Header -->
       <header class="popup-header">
         <div class="header-left">
           <div class="logo-icon">
@@ -21,10 +20,16 @@
           </div>
           <span class="logo-text">Cookie Monster Dashboard</span>
         </div>
-        <span class="footer-version">v<span id="version">0.1.0</span></span>
+        <div class="header-right">
+          <button id="open-popup-button" class="icon-btn" title="Open Popup">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="4" width="16" height="16" rx="2"/>
+              <path d="M9 4v16"/>
+            </svg>
+          </button>
+        </div>
       </header>
 
-      <!-- Status Bar -->
       <div id="status-bar" class="status-bar" data-tone="info">
         <div class="status-icon">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -36,7 +41,6 @@
         <span id="status-text">Loading...</span>
       </div>
 
-      <!-- Dashboard Stats -->
       <div class="dashboard-stats">
         <div class="dashboard-stat">
           <div class="dashboard-stat-value" id="total-cookies">0</div>
@@ -56,9 +60,7 @@
         </div>
       </div>
 
-      <!-- Dashboard Grid -->
       <div class="dashboard-grid">
-        <!-- Actions Card -->
         <div class="dashboard-card">
           <div class="dashboard-card-header">
             <span class="dashboard-card-title">Local Actions</span>
@@ -78,7 +80,6 @@
           </div>
         </div>
 
-        <!-- Export Card -->
         <div class="dashboard-card">
           <div class="dashboard-card-header">
             <span class="dashboard-card-title">Export Data</span>
@@ -108,7 +109,6 @@
         </div>
       </div>
 
-      <!-- Pending Request Section -->
       <div id="pending-section" class="section" hidden>
         <div class="section-header">
           <span class="section-title">Website Request</span>
@@ -118,8 +118,19 @@
           <div class="request-info">
             <strong id="pending-request-title">Cleanup Request</strong>
             <p id="pending-request-description"></p>
-            <span class="request-meta" id="pending-request-meta"></span>
+            <div class="request-meta-row">
+              <span class="request-meta" id="pending-request-meta"></span>
+              <button
+                id="toggle-pending-details-button"
+                class="ghost-inline-btn"
+                data-action="toggle-pending-details"
+                type="button"
+              >
+                View details
+              </button>
+            </div>
           </div>
+          <div id="pending-details" class="detail-panel" hidden></div>
           <div class="request-actions">
             <button id="confirm-request-button" class="btn-confirm">Confirm</button>
             <button id="dismiss-request-button" class="btn-dismiss">Dismiss</button>
@@ -127,9 +138,22 @@
         </div>
       </div>
 
-      <!-- Footer -->
+      <div class="section">
+        <div class="section-header">
+          <span class="section-title">Recycle Bin</span>
+        </div>
+        <div class="recycle-info">
+          <div class="recycle-stat">
+            <span class="recycle-count" id="cleanup-count">0</span>
+            <span class="recycle-label">cookies backed up</span>
+          </div>
+          <span class="recycle-meta" id="cleanup-meta">No backup yet</span>
+        </div>
+        <div id="recycle-bin-list" class="recycle-list"></div>
+      </div>
+
       <footer class="popup-footer">
-        <span class="footer-version">Local Dashboard</span>
+        <span class="footer-version">Local Dashboard v<span id="version">0.1.0</span></span>
         <span class="footer-scan">Last scan: <span id="last-scan">Never</span></span>
       </footer>
     </div>

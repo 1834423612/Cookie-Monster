@@ -756,6 +756,10 @@
   padding: 24px;
 }
 
+.view-dashboard .popup-container {
+  max-width: 960px;
+}
+
 .view-sidepanel {
   min-width: 360px;
 }
@@ -778,6 +782,16 @@
   border-radius: var(--border-radius-lg);
   border: 1px solid var(--border-color);
   box-shadow: var(--shadow-sm);
+}
+
+.view-dashboard .section {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.view-dashboard .recycle-list {
+  margin-top: 16px;
 }
 
 .dashboard-card-header {

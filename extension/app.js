@@ -400,6 +400,7 @@ async function refreshState(message) {
 
   currentState = response.data;
   setText("version", currentState.version);
+  setText("extension-id", currentState.extensionId || "unknown");
   renderCleanup(currentState);
   renderPendingFeedRequest(currentState.pendingFeedRequest);
   renderRecycleBin(currentState);
@@ -501,6 +502,7 @@ async function runAction(type, payload) {
     EXPORT_BACKUP: "Exporting backup...",
     EXPORT_REPORT: "Exporting report...",
     OPEN_DASHBOARD: "Opening dashboard...",
+    OPEN_EXTENSION_POPUP: "Opening popup...",
     OPEN_SIDE_PANEL: "Opening panel...",
     RESTORE_BATCH_COOKIES: "Restoring selected cookies...",
     RESTORE_CLEANUP_BATCH: "Restoring batch...",
@@ -577,8 +579,19 @@ async function runAction(type, payload) {
     return;
   }
 
-  if (type === "OPEN_DASHBOARD" || type === "OPEN_SIDE_PANEL") {
-    setStatus(type === "OPEN_DASHBOARD" ? "Dashboard opened" : "Panel opened", "success");
+  if (
+    type === "OPEN_DASHBOARD" ||
+    type === "OPEN_SIDE_PANEL" ||
+    type === "OPEN_EXTENSION_POPUP"
+  ) {
+    setStatus(
+      type === "OPEN_DASHBOARD"
+        ? "Dashboard opened"
+        : type === "OPEN_SIDE_PANEL"
+          ? "Panel opened"
+          : "Popup opened",
+      "success"
+    );
     return;
   }
 
@@ -592,6 +605,7 @@ function bindActions() {
     ["export-report-button", "EXPORT_REPORT"],
     ["export-backup-button", "EXPORT_BACKUP"],
     ["open-dashboard-button", "OPEN_DASHBOARD"],
+    ["open-popup-button", "OPEN_EXTENSION_POPUP"],
     ["confirm-request-button", "CONFIRM_PENDING_FEED_REQUEST"],
     ["dismiss-request-button", "DISMISS_PENDING_FEED_REQUEST"],
   ];

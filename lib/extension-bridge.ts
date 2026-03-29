@@ -43,6 +43,7 @@ export type MessageType =
   | "SET_DOMAIN_PROTECTION"
   | "RESTORE_CLEANUP_BATCH"
   | "OPEN_EXTENSION_DASHBOARD"
+  | "OPEN_EXTENSION_POPUP"
   | "EXPORT_REPORT"
   | "GET_EXTENSION_VERSION";
 
@@ -492,6 +493,11 @@ export async function restoreCleanupBatch(
 
 export async function openExtensionDashboard(): Promise<boolean> {
   const response = await sendMessageToExtension({ type: "OPEN_EXTENSION_DASHBOARD" });
+  return response.success;
+}
+
+export async function openExtensionPopup(): Promise<boolean> {
+  const response = await sendMessageToExtension({ type: "OPEN_EXTENSION_POPUP" });
   return response.success;
 }
 
