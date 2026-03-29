@@ -725,7 +725,7 @@ export default function HomePage() {
     const nextAnchors: CookieBurstAnchors = {
       startX: `${sendButtonRect.left + sendButtonRect.width / 2 - sectionRect.left*2}px`,
       startY: `${sendButtonRect.top + sendButtonRect.height / 2 - sectionRect.top*2}px`,
-      endX: `${mouthTargetRect.left + mouthTargetRect.width / 2 - sectionRect.left*5}px`,
+      endX: `${mouthTargetRect.left + mouthTargetRect.width / 2 - sectionRect.left*3}px`,
       endY: `${mouthTargetRect.top + mouthTargetRect.height / 2 - sectionRect.top*4}px`,
     };
 
