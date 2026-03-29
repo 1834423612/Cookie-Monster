@@ -187,7 +187,7 @@
 }
 
 .animate-jar-fade-out {
-  animation: jar-fade-out 1s ease-out forwards;
+  animation: jar-fade-out 0.7s ease-out forwards;
 }
 
 .animate-jar-idle-shake {
