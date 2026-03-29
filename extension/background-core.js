@@ -1224,6 +1224,30 @@ async function syncActionClickBehavior() {
   });
 }
 
+async function ensurePageBridgeInjected() {
+  if (!chrome.scripting?.executeScript) {
+    return;
+  }
+
+  const tabs = await chrome.tabs.query({
+    url: ["http://*/*", "https://*/*"],
+  });
+
+  await Promise.allSettled(
+    tabs
+      .filter((tab) => typeof tab.id === "number")
+      .map((tab) =>
+        chrome.scripting.executeScript({
+          files: ["page-bridge.js"],
+          target: {
+            allFrames: false,
+            tabId: tab.id,
+          },
+        })
+      )
+  );
+}
+
 async function openSidePanelForCurrentWindow() {
   if (!chrome.sidePanel?.open) {
     throw new Error("Side panel is not supported in this browser.");
@@ -1750,15 +1774,18 @@ async function handleExternalMessage(message) {
 }
 
 chrome.runtime.onInstalled.addListener(() => {
+  ensurePageBridgeInjected().catch(() => undefined);
   syncActionClickBehavior().catch(() => undefined);
   updateActionBadge().catch(() => undefined);
 });
 
 chrome.runtime.onStartup?.addListener(() => {
+  ensurePageBridgeInjected().catch(() => undefined);
   syncActionClickBehavior().catch(() => undefined);
   updateActionBadge().catch(() => undefined);
 });
 
+ensurePageBridgeInjected().catch(() => undefined);
 syncActionClickBehavior().catch(() => undefined);
 updateActionBadge().catch(() => undefined);
 

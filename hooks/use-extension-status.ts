@@ -4,10 +4,12 @@ import { useState, useEffect, useCallback } from "react";
 import {
   isExtensionInstalled,
   getSummaryReport,
-  generateMockReport,
   type CookieSummaryReport,
 } from "@/lib/extension-bridge";
-import { subscribeToExtensionSync } from "@/lib/extension-sync";
+import {
+  subscribeToExtensionBridgeReady,
+  subscribeToExtensionSync,
+} from "@/lib/extension-sync";
 
 type DataMode = "auto" | "mock";
 
@@ -55,40 +57,34 @@ export function useExtensionStatus(): ExtensionStatus {
         }
       }
 
-      setIsDevMode(devEnabled);
-      setDataModeState(mode);
-
-      if (isDevEnv && devEnabled && mode === "mock") {
-        setIsInstalled(true);
-        setReport(generateMockReport());
-        setIsUsingMockData(true);
-        setIsLoading(false);
-        return;
-      }
+      setIsDevMode(isDevEnv ? devEnabled : false);
+      setDataModeState(isDevEnv ? mode : "auto");
 
       const installed = await isExtensionInstalled();
       setIsInstalled(installed);
 
       if (!installed) {
-        if (isDevEnv && devEnabled) {
-          setReport(generateMockReport());
-          setIsUsingMockData(true);
-          setError("Extension not detected. Running in mock data mode.");
+        if (typeof window !== "undefined" && (devEnabled || mode === "mock")) {
+          window.localStorage.removeItem(DEV_SKIP_KEY);
+          window.localStorage.setItem(DATA_MODE_KEY, "auto");
+          setIsDevMode(false);
+          setDataModeState("auto");
         }
+
         setIsLoading(false);
         return;
+      }
+
+      if (typeof window !== "undefined" && (devEnabled || mode === "mock")) {
+        window.localStorage.removeItem(DEV_SKIP_KEY);
+        window.localStorage.setItem(DATA_MODE_KEY, "auto");
+        setIsDevMode(false);
+        setDataModeState("auto");
       }
 
       const summaryReport = await getSummaryReport();
       if (summaryReport) {
         setReport(summaryReport);
-        return;
-      }
-
-      if (isDevEnv && devEnabled) {
-        setReport(generateMockReport());
-        setIsUsingMockData(true);
-        setError("Extension detected but no report exists yet. Falling back to mock data.");
         return;
       }
 
@@ -126,6 +122,12 @@ export function useExtensionStatus(): ExtensionStatus {
 
   useEffect(() => {
     return subscribeToExtensionSync(() => {
+      checkExtension().catch(() => undefined);
+    });
+  }, [checkExtension]);
+
+  useEffect(() => {
+    return subscribeToExtensionBridgeReady(() => {
       checkExtension().catch(() => undefined);
     });
   }, [checkExtension]);

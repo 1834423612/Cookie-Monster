@@ -4,6 +4,9 @@ const PAGE_BRIDGE_REQUEST_TYPE = "CM_EXTENSION_BRIDGE_REQUEST";
 const PAGE_BRIDGE_RESPONSE_TYPE = "CM_EXTENSION_BRIDGE_RESPONSE";
 const PAGE_BRIDGE_READY_TYPE = "CM_EXTENSION_BRIDGE_READY";
 const EXTENSION_SYNC_TYPE = "CM_EXTENSION_SYNC";
+const PAGE_BRIDGE_READY_ATTRIBUTE = "cookieMonsterBridgeReady";
+const PAGE_BRIDGE_INSTALL_FLAG = "__cookieMonsterPageBridgeInstalled";
+const PAGE_BRIDGE_READY_FLAG = "__cookieMonsterPageBridgeReadyPosted";
 
 function isCookieMonsterApp() {
   return (
@@ -53,43 +56,18 @@ function sendRuntimeMessage(message) {
   });
 }
 
-window.addEventListener("message", (event) => {
-  if (!isCookieMonsterApp() || event.source !== window) {
+function notifyReadyIfNeeded() {
+  if (!isCookieMonsterApp()) {
     return;
   }
 
-  const data = event.data;
-  if (
-    !data ||
-    data.source !== PAGE_BRIDGE_SOURCE ||
-    data.type !== PAGE_BRIDGE_REQUEST_TYPE ||
-    typeof data.requestId !== "string" ||
-    !data.message
-  ) {
+  document.documentElement.dataset[PAGE_BRIDGE_READY_ATTRIBUTE] = "true";
+
+  if (window[PAGE_BRIDGE_READY_FLAG]) {
     return;
   }
 
-  sendRuntimeMessage(data.message).then((response) => {
-    postToPage({
-      requestId: data.requestId,
-      response,
-      type: PAGE_BRIDGE_RESPONSE_TYPE,
-    });
-  });
-});
-
-chrome.runtime.onMessage.addListener((message) => {
-  if (!isCookieMonsterApp() || message?.type !== EXTENSION_SYNC_TYPE) {
-    return;
-  }
-
-  postToPage({
-    detail: message.detail || {},
-    type: EXTENSION_SYNC_TYPE,
-  });
-});
-
-if (isCookieMonsterApp()) {
+  window[PAGE_BRIDGE_READY_FLAG] = true;
   postToPage({
     detail: {
       ready: true,
@@ -97,3 +75,56 @@ if (isCookieMonsterApp()) {
     type: PAGE_BRIDGE_READY_TYPE,
   });
 }
+
+if (!window[PAGE_BRIDGE_INSTALL_FLAG]) {
+  window[PAGE_BRIDGE_INSTALL_FLAG] = true;
+
+  window.addEventListener("message", (event) => {
+    if (!isCookieMonsterApp() || event.source !== window) {
+      return;
+    }
+
+    const data = event.data;
+    if (
+      !data ||
+      data.source !== PAGE_BRIDGE_SOURCE ||
+      data.type !== PAGE_BRIDGE_REQUEST_TYPE ||
+      typeof data.requestId !== "string" ||
+      !data.message
+    ) {
+      return;
+    }
+
+    sendRuntimeMessage(data.message).then((response) => {
+      postToPage({
+        requestId: data.requestId,
+        response,
+        type: PAGE_BRIDGE_RESPONSE_TYPE,
+      });
+    });
+  });
+
+  chrome.runtime.onMessage.addListener((message) => {
+    if (!isCookieMonsterApp() || message?.type !== EXTENSION_SYNC_TYPE) {
+      return;
+    }
+
+    postToPage({
+      detail: message.detail || {},
+      type: EXTENSION_SYNC_TYPE,
+    });
+  });
+
+  if (typeof MutationObserver === "function" && document.documentElement) {
+    const observer = new MutationObserver(() => {
+      notifyReadyIfNeeded();
+    });
+
+    observer.observe(document.documentElement, {
+      attributeFilter: ["data-cookie-monster-app"],
+      attributes: true,
+    });
+  }
+}
+
+notifyReadyIfNeeded();

@@ -17,7 +17,6 @@ import {
   type CleanupPresetId,
   type CookieDomainGroup,
   type CookieInventoryItem,
-  type CookieSummaryReport,
 } from "@/lib/extension-bridge";
 import { useExtensionStatus } from "@/hooks/use-extension-status";
 import { useCookieInventory } from "@/hooks/use-cookie-inventory";
@@ -265,39 +264,6 @@ function getSameSiteLabel(sameSite: string) {
   if (sameSite === "lax") return "sameSite lax";
   if (sameSite === "unspecified") return "sameSite unset";
   return sameSite;
-}
-
-function buildDemoGroups(report: CookieSummaryReport | null): CookieDomainGroup[] {
-  if (!report) {
-    return [];
-  }
-
-  return report.topDomains.slice(0, 8).map((domain, index) => {
-    const count = Math.max(1, Math.min(domain.count, 6));
-    return {
-      domain: domain.domain,
-      total: count,
-      highRiskCount: domain.riskLevel === "high" ? Math.ceil(count / 2) : 0,
-      recommendedKeepCount: 1,
-      items: Array.from({ length: count }).map((_, cookieIndex) => ({
-        key: `mock-${index}-${cookieIndex}`,
-        name: `${cookieIndex === 0 ? "session" : "cookie"}_${cookieIndex + 1}`,
-        domain: domain.domain,
-        path: "/",
-        storeId: "mock-store",
-        session: cookieIndex % 2 === 0,
-        secure: true,
-        httpOnly: cookieIndex % 2 === 0,
-        sameSite: "lax",
-        category: cookieIndex === 0 ? "essential" : "analytics",
-        risk: domain.riskLevel,
-        expirationDate: cookieIndex % 2 === 0 ? null : Date.now() / 1000 + 86400 * 14,
-        reasons: ["Mock sample used for local-safe demo mode"],
-        recommendedKeep: cookieIndex === 0,
-        presetIds: cookieIndex === 0 ? [] : ["balanced", "trackers"],
-      })),
-    };
-  });
 }
 
 function applyFilters(
@@ -588,6 +554,7 @@ export default function HomePage() {
   const inventory = useCookieInventory(extensionStatus.isInstalled && !extensionStatus.isUsingMockData);
   const jarTimeoutIdsRef = useRef<number[]>([]);
   const popupOpenTimeoutRef = useRef<number | null>(null);
+  const refreshWatcherIntervalRef = useRef<number | null>(null);
   const pendingPopupOpenRef = useRef(false);
 
   const [jarPhase, setJarPhase] = useState<"idle" | 1 | 2 | 3 | 4 | "fading" | "done">("idle");
@@ -615,6 +582,28 @@ export default function HomePage() {
       popupOpenTimeoutRef.current = null;
     }
   }, []);
+
+  const clearRefreshWatcher = useCallback(() => {
+    if (refreshWatcherIntervalRef.current !== null) {
+      window.clearInterval(refreshWatcherIntervalRef.current);
+      refreshWatcherIntervalRef.current = null;
+    }
+  }, []);
+
+  const startRefreshWatcher = useCallback(() => {
+    clearRefreshWatcher();
+    let attempts = 0;
+
+    refreshWatcherIntervalRef.current = window.setInterval(() => {
+      attempts += 1;
+      extensionStatus.refresh().catch(() => undefined);
+      inventory.refresh().catch(() => undefined);
+
+      if (attempts >= 20) {
+        clearRefreshWatcher();
+      }
+    }, 1500);
+  }, [clearRefreshWatcher, extensionStatus, inventory]);
 
   const openPopupAfterAnimation = useCallback(async () => {
     clearPopupOpenTimer();
@@ -650,13 +639,7 @@ export default function HomePage() {
 
   const deferredQuery = useDeferredValue(query);
 
-  const sourceGroups = useMemo(() => {
-    if (extensionStatus.isUsingMockData) {
-      return buildDemoGroups(extensionStatus.report);
-    }
-
-    return inventory.groups;
-  }, [extensionStatus.isUsingMockData, extensionStatus.report, inventory.groups]);
+  const sourceGroups = useMemo(() => inventory.groups, [inventory.groups]);
 
   const baseFilteredGroups = useMemo(
     () => applyFilters(sourceGroups, deferredQuery, preset, "all", EMPTY_SELECTION),
@@ -739,6 +722,7 @@ export default function HomePage() {
 
   useEffect(() => clearJarTimers, [clearJarTimers]);
   useEffect(() => clearPopupOpenTimer, [clearPopupOpenTimer]);
+  useEffect(() => clearRefreshWatcher, [clearRefreshWatcher]);
 
   useEffect(() => {
     if (!isCookieListExpanded) {
@@ -772,6 +756,23 @@ export default function HomePage() {
 
     return next;
   }, [sourceGroups]);
+
+  useEffect(() => {
+    setSelectedLookup((current) => {
+      let changed = false;
+      const next: Record<string, true> = {};
+
+      for (const key of Object.keys(current)) {
+        if (keyToDomain.has(key)) {
+          next[key] = true;
+        } else {
+          changed = true;
+        }
+      }
+
+      return changed ? next : current;
+    });
+  }, [keyToDomain]);
 
   const selectedKeys = useMemo(() => Object.keys(selectedLookup), [selectedLookup]);
   const selectedCount = selectedKeys.length;
@@ -840,6 +841,12 @@ export default function HomePage() {
 
   const hiddenSelectedCount = Math.max(0, selectedCount - selectionInCurrentSearchCount);
 
+  useEffect(() => {
+    if (selectedCount === 0) {
+      clearRefreshWatcher();
+    }
+  }, [clearRefreshWatcher, selectedCount]);
+
   const scopeCounts = useMemo(() => {
     const counts: Record<FilterScope, number> = {
       cleanup: 0,
@@ -876,6 +883,12 @@ export default function HomePage() {
   }, [baseFilteredGroups, selectedCount]);
 
   const activeScope = getFilterScopeMeta(filterScope);
+  const footerStatusMessage =
+    selectedCount > 0
+      ? "Send only checked cookies. Approve the request in the extension."
+      : "Select cookies in the list, then send them to the extension for approval.";
+  const sendButtonLabel =
+    selectedCount > 0 ? `Send ${selectedCount.toLocaleString()}` : "Send selected";
 
   const toggleCookie = useCallback((key: string) => {
     startTransition(() => {
@@ -969,9 +982,10 @@ export default function HomePage() {
   }, [visibleSelectableKeys]);
 
   const clearSelection = useCallback(() => {
+    clearRefreshWatcher();
     setMessage(null);
     setSelectedLookup({});
-  }, []);
+  }, [clearRefreshWatcher]);
 
   const showSelected = useCallback(() => {
     if (!selectedCount) {
@@ -1000,19 +1014,20 @@ export default function HomePage() {
   const handleReturnToJar = useCallback(() => {
     clearJarTimers();
     clearPopupOpenTimer();
+    clearRefreshWatcher();
     pendingPopupOpenRef.current = false;
     setIsCookieListExpanded(false);
     setIsEating(false);
     setIsReturningToIdle(false);
     setMessage(null);
     setJarPhase("idle");
-  }, [clearJarTimers, clearPopupOpenTimer]);
+  }, [clearJarTimers, clearPopupOpenTimer, clearRefreshWatcher]);
 
   const canRequestFeed = extensionStatus.isInstalled && !extensionStatus.isUsingMockData;
 
   const requestFeed = async () => {
     if (!canRequestFeed) {
-      setMessage("Real cleanup requests are disabled while mock mode is active.");
+      setMessage("The extension is not connected yet. Reload the extension, refresh this page, then try again.");
       return;
     }
 
@@ -1031,6 +1046,7 @@ export default function HomePage() {
     if (pending) {
       pendingPopupOpenRef.current = true;
       clearPopupOpenTimer();
+      startRefreshWatcher();
       window.setTimeout(() => {
         setIsReturningToIdle(false);
         setIsEating(true);
@@ -1385,7 +1401,7 @@ export default function HomePage() {
                         {visibleSelectedCount.toLocaleString()} visible
                       </span>
                     )}
-                    <span>{selectedCount > 0 ? "Send only checked cookies. Approve the request in the extension." : "Select cookies in the list, then send them to the extension for approval."}</span>
+                    <span>{footerStatusMessage}</span>
                   </div>
 
                   <div className="flex flex-wrap gap-2">
@@ -1394,7 +1410,7 @@ export default function HomePage() {
                       disabled={!canRequestFeed || selectedCount === 0}
                       className="rounded-xl bg-[#1d6ed8] px-3 py-1.5 text-xs font-semibold text-white transition enabled:hover:bg-[#185db7] disabled:cursor-not-allowed disabled:bg-slate-300"
                     >
-                      {selectedCount > 0 ? `Send ${selectedCount.toLocaleString()}` : "Send selected"}
+                      {sendButtonLabel}
                     </button>
                     <button
                       type="button"

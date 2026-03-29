@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "package:extension": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"New-Item -ItemType Directory -Force -Path 'public/downloads' | Out-Null; if (Test-Path 'public/downloads/cookie-monster-extension.zip') { Remove-Item -LiteralPath 'public/downloads/cookie-monster-extension.zip' -Force; }; Compress-Archive -Path 'extension/*' -DestinationPath 'public/downloads/cookie-monster-extension.zip' -Force\""
   },
   "dependencies": {
     "next": "^15.2.4",

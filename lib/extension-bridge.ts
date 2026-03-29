@@ -123,7 +123,11 @@ const PAGE_BRIDGE_SOURCE = "cookie-monster-page";
 const EXTENSION_BRIDGE_SOURCE = "cookie-monster-extension";
 const PAGE_BRIDGE_REQUEST_TYPE = "CM_EXTENSION_BRIDGE_REQUEST";
 const PAGE_BRIDGE_RESPONSE_TYPE = "CM_EXTENSION_BRIDGE_RESPONSE";
-const PAGE_BRIDGE_TIMEOUT_MS = 600;
+const PAGE_BRIDGE_READY_TYPE = "CM_EXTENSION_BRIDGE_READY";
+const PAGE_BRIDGE_READY_DATASET_KEY = "cookieMonsterBridgeReady";
+const PAGE_BRIDGE_READY_ATTRIBUTE = "data-cookie-monster-bridge-ready";
+const PAGE_BRIDGE_READY_WAIT_MS = 1200;
+const PAGE_BRIDGE_TIMEOUT_MS = 1500;
 let pageBridgeRequestSequence = 0;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -185,10 +189,94 @@ function isVersionData(value: unknown): value is { version: string } {
   return isRecord(value) && typeof value.version === "string";
 }
 
+function hasLocalPageBridgeReadySignal() {
+  return (
+    typeof document !== "undefined" &&
+    document.documentElement?.dataset?.[PAGE_BRIDGE_READY_DATASET_KEY] === "true"
+  );
+}
+
+async function waitForLocalPageBridgeReady(timeoutMs = PAGE_BRIDGE_READY_WAIT_MS) {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  if (hasLocalPageBridgeReadySignal()) {
+    return true;
+  }
+
+  return new Promise<boolean>((resolve) => {
+    let settled = false;
+
+    const cleanup = () => {
+      window.removeEventListener("message", handleMessage);
+      if (observer) {
+        observer.disconnect();
+      }
+      window.clearTimeout(timeoutId);
+    };
+
+    const finish = (ready: boolean) => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      cleanup();
+      resolve(ready);
+    };
+
+    const handleMessage = (event: MessageEvent) => {
+      if (event.source !== window) {
+        return;
+      }
+
+      const data = event.data as
+        | {
+            source?: string;
+            type?: string;
+          }
+        | undefined;
+
+      if (
+        data?.source === EXTENSION_BRIDGE_SOURCE &&
+        data.type === PAGE_BRIDGE_READY_TYPE
+      ) {
+        finish(true);
+      }
+    };
+
+    const observer =
+      typeof MutationObserver === "function" && typeof document !== "undefined"
+        ? new MutationObserver(() => {
+            if (hasLocalPageBridgeReadySignal()) {
+              finish(true);
+            }
+          })
+        : null;
+
+    observer?.observe(document.documentElement, {
+      attributeFilter: [PAGE_BRIDGE_READY_ATTRIBUTE],
+      attributes: true,
+    });
+
+    const timeoutId = window.setTimeout(() => {
+      finish(hasLocalPageBridgeReadySignal());
+    }, timeoutMs);
+
+    window.addEventListener("message", handleMessage);
+  });
+}
+
 async function sendMessageThroughPageBridge(
   message: ExtensionMessage
 ): Promise<ExtensionResponse | null> {
   if (typeof window === "undefined") {
+    return null;
+  }
+
+  const ready = await waitForLocalPageBridgeReady();
+  if (!ready) {
     return null;
   }
 
@@ -386,12 +474,6 @@ export async function sendMessageToExtension(
 }
 
 export async function isExtensionInstalled(): Promise<boolean> {
-  if (process.env.NODE_ENV === "development") {
-    const skipCheck =
-      typeof window !== "undefined" && window.localStorage.getItem("cm_dev_skip_extension") === "true";
-    if (skipCheck) return true;
-  }
-
   try {
     const response = await sendMessageToExtension({ type: "PING" });
     return response.success;

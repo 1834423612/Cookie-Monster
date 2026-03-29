@@ -32,7 +32,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={nunito.variable} data-cookie-monster-app="true">
-      <body className="font-[family-name:var(--font-nunito)] antialiased">
+      <body suppressHydrationWarning className="font-[family-name:var(--font-nunito)] antialiased">
         {children}
       </body>
     </html>
