@@ -464,7 +464,7 @@ export default function HomePage() {
   const extensionStatus = useExtensionStatus();
   const inventory = useCookieInventory(extensionStatus.isInstalled && !extensionStatus.isUsingMockData);
 
-  const [isJarOpened, setIsJarOpened] = useState(false);
+  const [jarPhase, setJarPhase] = useState<"idle" | 1 | 2 | 3 | 4 | "fading" | "done">("idle");
   const [expandedDomain, setExpandedDomain] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [preset, setPreset] = useState<CleanupPresetId | "all">("all");
@@ -472,6 +472,16 @@ export default function HomePage() {
   const [selectedLookup, setSelectedLookup] = useState<Record<string, true>>({});
   const [message, setMessage] = useState<string | null>(null);
   const [isEating, setIsEating] = useState(false);
+
+  const handleJarClick = useCallback(() => {
+    if (jarPhase !== "idle") return;
+    setJarPhase(1);
+    setTimeout(() => setJarPhase(2), 250);
+    setTimeout(() => setJarPhase(3), 500);
+    setTimeout(() => setJarPhase(4), 750);
+    setTimeout(() => setJarPhase("fading"), 1000);
+    setTimeout(() => setJarPhase("done"), 2000);
+  }, [jarPhase]);
 
   const deferredQuery = useDeferredValue(query);
 
@@ -655,9 +665,10 @@ export default function HomePage() {
       setMessage(
         `${pending.label} created. The extension will confirm exactly ${pending.cookieCount} cookies before deletion.`
       );
-      setTimeout(() => setIsEating(true), 1000);
       return;
     }
+
+    setTimeout(() => setIsEating(true), 1000);
 
     setMessage("The extension could not create a cleanup request from this selection.");
   };
@@ -666,21 +677,36 @@ export default function HomePage() {
     <div className="flex h-screen flex-col overflow-hidden bg-[radial-gradient(circle_at_top_left,#f6ecd8,#efe6d7_45%,#ece7df)] text-[#2d261a]">
       <main className="mx-auto flex min-h-0 w-full max-w-auto flex-1 flex-col px-4 py-6 md:px-8 md:py-10">
         <section className="grid min-h-0 flex-1 gap-4 md:grid-cols-[2fr_1fr]">
-          {!isJarOpened ? (
+          {jarPhase === "idle" ? (
             <button
-              onClick={() => setIsJarOpened(true)}
-              className="rounded-3xl border border-[#d7c7af] bg-[#fff8ea] p-8 text-center transition hover:-translate-y-0.5 hover:shadow-xl"
+              onClick={handleJarClick}
+              className="flex items-center justify-center transition hover:-translate-y-0.5"
             >
-              <div className="mx-auto mb-3 flex h-44 w-44 items-center justify-center rounded-3xl border border-[#dbc8ad] bg-white shadow-inner">
-                <Icon icon="mdi:cookie" className="h-24 w-24 text-[#c9823b]" />
-              </div>
-              <strong className="text-xl">Open cookie list</strong>
-              <p className="mt-2 text-sm text-[#6f6453]">
-                Placeholder art for jar and monster can be replaced with final assets.
-              </p>
+              <img src="/jar1.svg" alt="Cookie jar" className="h-135 w-135" />
             </button>
+          ) : jarPhase !== "fading" && jarPhase !== "done" ? (
+            <div className="flex items-center justify-center">
+              <img
+                src={`/jar${jarPhase}.svg`}
+                alt="Cookie jar"
+                className="h-135 w-135"
+              />
+            </div>
           ) : (
-            <section className="flex min-h-0 flex-col p-4">
+            <div className="relative flex min-h-0 flex-col">
+              {jarPhase === "fading" && (
+                <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+                  <img
+                    src="/jar4.svg"
+                    alt="Cookie jar"
+                    className="h-135 w-135 transition-opacity duration-1000 opacity-0"
+                  />
+                </div>
+              )}
+              <section
+                className="flex min-h-0 flex-1 flex-col p-4 transition-opacity duration-1000"
+                style={{ opacity: jarPhase === "done" ? 1 : 0 }}
+              >
               <div className="mb-4 rounded-[1.35rem] border border-[#e3d7c5] bg-white/75 p-4 shadow-[0_10px_28px_rgba(88,62,31,0.06)]">
                 <div className="grid gap-2 lg:grid-cols-[minmax(0,1.2fr)_180px_auto]">
                   <label className="flex items-center gap-2 rounded-xl border border-[#ddcfba] bg-white px-3 text-sm text-[#4f4537] focus-within:border-[#ccb693] focus-within:ring-2 focus-within:ring-[#e8ddcb]">
@@ -880,18 +906,26 @@ export default function HomePage() {
                 </div>
               </div>
             </section>
+            </div>
           )}
 
-          <aside className="min-h-0 overflow-hidden">
+          <aside className="relative min-h-0 overflow-hidden">
             <video
-              key={isEating ? "eat" : "idle"}
-              src={isEating ? "/cm_eat.mp4" : "/cm_idle.mp4"}
+              src="/cm_idle.mp4"
               autoPlay
-              loop={!isEating}
+              loop
+              muted
+              playsInline
+              className={`absolute inset-0 h-full w-full object-contain transition-opacity duration-[200ms] ${isEating ? "opacity-0" : "opacity-100"}`}
+            />
+            <video
+              key={isEating ? "eating" : "idle"}
+              src="/cm_eat.mp4"
+              autoPlay={isEating}
               muted
               playsInline
               onEnded={() => setIsEating(false)}
-              className="h-full w-full object-contain"
+              className={`h-full w-full object-contain transition-[opacity,transform] duration-[200ms] ${isEating ? "scale-145 opacity-100" : "scale-100 opacity-0"}`}
             />
           </aside>
         </section>
