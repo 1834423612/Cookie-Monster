@@ -1175,6 +1175,24 @@ async function openDashboardPage() {
 }
 
 async function openPopupWindow() {
+  if (chrome.action?.openPopup) {
+    try {
+      const [activeTab] = await chrome.tabs.query({
+        active: true,
+        lastFocusedWindow: true,
+      });
+      const popupOptions =
+        activeTab && typeof activeTab.windowId === "number"
+          ? { windowId: activeTab.windowId }
+          : undefined;
+
+      await chrome.action.openPopup(popupOptions);
+      return;
+    } catch (error) {
+      console.warn("Falling back to popup window because action.openPopup() failed.", error);
+    }
+  }
+
   const popupUrl = chrome.runtime.getURL("popup.html");
   const existingTabs = await chrome.tabs.query({ url: popupUrl });
   const existingTab = existingTabs.find(
