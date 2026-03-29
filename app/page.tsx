@@ -44,27 +44,31 @@ function getStatusBadge(risk: string, recommendedKeep: boolean) {
   if (recommendedKeep) {
     return {
       label: "SAFE",
-      className: "border-[#bfdfca] bg-[#edf8f0] text-[#2d7a52]",
+      className: "border-[#c8e2cf] bg-[#f7fcf8] text-[#2d7a52]",
+      accentClass: "bg-[#41a36c]",
     };
   }
 
   if (risk === "high") {
     return {
       label: "HIGH RISK",
-      className: "border-[#f1beb7] bg-[#fdeceb] text-[#c44b3c]",
+      className: "border-[#f0d2cd] bg-[#fff7f6] text-[#bb5448]",
+      accentClass: "bg-[#d96c5d]",
     };
   }
 
   if (risk === "medium") {
     return {
       label: "WATCH",
-      className: "border-[#e3d8c9] bg-[#f8f3eb] text-[#8f7c66]",
+      className: "border-[#e3d8c9] bg-[#fbf8f3] text-[#8f7c66]",
+      accentClass: "bg-[#baa17f]",
     };
   }
 
   return {
     label: "NORMAL",
-    className: "border-[#e2d6c3] bg-white text-[#6f6453]",
+    className: "border-[#e5dccf] bg-white text-[#6f6453]",
+    accentClass: "bg-[#c8b79e]",
   };
 }
 
@@ -275,16 +279,16 @@ export default function HomePage() {
               )}
 
               <div className="min-h-0 flex-1 overflow-auto rounded-[1.35rem] border border-[#e3d7c5] bg-white/60 pr-1">
-                <div className="sticky top-0 z-10 hidden grid-cols-[minmax(0,1.7fr)_82px_110px_72px_126px] gap-2 border-b border-[#e7dccd] bg-[#f5ede1]/95 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a7b66] backdrop-blur md:grid">
-                  <span>Name</span>
+                <div className="sticky top-0 z-10 hidden grid-cols-[minmax(0,1.7fr)_82px_110px_140px] gap-2 border-b border-[#e7dccd] bg-[#f5ede1]/95 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a7b66] backdrop-blur md:grid">
+                  <span className="pl-[66px]">Domain</span>
                   <span>Cookies</span>
                   <span>Expiry</span>
-                  <span>Priority</span>
                   <span>Status</span>
                 </div>
 
                 <div>
                   {filteredGroups.map((group) => {
+                    const isExpanded = expandedDomain === group.domain;
                     const groupRisk = getGroupRisk(group);
                     const groupStatus = getStatusBadge(groupRisk, false);
 
@@ -292,11 +296,15 @@ export default function HomePage() {
                       <div key={group.domain} className="border-b border-[#eee4d6] last:border-b-0">
                         <button
                           onClick={() => setExpandedDomain((current) => (current === group.domain ? null : group.domain))}
-                          className="grid w-full grid-cols-1 items-center gap-2 px-4 py-3 text-left transition-colors hover:bg-[#f7f0e5] md:grid-cols-[minmax(0,1.7fr)_82px_110px_72px_126px]"
+                          className={`grid w-full grid-cols-1 items-center gap-2 px-4 py-3 text-left transition-all md:grid-cols-[minmax(0,1.7fr)_82px_110px_140px] ${
+                            isExpanded
+                              ? "bg-[#f8efe3] shadow-[inset_3px_0_0_#d8b48a]"
+                              : "hover:bg-[#f7f0e5]"
+                          }`}
                         >
                           <div className="flex items-center gap-3">
                             <Icon
-                              icon={expandedDomain === group.domain ? "mdi:chevron-down" : "mdi:chevron-right"}
+                              icon={isExpanded ? "mdi:chevron-down" : "mdi:chevron-right"}
                               className="h-4 w-4 shrink-0 text-[#8a7b66]"
                             />
                             <img
@@ -306,99 +314,110 @@ export default function HomePage() {
                             />
                             <div className="min-w-0">
                               <p className="truncate font-semibold text-[#342c22]">{group.domain}</p>
-                              <p className="mt-0.5 text-xs text-[#8a7b66]">
-                                {group.total} cookies / {group.highRiskCount} high risk
-                              </p>
+                              <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-[#8a7b66]">
+                                <span className="rounded-full bg-white/80 px-2 py-0.5">{group.total} cookies</span>
+                                {group.highRiskCount > 0 && (
+                                  <span className="rounded-full bg-[#fff1ef] px-2 py-0.5 text-[#c44b3c]">
+                                    {group.highRiskCount} high risk
+                                  </span>
+                                )}
+                                {group.recommendedKeepCount > 0 && (
+                                  <span className="rounded-full bg-[#edf8f0] px-2 py-0.5 text-[#2d7a52]">
+                                    {group.recommendedKeepCount} protected
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
 
-                          <span className="hidden text-sm text-[#5e5548] md:block">{group.total}</span>
-                          <span className="hidden text-xs text-[#8a7b66] md:block">--</span>
-                          <span className="hidden md:block">
-                            {groupRisk === "high" ? (
-                              <Icon icon="mdi:flag" className="h-4 w-4 text-[#d74d42]" />
-                            ) : groupRisk === "medium" ? (
-                              <Icon icon="mdi:flag-outline" className="h-4 w-4 text-[#b29a79]" />
-                            ) : (
-                              <span className="text-xs text-[#c3b39b]">--</span>
-                            )}
-                          </span>
+                          <span className="hidden text-center text-sm text-[#5e5548] md:block">{group.total}</span>
+                          <span className="hidden text-center text-xs text-[#8a7b66] md:block">--</span>
                           <span
-                            className={`hidden items-center gap-1 rounded-md border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] md:inline-flex ${groupStatus.className}`}
+                            className={`hidden items-center gap-2 rounded-md border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] md:inline-flex ${groupStatus.className}`}
                           >
-                            <span className="h-1.5 w-1.5 rounded-full bg-current opacity-70" />
+                            <span className={`h-4 w-1 rounded-full ${groupStatus.accentClass}`} />
                             {groupStatus.label}
                           </span>
                         </button>
 
-                        {expandedDomain === group.domain && (
-                          <div className="bg-[#fbf7f1]/85">
+                        {isExpanded && (
+                          <div className="ml-9 border-l border-[#eadfce] bg-[#fbf7f1]/85">
                             {group.items.map((cookie) => {
                               const status = getStatusBadge(cookie.risk, cookie.recommendedKeep);
                               const expiry = getRelativeTime(cookie.expirationDate);
                               const isUrgent =
                                 expiry === "Expired" || expiry === "Today" || expiry === "Tomorrow";
+                              const isSelected = Boolean(selected[cookie.key]);
 
                               return (
-                                <label
+                                <div
                                   key={cookie.key}
-                                  className={`grid cursor-pointer grid-cols-1 items-center gap-2 border-t border-[#eee4d6] px-4 py-2.5 transition-colors hover:bg-[#f6efe5] md:grid-cols-[minmax(0,1.7fr)_82px_110px_72px_126px] ${
-                                    selected[cookie.key] ? "bg-[#efe2cf]" : ""
+                                  onClick={() => toggleCookie(cookie.key)}
+                                  role="button"
+                                  tabIndex={0}
+                                  onKeyDown={(event) => {
+                                    if (event.key === "Enter" || event.key === " ") {
+                                      event.preventDefault();
+                                      toggleCookie(cookie.key);
+                                    }
+                                  }}
+                                  className={`grid cursor-pointer grid-cols-1 items-center gap-2 border-t border-[#eee4d6] px-4 py-2 transition-colors hover:bg-[#f6efe5] md:grid-cols-[minmax(0,1.7fr)_82px_110px_140px] ${
+                                    isSelected ? "bg-[#efe2cf]" : ""
                                   }`}
                                 >
-                                  <div className="flex items-center gap-3 pl-6">
-                                    <input
-                                      type="checkbox"
-                                      checked={Boolean(selected[cookie.key])}
-                                      onChange={() => toggleCookie(cookie.key)}
-                                      className="h-4 w-4 rounded border-[#cdbda3] text-[#1d6ed8] focus:ring-[#1d6ed8]"
-                                    />
+                                  <div className="flex items-center gap-3 pl-5">
+                                    <button
+                                      type="button"
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        toggleCookie(cookie.key);
+                                      }}
+                                      className={`flex h-5 w-5 items-center justify-center rounded transition ${
+                                        isSelected ? "text-[#d74d42]" : "text-[#ccbca4] hover:text-[#a69377]"
+                                      }`}
+                                      aria-pressed={isSelected}
+                                      aria-label={isSelected ? `Unselect ${cookie.name}` : `Select ${cookie.name}`}
+                                    >
+                                      <Icon
+                                        icon={isSelected ? "mdi:flag" : "mdi:flag-outline"}
+                                        className="h-4 w-4"
+                                      />
+                                    </button>
                                     <img
                                       src={getCookieArt(cookie.risk)}
                                       alt=""
                                       className="h-5 w-5 shrink-0"
                                     />
                                     <div className="min-w-0">
-                                      <div className="flex flex-wrap items-center gap-2">
-                                        <span className="truncate text-sm font-medium text-[#342c22]">
+                                      <div className="flex items-center gap-2">
+                                        <span className="truncate text-[13px] font-medium text-[#342c22]">
                                           {cookie.name}
                                         </span>
-                                        <span className="rounded-md bg-[#f3ede4] px-1.5 py-0.5 text-[11px] text-[#7d6e59]">
-                                          {cookie.category}
-                                        </span>
-                                        {cookie.recommendedKeep && (
-                                          <span className="rounded-md bg-[#e8f2ff] px-1.5 py-0.5 text-[11px] font-medium text-[#3569b8]">
-                                            keep
-                                          </span>
-                                        )}
                                       </div>
+                                      <p className="mt-0.5 truncate text-[10px] text-[#8a7b66]">
+                                        {cookie.category}
+                                        {cookie.recommendedKeep ? " / keep" : ""}
+                                        {cookie.sameSite ? ` / ${cookie.sameSite}` : ""}
+                                      </p>
                                     </div>
                                   </div>
 
-                                  <span className="hidden text-xs text-[#6f6453] md:block">1</span>
+                                  <span className="hidden text-center text-xs text-[#6f6453] md:block">1</span>
                                   <span
-                                    className={`hidden text-xs md:block ${
+                                    title={formatExpiry(cookie.expirationDate)}
+                                    className={`hidden text-center text-xs md:block ${
                                       isUrgent ? "font-semibold text-[#c44b3c]" : "text-[#8a7b66]"
                                     }`}
                                   >
                                     {expiry}
                                   </span>
-                                  <span className="hidden md:block">
-                                    {cookie.risk === "high" ? (
-                                      <Icon icon="mdi:flag" className="h-4 w-4 text-[#d74d42]" />
-                                    ) : cookie.risk === "medium" ? (
-                                      <span className="inline-flex h-2 w-2 rounded-full bg-[#cdbca1]" />
-                                    ) : (
-                                      <span className="text-xs text-[#c3b39b]">--</span>
-                                    )}
-                                  </span>
                                   <span
-                                    className={`hidden items-center gap-1 rounded-md border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] md:inline-flex ${status.className}`}
+                                    className={`hidden items-center gap-2 rounded-md border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] md:inline-flex ${status.className}`}
                                   >
-                                    <span className="h-1.5 w-1.5 rounded-full bg-current opacity-70" />
+                                    <span className={`h-4 w-1 rounded-full ${status.accentClass}`} />
                                     {status.label}
                                   </span>
-                                </label>
+                                </div>
                               );
                             })}
                           </div>
@@ -415,19 +434,44 @@ export default function HomePage() {
                 )}
               </div>
 
-              <div className="mt-4 rounded-2xl border border-[#eadfce] bg-white p-4">
-                <div className="flex items-center justify-between text-sm">
-                  <span>Selected cookies</span>
-                  <strong>{selectedCount}</strong>
+              <div className="mt-4 rounded-[1.25rem] border border-[#eadfce] bg-white/90 p-4 shadow-[0_8px_24px_rgba(88,62,31,0.06)]">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 text-sm">
+                      <span className="font-medium text-[#6f6453]">Selected cookies</span>
+                      <span className="rounded-full bg-[#f3ede4] px-2.5 py-1 text-xs font-semibold text-[#3b3329]">
+                        {selectedCount}
+                      </span>
+                      {selectedPresetHint && (
+                        <span className="rounded-full bg-[#e8f2ff] px-2.5 py-1 text-xs font-medium text-[#3569b8]">
+                          {selectedPresetHint}
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-xs text-[#8a7b66]">
+                      Click a flag or any cookie row to select items for the next cleanup request.
+                    </p>
+                    {message && <p className="mt-2 text-xs text-[#7b6d5a]">{message}</p>}
+                  </div>
+
+                  <div className="flex flex-col gap-2 md:min-w-[260px]">
+                    <button
+                      onClick={requestFeed}
+                      disabled={!canRequestFeed}
+                      className="w-full rounded-xl bg-[#1d6ed8] px-3 py-2.5 text-sm font-semibold text-white enabled:hover:bg-[#185db7] disabled:cursor-not-allowed disabled:bg-slate-300"
+                    >
+                      {selectedCount > 0 ? "Create local cleanup request" : "Create request from current filter"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelected({})}
+                      disabled={selectedCount === 0}
+                      className="w-full rounded-xl border border-[#ddcfba] bg-[#faf6f0] px-3 py-2 text-xs font-medium text-[#6f6453] transition hover:bg-[#f4eddf] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Clear selection
+                    </button>
+                  </div>
                 </div>
-                {message && <p className="mt-2 text-xs text-[#7b6d5a]">{message}</p>}
-                <button
-                  onClick={requestFeed}
-                  disabled={!canRequestFeed}
-                  className="mt-3 w-full rounded-xl bg-[#1d6ed8] px-3 py-2 text-sm font-semibold text-white enabled:hover:bg-[#185db7] disabled:cursor-not-allowed disabled:bg-slate-300"
-                >
-                  Create local cleanup request (extension confirmation required)
-                </button>
               </div>
             </section>
           )}
