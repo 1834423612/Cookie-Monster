@@ -32,9 +32,8 @@
         "http://127.0.0.1/*",
         "https://127.0.0.1/*",
         "https://localhost/*",
-        "https://cookie-monster.app/*",
-        "https://www.cookie-monster.app/*",
-        "https://cookie-monster.vercel.app/*"
+        "https://cookie-monster-git-cookie-monster-kjchs-projects.vercel.app/*",
+        "https://cookie-monster.makesome.cool/*"
       ],
       "js": [
         "page-bridge.js"
@@ -49,9 +48,8 @@
       "http://127.0.0.1/*",
       "https://127.0.0.1/*",
       "https://localhost/*",
-      "https://cookie-monster.app/*",
-      "https://www.cookie-monster.app/*",
-      "https://cookie-monster.vercel.app/*"
+      "https://cookie-monster-git-cookie-monster-kjchs-projects.vercel.app/*",
+      "https://cookie-monster.makesome.cool/*"
     ]
   },
   "minimum_chrome_version": "116"
