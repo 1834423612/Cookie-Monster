@@ -32,23 +32,23 @@ The only data that leaves your browser is standard web requests to load the webs
     title: "Local Processing",
     content: `All sensitive operations happen entirely within your browser:
 
-1. Cookie Scanning: The extension uses Chrome's cookies API to read cookies. This data never leaves the extension.
+1. Cookie Scanning: The extension uses Chrome's cookies API to read cookies. Raw cookie values stay inside the extension.
 
 2. Analysis: Risk classification, categorization, and statistics are computed locally using JavaScript in your browser.
 
 3. Reports: When you export a report, it's saved directly to your device. When you view the dashboard, data is processed client-side.
 
-4. Website-Extension Communication: When the website requests data from the extension, only sanitized summary statistics are shared. Raw cookie names and values are NEVER transmitted.`,
+4. Website-Extension Communication: When the website requests data from the extension, it can receive sanitized summaries plus limited cookie metadata such as names, keys, flags, and value size through a local browser bridge. Raw cookie values stay inside the extension and are NEVER transmitted to the website.`,
   },
   {
     id: "security",
     title: "Security Measures",
     content: `We implement several security measures to protect your data:
 
-- Origin Validation: The extension only responds to messages from our verified website domain
-- No Raw Data Transfer: The website never receives actual cookie values, only aggregate statistics
+- Local Bridge Isolation: The website talks to the extension through a local page-to-content-script bridge that runs entirely in your browser
+- No Raw Value Transfer: The website never receives actual cookie values
 - No External APIs: The dashboard doesn't call any external APIs when displaying your data
-- Secure Export: Backup files can be encrypted with a passphrase before saving
+- Backup Export Warning: Backup files are saved locally as plain JSON and may contain raw cookie values, so keep them on a trusted device
 - Open Source: All code is publicly auditable on GitHub`,
   },
   {

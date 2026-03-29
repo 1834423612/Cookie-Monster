@@ -135,15 +135,15 @@ export function HeroSection() {
                       </p>
                     </div>
                     <button className="rounded-full bg-foreground px-4 py-2 text-sm font-medium text-background">
-                      Feed Entire Domain
+                      Queue Domain Review
                     </button>
                   </div>
                   <div className="mt-4 grid gap-2">
                     {[
-                      ["fr", "facebook-ad-cookie-demo", "high"],
-                      ["presence", "chat-state-demo", "medium"],
-                      ["datr", "browser-fingerprint-demo", "high"],
-                    ].map(([name, value, risk]) => (
+                      ["fr", "23 chars kept local", "high"],
+                      ["presence", "15 chars kept local", "medium"],
+                      ["datr", "31 chars kept local", "high"],
+                    ].map(([name, metadata, risk]) => (
                       <div
                         key={name}
                         className="grid items-center gap-3 rounded-2xl border border-border bg-background px-4 py-3 sm:grid-cols-[auto_1fr_auto]"
@@ -151,7 +151,7 @@ export function HeroSection() {
                         <input type="checkbox" checked readOnly className="h-4 w-4 rounded" />
                         <div className="min-w-0">
                           <p className="truncate font-medium text-foreground">{name}</p>
-                          <p className="truncate text-xs text-muted-foreground">{value}</p>
+                          <p className="truncate text-xs text-muted-foreground">{metadata}</p>
                         </div>
                         <span className="rounded-full bg-risk-high/10 px-2.5 py-1 text-xs font-medium text-risk-high">
                           {risk}

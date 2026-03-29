@@ -31,8 +31,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={nunito.variable}>
-      <body className="font-[family-name:var(--font-nunito)] antialiased">
+    <html lang="en" className={nunito.variable} data-cookie-monster-app="true">
+      <body suppressHydrationWarning className="font-(family-name:--font-nunito) antialiased">
         {children}
       </body>
     </html>

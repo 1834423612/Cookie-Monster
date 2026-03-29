@@ -56,12 +56,12 @@ const sections = [
       {
         question: "How does the website communicate with the extension?",
         answer:
-          "The website uses Chrome&apos;s external messaging API to communicate with the extension. Only sanitized summary data is transferred, never raw cookie values. The extension also re-validates the sender origin in its service worker before responding.",
+          "The website now talks to the extension through a page-to-content-script bridge that stays entirely inside your local browser. The extension service worker still performs all privileged cookie reads and writes locally, without sending cookie data to remote servers.",
       },
       {
         question: "What data is shared with the website?",
         answer:
-          "Only sanitized summary data: cookie counts, domain statistics, risk distributions, and security flag counts. Raw cookie names and values are NEVER transmitted to the website.",
+          "Summary views use sanitized counts, domain statistics, risk distributions, and security flag counts. When you open an on-page inspection view, the website can receive cookie metadata such as names, keys, flags, and value size through the local browser bridge, but raw cookie values stay inside the extension and are never uploaded to Cookie Monster servers.",
       },
       {
         question: "Can I use the dashboard without the extension?",
@@ -71,7 +71,7 @@ const sections = [
       {
         question: "What is the current local bridge setup?",
         answer:
-          "The bundled extension manifest uses a stable ID and allows localhost plus the placeholder production domains in its externally_connectable list. If you self-host the site on another origin, update the manifest allowlist and NEXT_PUBLIC_EXTENSION_ID together.",
+          "The bundled extension keeps a stable ID for compatibility, but the website no longer depends on an origin allowlist to talk to it. Any deployed entry domain can use the local in-browser bridge as long as the Cookie Monster extension is installed in that browser profile.",
       },
     ],
   },
@@ -110,12 +110,12 @@ const sections = [
       {
         question: "What ships in this MVP?",
         answer:
-          "The repo now includes a Chrome MV3 extension with a side panel, full dashboard page, local cookie scan, high-risk cleanup, restore-from-recycle-bin, report export, backup export, and a summary-only website bridge.",
+          "The repo now includes a Chrome MV3 extension with a side panel, full dashboard page, local cookie scan, high-risk cleanup, restore-from-recycle-bin, report export, backup export, and a local website bridge that exposes summary data plus redacted cookie metadata.",
       },
       {
         question: "What comes next?",
         answer:
-          "The next sensible step is polishing the heuristics and UI, then deciding whether Firefox or Edge should get dedicated packaging. The sensitive-data boundary stays the same: destructive actions remain extension-only.",
+          "The next sensible step is polishing the heuristics and UI, then deciding whether Firefox or Edge should get dedicated packaging. The sensitive-data boundary stays the same: raw cookie values stay extension-only, and website cleanup requests must be confirmed through the extension.",
       },
     ],
   },

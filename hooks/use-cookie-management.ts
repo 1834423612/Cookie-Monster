@@ -2,16 +2,16 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
-  deleteCookieKeys,
-  deleteDomainCookies,
   generateMockCookieManagementState,
   getCookieManagementState,
   getDomainCookies,
   getMockCookieDomainCookies,
+  requestCookieFeed,
   restoreCleanupBatch,
   setDomainProtection,
   type CookieDomainCookie,
   type CookieManagementState,
+  type PendingFeedRequestSummary,
 } from "@/lib/extension-bridge";
 import { subscribeToExtensionSync } from "@/lib/extension-sync";
 
@@ -30,8 +30,11 @@ interface UseCookieManagementResult {
   selectDomain: (domain: string | null) => Promise<void>;
   refresh: () => Promise<void>;
   toggleDomainProtection: (domain: string, nextValue: boolean) => Promise<void>;
-  deleteDomain: (domain: string) => Promise<void>;
-  deleteCookies: (keys: string[]) => Promise<void>;
+  queueDomainFeed: (domain: string) => Promise<PendingFeedRequestSummary | null>;
+  queueCookieFeed: (
+    keys: string[],
+    options?: { label?: string; description?: string }
+  ) => Promise<PendingFeedRequestSummary | null>;
   restoreBatch: (batchId: string) => Promise<void>;
 }
 
@@ -75,6 +78,9 @@ export function useCookieManagement({
       setManagement(null);
       setDomainCookies([]);
       setSelectedDomain(null);
+      setError(null);
+      setIsLoading(false);
+      setIsDomainLoading(false);
       return;
     }
 
@@ -139,31 +145,99 @@ export function useCookieManagement({
   );
 
   const deleteDomainAction = useCallback(
-    async (domain: string) => {
-      if (isDevMode) {
-        await refresh();
-        return;
+    async (
+      domain: string,
+      options?: { label?: string; description?: string }
+    ): Promise<PendingFeedRequestSummary | null> => {
+      setError(null);
+
+      const cookies = isDevMode
+        ? getMockCookieDomainCookies(domain)
+        : await getDomainCookies(domain);
+      const keys = cookies.map((cookie) => cookie.key);
+
+      if (keys.length === 0) {
+        setError("No local cookies are available to queue for that domain.");
+        return null;
       }
 
-      await updateFromAction(await deleteDomainCookies({ domain }));
+      if (isDevMode) {
+        return {
+          requestId: `mock-domain-feed-${Date.now()}`,
+          createdAt: new Date().toISOString(),
+          presetId: null,
+          label: options?.label || `Domain review: ${domain}`,
+          description:
+            options?.description ||
+            `The extension will review ${keys.length} cookies from ${domain} locally before cleanup.`,
+          cookieCount: keys.length,
+          domainCount: 1,
+          sampleDomains: [domain],
+          source: "website",
+        };
+      }
+
+      const pending = await requestCookieFeed({
+        keys,
+        label: options?.label || `Domain review: ${domain}`,
+        description:
+          options?.description ||
+          `The extension will review ${keys.length} cookies from ${domain} locally before cleanup.`,
+      });
+
+      if (!pending) {
+        setError("The extension could not create a pending domain review request.");
+        return null;
+      }
+
+      await refresh();
+      return pending;
     },
-    [isDevMode, refresh, updateFromAction]
+    [isDevMode, refresh]
   );
 
   const deleteCookiesAction = useCallback(
-    async (keys: string[]) => {
+    async (
+      keys: string[],
+      options?: { label?: string; description?: string }
+    ): Promise<PendingFeedRequestSummary | null> => {
       if (keys.length === 0) {
-        return;
+        return null;
       }
+
+      setError(null);
 
       if (isDevMode) {
-        await refresh();
-        return;
+        return {
+          requestId: `mock-cookie-feed-${Date.now()}`,
+          createdAt: new Date().toISOString(),
+          presetId: null,
+          label: options?.label || "Cookie review request",
+          description:
+            options?.description ||
+            `The extension will review ${keys.length} selected cookies locally before cleanup.`,
+          cookieCount: keys.length,
+          domainCount: selectedDomain ? 1 : 0,
+          sampleDomains: selectedDomain ? [selectedDomain] : [],
+          source: "website",
+        };
       }
 
-      await updateFromAction(await deleteCookieKeys({ keys }));
+      const pending = await requestCookieFeed({
+        keys,
+        label: options?.label,
+        description: options?.description,
+      });
+
+      if (!pending) {
+        setError("The extension could not create a pending cookie review request.");
+        return null;
+      }
+
+      await refresh();
+      return pending;
     },
-    [isDevMode, refresh, updateFromAction]
+    [isDevMode, refresh, selectedDomain]
   );
 
   const restoreBatchAction = useCallback(
@@ -202,8 +276,8 @@ export function useCookieManagement({
     selectDomain: loadDomainCookies,
     refresh,
     toggleDomainProtection: toggleDomainProtectionAction,
-    deleteDomain: deleteDomainAction,
-    deleteCookies: deleteCookiesAction,
+    queueDomainFeed: deleteDomainAction,
+    queueCookieFeed: deleteCookiesAction,
     restoreBatch: restoreBatchAction,
   };
 }

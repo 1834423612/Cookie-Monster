@@ -1,8 +1,8 @@
 /**
  * Cookie Monster Extension Bridge
  *
- * This module handles communication between the website and the browser extension.
- * All transferred data is sanitized and contains no raw cookie values.
+ * This module handles local in-browser communication between the website and the browser extension.
+ * Privileged cookie access stays inside the extension runtime.
  */
 
 import {
@@ -41,10 +41,9 @@ export type MessageType =
   | "GET_COOKIE_MANAGEMENT_STATE"
   | "GET_DOMAIN_COOKIES"
   | "SET_DOMAIN_PROTECTION"
-  | "DELETE_DOMAIN_COOKIES"
-  | "DELETE_COOKIE_KEYS"
   | "RESTORE_CLEANUP_BATCH"
   | "OPEN_EXTENSION_DASHBOARD"
+  | "OPEN_EXTENSION_POPUP"
   | "EXPORT_REPORT"
   | "GET_EXTENSION_VERSION";
 
@@ -120,6 +119,16 @@ export interface CleanupBatchRestoreRequest {
 }
 
 const EXTENSION_ID_STORAGE_KEY = "cm_extension_id";
+const PAGE_BRIDGE_SOURCE = "cookie-monster-page";
+const EXTENSION_BRIDGE_SOURCE = "cookie-monster-extension";
+const PAGE_BRIDGE_REQUEST_TYPE = "CM_EXTENSION_BRIDGE_REQUEST";
+const PAGE_BRIDGE_RESPONSE_TYPE = "CM_EXTENSION_BRIDGE_RESPONSE";
+const PAGE_BRIDGE_READY_TYPE = "CM_EXTENSION_BRIDGE_READY";
+const PAGE_BRIDGE_READY_DATASET_KEY = "cookieMonsterBridgeReady";
+const PAGE_BRIDGE_READY_ATTRIBUTE = "data-cookie-monster-bridge-ready";
+const PAGE_BRIDGE_READY_WAIT_MS = 1200;
+const PAGE_BRIDGE_TIMEOUT_MS = 1500;
+let pageBridgeRequestSequence = 0;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -178,6 +187,169 @@ function isCookieManagementStateData(value: unknown): value is CookieManagementS
 
 function isVersionData(value: unknown): value is { version: string } {
   return isRecord(value) && typeof value.version === "string";
+}
+
+function hasLocalPageBridgeReadySignal() {
+  return (
+    typeof document !== "undefined" &&
+    document.documentElement?.dataset?.[PAGE_BRIDGE_READY_DATASET_KEY] === "true"
+  );
+}
+
+async function waitForLocalPageBridgeReady(timeoutMs = PAGE_BRIDGE_READY_WAIT_MS) {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  if (hasLocalPageBridgeReadySignal()) {
+    return true;
+  }
+
+  return new Promise<boolean>((resolve) => {
+    let settled = false;
+
+    const cleanup = () => {
+      window.removeEventListener("message", handleMessage);
+      if (observer) {
+        observer.disconnect();
+      }
+      window.clearTimeout(timeoutId);
+    };
+
+    const finish = (ready: boolean) => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      cleanup();
+      resolve(ready);
+    };
+
+    const handleMessage = (event: MessageEvent) => {
+      if (event.source !== window) {
+        return;
+      }
+
+      const data = event.data as
+        | {
+            source?: string;
+            type?: string;
+          }
+        | undefined;
+
+      if (
+        data?.source === EXTENSION_BRIDGE_SOURCE &&
+        data.type === PAGE_BRIDGE_READY_TYPE
+      ) {
+        finish(true);
+      }
+    };
+
+    const observer =
+      typeof MutationObserver === "function" && typeof document !== "undefined"
+        ? new MutationObserver(() => {
+            if (hasLocalPageBridgeReadySignal()) {
+              finish(true);
+            }
+          })
+        : null;
+
+    observer?.observe(document.documentElement, {
+      attributeFilter: [PAGE_BRIDGE_READY_ATTRIBUTE],
+      attributes: true,
+    });
+
+    const timeoutId = window.setTimeout(() => {
+      finish(hasLocalPageBridgeReadySignal());
+    }, timeoutMs);
+
+    window.addEventListener("message", handleMessage);
+  });
+}
+
+async function sendMessageThroughPageBridge(
+  message: ExtensionMessage
+): Promise<ExtensionResponse | null> {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  await waitForLocalPageBridgeReady();
+
+  return new Promise((resolve) => {
+    const requestId = `cm-page-bridge-${Date.now()}-${pageBridgeRequestSequence++}`;
+    let settled = false;
+
+    const cleanup = () => {
+      window.removeEventListener("message", handleMessage);
+      window.clearTimeout(timeoutId);
+    };
+
+    const finish = (response: ExtensionResponse) => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      cleanup();
+      resolve(response);
+    };
+
+    const handleMessage = (event: MessageEvent) => {
+      if (event.source !== window) {
+        return;
+      }
+
+      const data = event.data as
+        | {
+            source?: string;
+            type?: string;
+            requestId?: string;
+            response?: ExtensionResponse;
+          }
+        | undefined;
+
+      if (
+        !data ||
+        data.source !== EXTENSION_BRIDGE_SOURCE ||
+        data.type !== PAGE_BRIDGE_RESPONSE_TYPE ||
+        data.requestId !== requestId
+      ) {
+        return;
+      }
+
+      if (data.response && typeof data.response === "object") {
+        finish(data.response);
+        return;
+      }
+
+      finish({
+        success: false,
+        type: message.type,
+        error: "Malformed response from local extension bridge.",
+      });
+    };
+
+    const timeoutId = window.setTimeout(() => {
+      finish({
+        success: false,
+        type: message.type,
+        error: "Timed out waiting for the local extension bridge.",
+      });
+    }, PAGE_BRIDGE_TIMEOUT_MS);
+
+    window.addEventListener("message", handleMessage);
+    window.postMessage(
+      {
+        source: PAGE_BRIDGE_SOURCE,
+        type: PAGE_BRIDGE_REQUEST_TYPE,
+        requestId,
+        message,
+      },
+      window.location.origin
+    );
+  });
 }
 
 function getCandidateExtensionIds(): string[] {
@@ -241,12 +413,34 @@ async function sendMessageToId(
 export async function sendMessageToExtension(
   message: ExtensionMessage
 ): Promise<ExtensionResponse> {
+  let lastKnownError: string | null = null;
+  const bridgeResponse = await sendMessageThroughPageBridge(message);
+  if (bridgeResponse) {
+    if (bridgeResponse.error) {
+      lastKnownError = bridgeResponse.error;
+    }
+
+    if (bridgeResponse.success) {
+      if (bridgeResponse.data && typeof bridgeResponse.data === "object" && "extensionId" in bridgeResponse.data) {
+        const id = (bridgeResponse.data as { extensionId: string }).extensionId;
+        if (id) {
+          rememberExtensionId(id);
+        }
+      }
+
+      return bridgeResponse;
+    }
+  }
+
   if (typeof chrome === "undefined" || !chrome.runtime) {
-    return { success: false, type: message.type, error: "Extension not available" };
+    return {
+      success: false,
+      type: message.type,
+      error: lastKnownError || "Extension not available",
+    };
   }
 
   const candidates = getCandidateExtensionIds();
-  let lastKnownError: string | null = null;
 
   for (const extensionId of candidates) {
     const response = await sendMessageToId(extensionId, message);
@@ -272,17 +466,11 @@ export async function sendMessageToExtension(
     type: message.type,
     error:
       lastKnownError ||
-      "Unable to connect to Cookie Monster extension. Verify the extension ID and allowed website origin.",
+      "Unable to connect to the Cookie Monster extension through the local browser bridge.",
   };
 }
 
 export async function isExtensionInstalled(): Promise<boolean> {
-  if (process.env.NODE_ENV === "development") {
-    const skipCheck =
-      typeof window !== "undefined" && window.localStorage.getItem("cm_dev_skip_extension") === "true";
-    if (skipCheck) return true;
-  }
-
   try {
     const response = await sendMessageToExtension({ type: "PING" });
     return response.success;
@@ -367,36 +555,6 @@ export async function setDomainProtection(
   return null;
 }
 
-export async function deleteDomainCookies(
-  request: DomainDeleteRequest
-): Promise<CookieManagementState | null> {
-  const response = await sendMessageToExtension({
-    type: "DELETE_DOMAIN_COOKIES",
-    payload: request as unknown as Record<string, unknown>,
-  });
-
-  if (response.success && isCookieManagementStateData(response.data)) {
-    return response.data as CookieManagementState;
-  }
-
-  return null;
-}
-
-export async function deleteCookieKeys(
-  request: CookieDeleteRequest
-): Promise<CookieManagementState | null> {
-  const response = await sendMessageToExtension({
-    type: "DELETE_COOKIE_KEYS",
-    payload: request as unknown as Record<string, unknown>,
-  });
-
-  if (response.success && isCookieManagementStateData(response.data)) {
-    return response.data as CookieManagementState;
-  }
-
-  return null;
-}
-
 export async function restoreCleanupBatch(
   request: CleanupBatchRestoreRequest
 ): Promise<CookieManagementState | null> {
@@ -414,6 +572,11 @@ export async function restoreCleanupBatch(
 
 export async function openExtensionDashboard(): Promise<boolean> {
   const response = await sendMessageToExtension({ type: "OPEN_EXTENSION_DASHBOARD" });
+  return response.success;
+}
+
+export async function openExtensionPopup(): Promise<boolean> {
+  const response = await sendMessageToExtension({ type: "OPEN_EXTENSION_POPUP" });
   return response.success;
 }
 
